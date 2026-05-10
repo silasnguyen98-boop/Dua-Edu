@@ -2151,6 +2151,10 @@ export default function Home() {
                             {Array.from({ length: attendanceSessionCount }, (_, i) => (
                               <th key={i} style={{ textAlign: "center" }}>B.{i + 1}</th>
                             ))}
+                            <th style={{ textAlign: "center" }} title="Có mặt">CM</th>
+                            <th style={{ textAlign: "center" }} title="Vắng">V</th>
+                            <th style={{ textAlign: "center" }} title="Muộn">M</th>
+                            <th style={{ textAlign: "center" }} title="Phép">P</th>
                             <th style={{ textAlign: "center" }}>Điểm CC</th>
                           </tr>
                         ) : (
@@ -2166,39 +2170,55 @@ export default function Home() {
                         {selectedAttendanceClass.enrollments.length ? (
                           selectedAttendanceClass.enrollments.map((enrollment) => {
                             if (selectedAttendanceSession === 0) {
+                              let presentCount = 0;
+                              let absentCount = 0;
+                              let lateCount = 0;
+                              let excusedCount = 0;
+
+                              const sessionCells = Array.from({ length: attendanceSessionCount }, (_, i) => {
+                                const record = attendanceRecords.find(
+                                  (r) => String(r.enrollment_id) === enrollment.id && Number(r.session_number) === i + 1
+                                );
+                                const status = record?.status ? String(record.status) : "-";
+                                const shortStatus = status === "present" ? "✓" : status === "absent" ? "V" : status === "late" ? "M" : status === "excused" ? "P" : "-";
+                                
+                                if (status === "present") presentCount++;
+                                if (status === "absent") absentCount++;
+                                if (status === "late") lateCount++;
+                                if (status === "excused") excusedCount++;
+
+                                let statusBg = "transparent";
+                                let statusColor = "#667085";
+                                if (status === "present") { statusBg = "#dcfce7"; statusColor = "#047857"; }
+                                if (status === "absent") { statusBg = "#fee2e2"; statusColor = "#b42318"; }
+                                if (status === "late") { statusBg = "#fef3c7"; statusColor = "#92400e"; }
+                                if (status === "excused") { statusBg = "#e0f2fe"; statusColor = "#0369a1"; }
+
+                                return (
+                                  <td key={i} style={{ textAlign: "center" }}>
+                                    <span 
+                                      style={{ 
+                                        display: "inline-grid", width: "24px", height: "24px", 
+                                        placeItems: "center", borderRadius: "4px", 
+                                        fontSize: "12px", fontWeight: "bold", 
+                                        background: statusBg, color: statusColor 
+                                      }} 
+                                      title={status}
+                                    >
+                                      {shortStatus}
+                                    </span>
+                                  </td>
+                                );
+                              });
+
                               return (
                                 <tr key={enrollment.id}>
                                   <td>{enrollment.name}</td>
-                                  {Array.from({ length: attendanceSessionCount }, (_, i) => {
-                                    const record = attendanceRecords.find(
-                                      (r) => String(r.enrollment_id) === enrollment.id && Number(r.session_number) === i + 1
-                                    );
-                                    const status = record?.status ? String(record.status) : "-";
-                                    const shortStatus = status === "present" ? "✓" : status === "absent" ? "V" : status === "late" ? "M" : status === "excused" ? "P" : "-";
-                                    
-                                    let statusBg = "transparent";
-                                    let statusColor = "#667085";
-                                    if (status === "present") { statusBg = "#dcfce7"; statusColor = "#047857"; }
-                                    if (status === "absent") { statusBg = "#fee2e2"; statusColor = "#b42318"; }
-                                    if (status === "late") { statusBg = "#fef3c7"; statusColor = "#92400e"; }
-                                    if (status === "excused") { statusBg = "#e0f2fe"; statusColor = "#0369a1"; }
-
-                                    return (
-                                      <td key={i} style={{ textAlign: "center" }}>
-                                        <span 
-                                          style={{ 
-                                            display: "inline-grid", width: "24px", height: "24px", 
-                                            placeItems: "center", borderRadius: "4px", 
-                                            fontSize: "12px", fontWeight: "bold", 
-                                            background: statusBg, color: statusColor 
-                                          }} 
-                                          title={status}
-                                        >
-                                          {shortStatus}
-                                        </span>
-                                      </td>
-                                    );
-                                  })}
+                                  {sessionCells}
+                                  <td style={{ textAlign: "center", fontWeight: "bold", color: "#047857" }}>{presentCount}</td>
+                                  <td style={{ textAlign: "center", fontWeight: "bold", color: "#b91c1c" }}>{absentCount}</td>
+                                  <td style={{ textAlign: "center", fontWeight: "bold", color: "#b45309" }}>{lateCount}</td>
+                                  <td style={{ textAlign: "center", fontWeight: "bold", color: "#0369a1" }}>{excusedCount}</td>
                                   <td style={{ textAlign: "center", fontWeight: "bold" }}>{formatValue(enrollment.attendanceScore)}</td>
                                 </tr>
                               );
