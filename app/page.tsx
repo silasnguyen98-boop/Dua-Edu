@@ -142,6 +142,7 @@ const tableConfigs: TableConfig[] = [
       "total_sessions",
       "schedule",
       "study_time",
+      "total_assignments",
     ],
     searchFields: ["class_name", "class_code", "schedule", "study_time"],
     fields: [
@@ -169,6 +170,7 @@ const tableConfigs: TableConfig[] = [
       { name: "class_code", label: "Mã lớp", type: "text" },
       { name: "start_date", label: "Ngày bắt đầu", type: "date" },
       { name: "total_sessions", label: "Số buổi học", type: "number" },
+      { name: "total_assignments", label: "Số bài tập", type: "number" },
       { name: "schedule", label: "Lịch học", type: "text", exampleValue: "Thứ 2, 4, 6" },
       { name: "study_time", label: "Thời gian học", type: "text", exampleValue: "19:30 - 21:30" },
       { name: "note", label: "Ghi chú", type: "textarea" },
@@ -514,6 +516,7 @@ export default function Home() {
           studyTime: String(classRow.study_time ?? "-"),
           teacherName: String(teacher?.full_name ?? "-"),
           totalSessions: classRow.total_sessions ? String(classRow.total_sessions) : "-",
+          totalAssignments: classRow.total_assignments ? String(classRow.total_assignments) : "-",
         };
       })
       .sort((a, b) => b.enrollmentCount - a.enrollmentCount);
@@ -2027,6 +2030,7 @@ export default function Home() {
                       <th>Giảng viên</th>
                       <th>Ngày bắt đầu</th>
                       <th>Số buổi</th>
+                      <th>Số bài tập</th>
                       <th>Lịch học</th>
                       <th>Thời gian học</th>
                       <th>Sĩ số</th>
@@ -2043,6 +2047,7 @@ export default function Home() {
                           <td>{item.teacherName}</td>
                           <td>{formatValue(item.startDate)}</td>
                           <td>{item.totalSessions}</td>
+                          <td>{item.totalAssignments}</td>
                           <td>{item.schedule}</td>
                           <td>{item.studyTime}</td>
                           <td>
