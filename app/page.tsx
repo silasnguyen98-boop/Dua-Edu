@@ -374,6 +374,7 @@ export default function Home() {
   const [openRelationPicker, setOpenRelationPicker] = useState<string | null>(null);
   const [updatingEnrollmentId, setUpdatingEnrollmentId] = useState<string | null>(null);
   const [classStatusFilter, setClassStatusFilter] = useState("all");
+  const [classManagementSearch, setClassManagementSearch] = useState("");
   const [search, setSearch] = useState(getInitialSearch);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -2116,29 +2117,54 @@ export default function Home() {
           </section>
         )}
 
-        {isClassManagementView && (
-          <section className="analytics-grid" aria-label="Quản lý lớp">
-            <article className="analytics-card class-size-card wide" style={{ paddingTop: "24px" }}>
-              <div className="class-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Lớp</th>
-                      <th>Mã lớp</th>
-                      <th>Khoá học</th>
-                      <th>Giảng viên</th>
-                      <th>Ngày bắt đầu</th>
-                      <th>Số buổi</th>
-                      <th>Số bài tập</th>
-                      <th>Lịch học</th>
-                      <th>Thời gian học</th>
-                      <th>Sĩ số</th>
-                      <th>Danh sách</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {analytics.classItems.length ? (
-                      analytics.classItems.map((item) => (
+        {isClassManagementView && (() => {
+          const filteredClassItems = classManagementSearch
+            ? analytics.classItems.filter((item) =>
+                item.className.toLowerCase().includes(classManagementSearch.toLowerCase()) ||
+                item.classCode.toLowerCase().includes(classManagementSearch.toLowerCase()) ||
+                item.courseName.toLowerCase().includes(classManagementSearch.toLowerCase()) ||
+                item.teacherName.toLowerCase().includes(classManagementSearch.toLowerCase())
+              )
+            : analytics.classItems;
+
+          return (
+            <section className="analytics-grid" aria-label="Quản lý lớp">
+              <article className="analytics-card class-size-card wide" style={{ paddingTop: "24px" }}>
+                <div style={{ marginBottom: "24px", display: "flex", justifyContent: "flex-end" }}>
+                  <input
+                    type="text"
+                    placeholder="Tìm theo tên lớp, mã lớp, giảng viên..."
+                    value={classManagementSearch}
+                    onChange={(e) => setClassManagementSearch(e.target.value)}
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: "8px",
+                      border: "1px solid var(--border)",
+                      width: "300px",
+                      maxWidth: "100%",
+                    }}
+                  />
+                </div>
+                <div className="class-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Lớp</th>
+                        <th>Mã lớp</th>
+                        <th>Khoá học</th>
+                        <th>Giảng viên</th>
+                        <th>Ngày bắt đầu</th>
+                        <th>Số buổi</th>
+                        <th>Số bài tập</th>
+                        <th>Lịch học</th>
+                        <th>Thời gian học</th>
+                        <th>Sĩ số</th>
+                        <th>Danh sách</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredClassItems.length ? (
+                        filteredClassItems.map((item) => (
                         <tr key={item.id}>
                           <td>{item.className}</td>
                           <td>{item.classCode}</td>
@@ -2168,12 +2194,13 @@ export default function Home() {
                         <td colSpan={10}>Chưa có dữ liệu lớp hoặc ghi danh.</td>
                       </tr>
                     )}
-                  </tbody>
-                </table>
-              </div>
-            </article>
-          </section>
-        )}
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            </section>
+          );
+        })}
 
         {isClassDetailView && (
           <section className="analytics-grid" aria-label="Chi tiết lớp">
