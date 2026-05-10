@@ -5,7 +5,7 @@ import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 import { supabase } from "@/lib/supabase/client";
 
-type FieldType = "text" | "email" | "number" | "datetime-local" | "textarea" | "select";
+type FieldType = "text" | "email" | "number" | "date" | "datetime-local" | "textarea" | "select";
 
 type FieldConfig = {
   name: string;
@@ -116,7 +116,7 @@ const tableConfigs: TableConfig[] = [
     name: "classes",
     label: "Lớp học",
     description: "Gán lớp với khoá học và giảng viên phụ trách.",
-    columns: ["class_name", "class_code", "course_id", "teacher_id", "created_at"],
+    columns: ["class_name", "class_code", "course_id", "teacher_id", "start_date", "total_sessions"],
     searchFields: ["class_name", "class_code"],
     fields: [
       {
@@ -141,6 +141,8 @@ const tableConfigs: TableConfig[] = [
       },
       { name: "class_name", label: "Tên lớp", type: "text", required: true },
       { name: "class_code", label: "Mã lớp", type: "text" },
+      { name: "start_date", label: "Ngày bắt đầu", type: "date" },
+      { name: "total_sessions", label: "Số buổi học", type: "number" },
       { name: "note", label: "Ghi chú", type: "textarea" },
     ],
   },
@@ -637,6 +639,8 @@ export default function Home() {
         payload[field.name] = null;
       } else if (field.type === "number") {
         payload[field.name] = Number(rawValue);
+      } else if (field.type === "date") {
+        payload[field.name] = rawValue;
       } else if (field.type === "datetime-local") {
         payload[field.name] = new Date(rawValue).toISOString();
       } else {
@@ -676,6 +680,24 @@ export default function Home() {
 
       const dateValue = new Date(String(value));
       return Number.isNaN(dateValue.getTime()) ? null : dateValue.toISOString();
+    }
+
+    if (field.type === "date") {
+      if (typeof value === "number") {
+        const parsedDate = XLSX.SSF.parse_date_code(value);
+        if (!parsedDate) {
+          return null;
+        }
+
+        return `${parsedDate.y}-${String(parsedDate.m).padStart(2, "0")}-${String(parsedDate.d).padStart(2, "0")}`;
+      }
+
+      const dateValue = new Date(String(value));
+      if (!Number.isNaN(dateValue.getTime())) {
+        return dateValue.toISOString().slice(0, 10);
+      }
+
+      return String(value).trim();
     }
 
     return String(value).trim();
@@ -752,6 +774,10 @@ export default function Home() {
 
     if (field.type === "datetime-local") {
       return "2026-05-10T09:00";
+    }
+
+    if (field.type === "date") {
+      return "2026-05-10";
     }
 
     if (field.name === "email") {
