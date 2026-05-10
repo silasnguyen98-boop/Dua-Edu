@@ -165,7 +165,7 @@ const tableConfigs: TableConfig[] = [
     name: "enrollments",
     label: "Ghi danh",
     description: "Quản lý học viên ghi danh vào từng lớp.",
-    columns: ["student_id", "class_id", "note", "created_at"],
+    columns: ["student_id", "class_id", "attendance_score", "note", "created_at"],
     searchFields: ["note"],
     fields: [
       {
@@ -188,6 +188,7 @@ const tableConfigs: TableConfig[] = [
         optionsKey: "classes",
         optionLabel: "class_name",
       },
+      { name: "attendance_score", label: "Điểm chuyên cần", type: "number" },
       { name: "note", label: "Ghi chú", type: "textarea" },
     ],
   },
@@ -453,6 +454,7 @@ export default function Home() {
               : undefined;
 
             return {
+              attendanceScore: enrollment.attendance_score ? Number(enrollment.attendance_score) : null,
               createdAt: enrollment.created_at ? String(enrollment.created_at) : "",
               email: String(student?.email ?? "-"),
               id: String(enrollment.id ?? ""),
@@ -1977,6 +1979,7 @@ export default function Home() {
                         <th>Email</th>
                         <th>Số điện thoại</th>
                         <th>Ngày ghi danh</th>
+                        <th>Điểm chuyên cần</th>
                         <th>Trạng thái</th>
                       </tr>
                     </thead>
@@ -1988,6 +1991,7 @@ export default function Home() {
                             <td>{enrollment.email}</td>
                             <td>{enrollment.phone}</td>
                             <td>{formatValue(enrollment.createdAt)}</td>
+                            <td>{formatValue(enrollment.attendanceScore)}</td>
                             <td>
                               <select
                                 className={`status-select ${getEnrollmentStatusClass(enrollment.status)}`}
