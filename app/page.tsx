@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 import { supabase } from "@/lib/supabase/client";
 
@@ -35,6 +36,8 @@ type TableConfig = {
 type Row = Record<string, string | number | null>;
 type DataState = Record<TableName, Row[]>;
 type FormState = Record<string, string>;
+
+const logoUrl = "https://i.ibb.co/3yKrstMS/Thie-t-ke-chu-a-co-te-n-20.png";
 
 const tableConfigs: TableConfig[] = [
   {
@@ -432,20 +435,113 @@ export default function Home() {
     XLSX.writeFile(workbook, filename);
   }
 
-  function downloadTemplate() {
-    const templateRow = activeConfig.fields.reduce<Record<string, string>>((row, field) => {
-      row[field.name] =
-        field.type === "number"
-          ? "0"
-          : field.type === "datetime-local"
-            ? "2026-05-10T09:00"
-            : field.optionsKey
-              ? "paste_uuid_here"
-              : "";
-      return row;
-    }, {});
+  function getTemplateValue(field: FieldConfig) {
+    if (field.type === "number") {
+      return 0;
+    }
 
-    downloadWorkbook(`${activeConfig.name}-template.xlsx`, [templateRow]);
+    if (field.type === "datetime-local") {
+      return "2026-05-10T09:00";
+    }
+
+    if (field.optionsKey) {
+      return "paste_uuid_here";
+    }
+
+    if (field.name === "email") {
+      return "example@dua-edu.com";
+    }
+
+    if (field.name === "phone") {
+      return "0900000000";
+    }
+
+    if (field.name.includes("status")) {
+      return "active";
+    }
+
+    return `Nhập ${field.label.toLowerCase()}`;
+  }
+
+  async function downloadTemplate() {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(activeConfig.label);
+    const fieldNames = activeConfig.fields.map((field) => field.name);
+
+    workbook.creator = "Dua-Edu";
+    workbook.created = new Date();
+
+    worksheet.mergeCells(1, 1, 1, fieldNames.length + 1);
+    worksheet.mergeCells(2, 1, 2, fieldNames.length + 1);
+    worksheet.getCell("A1").value = `Dua-Edu - File mẫu ${activeConfig.label}`;
+    worksheet.getCell("A2").value =
+      "Giữ nguyên tên cột ở dòng 4. Sửa hoặc xoá dòng ví dụ ở dòng 5 trước khi import.";
+    worksheet.getCell("A1").font = { bold: true, color: { argb: "FFFFFFFF" }, size: 16 };
+    worksheet.getCell("A1").fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF047857" },
+    };
+    worksheet.getCell("A1").alignment = { horizontal: "center", vertical: "middle" };
+    worksheet.getCell("A2").font = { color: { argb: "FF166534" }, italic: true };
+    worksheet.getCell("A2").alignment = { horizontal: "center" };
+
+    const headerRow = worksheet.getRow(4);
+    headerRow.values = ["", ...fieldNames];
+    headerRow.height = 24;
+    headerRow.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF059669" },
+      };
+      cell.border = {
+        top: { style: "thin", color: { argb: "FFBBF7D0" } },
+        left: { style: "thin", color: { argb: "FFBBF7D0" } },
+        bottom: { style: "thin", color: { argb: "FFBBF7D0" } },
+        right: { style: "thin", color: { argb: "FFBBF7D0" } },
+      };
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+    });
+
+    const exampleRow = worksheet.getRow(5);
+    exampleRow.values = ["", ...activeConfig.fields.map(getTemplateValue)];
+    exampleRow.eachCell((cell) => {
+      cell.font = { color: { argb: "FF14532D" } };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFDCFCE7" },
+      };
+      cell.border = {
+        bottom: { style: "thin", color: { argb: "FFE5E7EB" } },
+      };
+    });
+
+    worksheet.columns = [
+      { key: "spacer", width: 3 },
+      ...activeConfig.fields.map((field) => ({
+        key: field.name,
+        width: Math.max(18, field.label.length + 8, field.name.length + 6),
+      })),
+    ];
+    worksheet.views = [{ state: "frozen", ySplit: 4 }];
+    worksheet.autoFilter = {
+      from: { row: 4, column: 2 },
+      to: { row: 4, column: fieldNames.length + 1 },
+    };
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${activeConfig.name}-template.xlsx`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   function exportData() {
@@ -475,7 +571,7 @@ export default function Home() {
 
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
         workbook.Sheets[firstSheetName],
-        { defval: "" },
+        { defval: "", range: 3 },
       );
 
       const payload = rows
@@ -557,9 +653,12 @@ export default function Home() {
   return (
     <main className="admin-shell">
       <aside className="sidebar">
-        <div>
-          <p className="eyebrow">Dua-Edu</p>
-          <h1>Quản trị đào tạo</h1>
+        <div className="brand-block">
+          <img alt="Dua-Edu" className="brand-logo" src={logoUrl} />
+          <div>
+            <p className="eyebrow">Dua-Edu</p>
+            <h1>Quản trị đào tạo</h1>
+          </div>
         </div>
 
         <nav className="nav-tabs" aria-label="Bảng dữ liệu">
@@ -588,7 +687,7 @@ export default function Home() {
             <button className="secondary-button" onClick={() => void loadAllTables()} type="button">
               Làm mới
             </button>
-            <button className="secondary-button" onClick={downloadTemplate} type="button">
+            <button className="secondary-button" onClick={() => void downloadTemplate()} type="button">
               Tải file mẫu
             </button>
             <button className="secondary-button" onClick={exportData} type="button">
