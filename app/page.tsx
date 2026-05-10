@@ -26,7 +26,7 @@ type TableName =
   | "classes"
   | "enrollments"
   | "certificates";
-type ViewName = "dashboard" | "classManagement" | "classDetail" | TableName;
+type ViewName = "dashboard" | "classManagement" | "classDetail" | "attendance" | TableName;
 
 type TableConfig = {
   name: TableName;
@@ -40,6 +40,7 @@ type TableConfig = {
 type Row = Record<string, string | number | null>;
 type DataState = Record<TableName, Row[]>;
 type FormState = Record<string, string>;
+type AttendanceRecord = Row;
 type ChartItem = {
   color: string;
   id: string;
@@ -67,6 +68,12 @@ const enrollmentStatusOptions = [
   { label: "Hoàn thành", value: "completed" },
   { label: "Tạm dừng", value: "paused" },
   { label: "Đã huỷ", value: "cancelled" },
+];
+const attendanceStatusOptions = [
+  { label: "Có mặt", value: "present" },
+  { label: "Vắng", value: "absent" },
+  { label: "Đi muộn", value: "late" },
+  { label: "Có phép", value: "excused" },
 ];
 const chartColors = ["#059669", "#22c55e", "#14b8a6", "#84cc16", "#0f766e", "#65a30d"];
 
@@ -265,7 +272,11 @@ const isTableName = (value: string | null): value is TableName =>
   tableConfigs.some((config) => config.name === value);
 
 const isViewName = (value: string | null): value is ViewName =>
-  value === "dashboard" || value === "classManagement" || value === "classDetail" || isTableName(value);
+  value === "dashboard" ||
+  value === "classManagement" ||
+  value === "classDetail" ||
+  value === "attendance" ||
+  isTableName(value);
 
 const getInitialView = () => {
   if (typeof window === "undefined") {
@@ -306,9 +317,13 @@ const getInitialClassId = () => {
 export default function Home() {
   const [activeView, setActiveView] = useState<ViewName>(getInitialView);
   const [data, setData] = useState<DataState>(emptyData);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [attendanceError, setAttendanceError] = useState("");
   const [form, setForm] = useState<FormState>(() => buildEmptyForm(tableConfigs[0].fields));
   const [editingRow, setEditingRow] = useState<Row | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(getInitialClassId);
+  const [selectedAttendanceClassId, setSelectedAttendanceClassId] = useState<string | null>(getInitialClassId);
+  const [selectedAttendanceSession, setSelectedAttendanceSession] = useState(1);
   const [showReturningDetails, setShowReturningDetails] = useState(false);
   const [relationQueries, setRelationQueries] = useState<Record<string, string>>({});
   const [openRelationPicker, setOpenRelationPicker] = useState<string | null>(null);
@@ -324,6 +339,7 @@ export default function Home() {
   const isDashboardView = activeView === "dashboard";
   const isClassManagementView = activeView === "classManagement";
   const isClassDetailView = activeView === "classDetail";
+  const isAttendanceView = activeView === "attendance";
   const isDataView = isTableName(activeView);
 
   const activeConfig = useMemo(
@@ -443,6 +459,7 @@ export default function Home() {
               name: String(student?.full_name ?? String(enrollment.student_id ?? "-")),
               phone: String(student?.phone ?? "-"),
               status: String(enrollment.status ?? ""),
+              studentId: String(enrollment.student_id ?? ""),
             };
           }),
           id: classId,
@@ -491,6 +508,32 @@ export default function Home() {
     () => analytics.classItems.find((item) => item.id === selectedClassId) ?? null,
     [analytics.classItems, selectedClassId],
   );
+
+  const selectedAttendanceClass = useMemo(
+    () => analytics.classItems.find((item) => item.id === selectedAttendanceClassId) ?? null,
+    [analytics.classItems, selectedAttendanceClassId],
+  );
+
+  const attendanceSessionCount = useMemo(() => {
+    const totalSessions = Number(selectedAttendanceClass?.totalSessions ?? 0);
+    return Number.isFinite(totalSessions) && totalSessions > 0 ? Math.floor(totalSessions) : 1;
+  }, [selectedAttendanceClass]);
+
+  const attendanceRecordsByEnrollment = useMemo(() => {
+    const records = new Map<string, AttendanceRecord>();
+
+    attendanceRecords
+      .filter(
+        (record) =>
+          String(record.class_id ?? "") === String(selectedAttendanceClassId ?? "") &&
+          Number(record.session_number ?? 0) === selectedAttendanceSession,
+      )
+      .forEach((record) => {
+        records.set(String(record.enrollment_id ?? ""), record);
+      });
+
+    return records;
+  }, [attendanceRecords, selectedAttendanceClassId, selectedAttendanceSession]);
 
   const selectedClassStatusOptions = useMemo(() => {
     const customStatuses =
@@ -560,7 +603,7 @@ export default function Home() {
   }, [activeConfig]);
 
   useEffect(() => {
-    if (!isClassManagementView && !isClassDetailView) {
+    if (!isClassManagementView && !isClassDetailView && !isAttendanceView) {
       setSelectedClassId(null);
       setClassStatusFilter("all");
       window.localStorage.removeItem(storageKeys.classId);
@@ -569,7 +612,23 @@ export default function Home() {
     if (!isDashboardView) {
       setShowReturningDetails(false);
     }
-  }, [isClassManagementView, isClassDetailView, isDashboardView]);
+  }, [isAttendanceView, isClassManagementView, isClassDetailView, isDashboardView]);
+
+  useEffect(() => {
+    if (!isAttendanceView || selectedAttendanceClassId || !analytics.classItems.length) {
+      return;
+    }
+
+    setSelectedAttendanceClassId(analytics.classItems[0].id);
+  }, [analytics.classItems, isAttendanceView, selectedAttendanceClassId]);
+
+  useEffect(() => {
+    if (selectedAttendanceSession <= attendanceSessionCount) {
+      return;
+    }
+
+    setSelectedAttendanceSession(attendanceSessionCount);
+  }, [attendanceSessionCount, selectedAttendanceSession]);
 
   useEffect(() => {
     window.localStorage.setItem(storageKeys.view, activeView);
@@ -579,9 +638,11 @@ export default function Home() {
     url.searchParams.set("view", activeView);
     url.searchParams.delete("table");
 
-    if (isClassDetailView && selectedClassId) {
-      url.searchParams.set("classId", selectedClassId);
-      window.localStorage.setItem(storageKeys.classId, selectedClassId);
+    const urlClassId = isAttendanceView ? selectedAttendanceClassId : selectedClassId;
+
+    if ((isClassDetailView || isAttendanceView) && urlClassId) {
+      url.searchParams.set("classId", urlClassId);
+      window.localStorage.setItem(storageKeys.classId, urlClassId);
     } else {
       url.searchParams.delete("classId");
     }
@@ -593,7 +654,15 @@ export default function Home() {
     }
 
     window.history.replaceState(null, "", url);
-  }, [activeView, isClassDetailView, isDataView, search, selectedClassId]);
+  }, [
+    activeView,
+    isAttendanceView,
+    isClassDetailView,
+    isDataView,
+    search,
+    selectedAttendanceClassId,
+    selectedClassId,
+  ]);
 
   useEffect(() => {
     const scrollY = Number(window.localStorage.getItem(storageKeys.scrollY) ?? "0");
@@ -640,9 +709,29 @@ export default function Home() {
 
     if (entries) {
       setData(Object.fromEntries(entries) as DataState);
+      await loadAttendanceRecords();
     }
 
     setIsLoading(false);
+  }
+
+  async function loadAttendanceRecords() {
+    setAttendanceError("");
+
+    const { data: rows, error: tableError } = await supabase
+      .from("attendance_records")
+      .select("*")
+      .order("session_number", { ascending: true });
+
+    if (tableError) {
+      setAttendanceRecords([]);
+      setAttendanceError(
+        "Chưa tìm thấy bảng attendance_records. Hãy chạy migration Supabase mới để dùng tính năng điểm danh.",
+      );
+      return;
+    }
+
+    setAttendanceRecords(rows ?? []);
   }
 
   function updateFormValue(name: string, value: string) {
@@ -1305,6 +1394,12 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function openAttendanceView() {
+    setSelectedAttendanceClassId((current) => current ?? analytics.classItems[0]?.id ?? null);
+    setActiveView("attendance");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function getEnrollmentStatusClass(status: string) {
     if (enrollmentStatusOptions.some((option) => option.value === status)) {
       return `status-${status}`;
@@ -1342,6 +1437,65 @@ export default function Home() {
     }));
     setMessage("Đã cập nhật trạng thái ghi danh.");
     setUpdatingEnrollmentId(null);
+  }
+
+  function getAttendanceStatusClass(status: string) {
+    if (attendanceStatusOptions.some((option) => option.value === status)) {
+      return `attendance-${status}`;
+    }
+
+    return "attendance-empty";
+  }
+
+  async function updateAttendanceStatus(
+    enrollment: { id: string; studentId: string },
+    status: string,
+  ) {
+    if (!selectedAttendanceClass || !enrollment.id || !enrollment.studentId) {
+      setError("Không đủ dữ liệu để cập nhật điểm danh.");
+      return;
+    }
+
+    setError("");
+    setMessage("");
+
+    const payload = {
+      class_id: selectedAttendanceClass.id,
+      enrollment_id: enrollment.id,
+      session_number: selectedAttendanceSession,
+      status,
+      student_id: enrollment.studentId,
+    };
+
+    const { data: savedRows, error: saveError } = await supabase
+      .from("attendance_records")
+      .upsert(payload, { onConflict: "enrollment_id,session_number" })
+      .select("*");
+
+    if (saveError) {
+      setError(saveError.message);
+      return;
+    }
+
+    const savedRecord = savedRows?.[0] as AttendanceRecord | undefined;
+
+    if (savedRecord) {
+      setAttendanceRecords((current) => {
+        const exists = current.some((record) => String(record.id) === String(savedRecord.id));
+
+        if (exists) {
+          return current.map((record) =>
+            String(record.id) === String(savedRecord.id) ? savedRecord : record,
+          );
+        }
+
+        return [...current, savedRecord];
+      });
+    } else {
+      await loadAttendanceRecords();
+    }
+
+    setMessage("Đã cập nhật điểm danh.");
   }
 
   function renderBarChart(items: ChartItem[], emptyText: string) {
@@ -1480,14 +1634,18 @@ export default function Home() {
       ? "Quản lý lớp"
       : isClassDetailView
         ? "Danh sách ghi danh"
-        : "Quản trị dữ liệu";
+        : isAttendanceView
+          ? "Điểm danh"
+          : "Quản trị dữ liệu";
   const pageTitle = isDashboardView
     ? "Dashboard"
     : isClassManagementView
       ? "Học viên từng lớp và sĩ số"
       : isClassDetailView
         ? selectedClass?.className ?? "Chi tiết lớp"
-        : activeConfig.label;
+        : isAttendanceView
+          ? "Điểm danh theo buổi học"
+          : activeConfig.label;
   const pageDescription = isDashboardView
     ? "Theo dõi ghi danh theo khoá học, giảng viên và tỉ lệ quay lại."
     : isClassManagementView
@@ -1496,7 +1654,9 @@ export default function Home() {
         ? selectedClass
           ? `${selectedClass.courseName} · ${selectedClass.teacherName} · Sĩ số ${selectedClass.enrollmentCount}`
           : "Không tìm thấy lớp trong dữ liệu hiện tại."
-        : activeConfig.description;
+        : isAttendanceView
+          ? "Chọn lớp, chọn buổi học và cập nhật trạng thái điểm danh cho từng học viên."
+          : activeConfig.description;
 
   return (
     <main className="admin-shell">
@@ -1504,7 +1664,6 @@ export default function Home() {
         <div className="brand-block">
           <img alt="Dua-Edu" className="brand-logo" src={logoUrl} />
           <div>
-            <p className="eyebrow">Dua-Edu</p>
             <h1>Quản trị đào tạo</h1>
           </div>
         </div>
@@ -1524,6 +1683,14 @@ export default function Home() {
             type="button"
           >
             <span>Quản lý lớp</span>
+            <strong>{data.classes.length}</strong>
+          </button>
+          <button
+            className={isAttendanceView ? "active" : ""}
+            onClick={openAttendanceView}
+            type="button"
+          >
+            <span>Điểm danh</span>
             <strong>{data.classes.length}</strong>
           </button>
           {tableConfigs.map((config) => (
@@ -1873,6 +2040,119 @@ export default function Home() {
                 </div>
               </article>
             )}
+          </section>
+        )}
+
+        {isAttendanceView && (
+          <section className="analytics-grid" aria-label="Điểm danh theo buổi học">
+            <article className="analytics-card detail-card wide">
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">Điểm danh</p>
+                  <h3>Theo buổi học của từng lớp</h3>
+                  <p>
+                    Chọn lớp và buổi học, sau đó cập nhật trạng thái điểm danh cho từng học viên.
+                  </p>
+                </div>
+              </div>
+
+              <div className="attendance-toolbar">
+                <label>
+                  <span>Lớp học</span>
+                  <select
+                    onChange={(event) => {
+                      setSelectedAttendanceClassId(event.target.value || null);
+                      setSelectedAttendanceSession(1);
+                    }}
+                    value={selectedAttendanceClassId ?? ""}
+                  >
+                    <option value="">Chọn lớp học</option>
+                    {analytics.classItems.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.classCode} - {item.className}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  <span>Buổi học</span>
+                  <select
+                    onChange={(event) => setSelectedAttendanceSession(Number(event.target.value))}
+                    value={selectedAttendanceSession}
+                  >
+                    {Array.from({ length: attendanceSessionCount }, (_, index) => index + 1).map(
+                      (sessionNumber) => (
+                        <option key={sessionNumber} value={sessionNumber}>
+                          Buổi {sessionNumber}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </label>
+              </div>
+
+              {attendanceError && <div className="notice error">{attendanceError}</div>}
+
+              {selectedAttendanceClass ? (
+                <>
+                  <p className="filter-summary">
+                    {selectedAttendanceClass.courseName} · {selectedAttendanceClass.teacherName} ·{" "}
+                    {selectedAttendanceClass.enrollmentCount} học viên ghi danh
+                  </p>
+                  <div className="class-table attendance-table">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Học viên</th>
+                          <th>Email</th>
+                          <th>Số điện thoại</th>
+                          <th>Trạng thái điểm danh</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedAttendanceClass.enrollments.length ? (
+                          selectedAttendanceClass.enrollments.map((enrollment) => {
+                            const record = attendanceRecordsByEnrollment.get(enrollment.id);
+                            const status = String(record?.status ?? "present");
+
+                            return (
+                              <tr key={enrollment.id}>
+                                <td>{enrollment.name}</td>
+                                <td>{enrollment.email}</td>
+                                <td>{enrollment.phone}</td>
+                                <td>
+                                  <select
+                                    className={`attendance-select ${getAttendanceStatusClass(status)}`}
+                                    disabled={Boolean(attendanceError)}
+                                    onChange={(event) =>
+                                      void updateAttendanceStatus(enrollment, event.target.value)
+                                    }
+                                    value={status}
+                                  >
+                                    {attendanceStatusOptions.map((option) => (
+                                      <option key={option.value} value={option.value}>
+                                        {option.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan={4}>Lớp này chưa có học viên ghi danh.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <p className="empty-chart">Chưa có lớp để điểm danh.</p>
+              )}
+            </article>
           </section>
         )}
 
