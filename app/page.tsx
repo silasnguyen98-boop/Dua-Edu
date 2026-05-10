@@ -67,9 +67,9 @@ const courseTypeOptions = [
 ];
 const enrollmentStatusOptions = [
   { label: "Đang học", value: "active" },
-  { label: "Chờ xử lý", value: "pending" },
   { label: "Hoàn thành", value: "completed" },
-  { label: "Tạm dừng", value: "paused" },
+  { label: "Bỏ học", value: "dropped" },
+  { label: "Bảo lưu", value: "reserved" },
   { label: "Đã huỷ", value: "cancelled" },
 ];
 const attendanceStatusOptions = [
