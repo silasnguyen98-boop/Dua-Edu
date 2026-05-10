@@ -1,17 +1,20 @@
 :root {
   color-scheme: light;
-  --background: #eef2f6;
-  --foreground: #111827;
-  --muted: #667085;
-  --border: #d7dde6;
+  --background: #f3f6fb;
+  --foreground: #0f172a;
+  --muted: #64748b;
+  --border: #dbe3ef;
   --surface: #ffffff;
-  --surface-soft: #f8fafc;
-  --accent: #0f766e;
-  --accent-dark: #115e59;
+  --surface-soft: #f8fbff;
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+  --accent-soft: #dbeafe;
+  --nav: #0f172a;
   --danger: #b42318;
   --danger-soft: #fee4e2;
   --success-soft: #dcfae6;
-  --shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+  --shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+  --shadow-soft: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
 * {
@@ -20,7 +23,9 @@
 
 body {
   margin: 0;
-  background: var(--background);
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.10), transparent 34%),
+    linear-gradient(180deg, #f8fbff 0%, var(--background) 52%, #edf2f8 100%);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -39,7 +44,7 @@ button {
 .admin-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 292px 1fr;
 }
 
 .sidebar {
@@ -50,8 +55,11 @@ button {
   flex-direction: column;
   gap: 28px;
   padding: 28px 20px;
-  background: #111827;
+  background:
+    linear-gradient(180deg, rgba(37, 99, 235, 0.18), transparent 38%),
+    var(--nav);
   color: #ffffff;
+  box-shadow: 10px 0 35px rgba(15, 23, 42, 0.10);
 }
 
 .eyebrow {
@@ -64,7 +72,7 @@ button {
 }
 
 .sidebar .eyebrow {
-  color: #5eead4;
+  color: #93c5fd;
 }
 
 h1,
@@ -100,7 +108,7 @@ p {
 
 .nav-tabs {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .nav-tabs button {
@@ -108,20 +116,22 @@ p {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  min-height: 44px;
+  min-height: 48px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 11px 12px;
   background: rgba(255, 255, 255, 0.04);
-  color: #d1d5db;
+  color: #cbd5e1;
   text-align: left;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
 }
 
 .nav-tabs button.active,
 .nav-tabs button:hover {
-  border-color: rgba(94, 234, 212, 0.6);
-  background: rgba(20, 184, 166, 0.14);
+  border-color: rgba(147, 197, 253, 0.75);
+  background: rgba(37, 99, 235, 0.18);
   color: #ffffff;
+  transform: translateX(2px);
 }
 
 .nav-tabs strong {
@@ -136,16 +146,33 @@ p {
 
 .workspace {
   display: grid;
-  gap: 20px;
+  gap: 22px;
   align-content: start;
-  padding: 28px;
+  padding: 30px;
 }
 
 .topbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
+  border: 1px solid rgba(219, 227, 239, 0.72);
+  border-radius: 8px;
+  padding: 22px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(10px);
+}
+
+.topbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.file-input {
+  display: none;
 }
 
 .stats-grid {
@@ -159,12 +186,22 @@ p {
 .table-panel {
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.92);
   box-shadow: var(--shadow);
 }
 
 .stat-card {
-  padding: 16px;
+  position: relative;
+  overflow: hidden;
+  padding: 18px;
+}
+
+.stat-card::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), #14b8a6);
+  content: "";
 }
 
 .stat-card span {
@@ -176,7 +213,7 @@ p {
 .stat-card strong {
   display: block;
   margin-top: 8px;
-  font-size: 28px;
+  font-size: 30px;
   line-height: 1;
 }
 
@@ -204,7 +241,7 @@ p {
 
 .editor,
 .table-panel {
-  padding: 20px;
+  padding: 22px;
 }
 
 .section-heading {
@@ -242,9 +279,10 @@ textarea {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: #ffffff;
+  background: #fbfdff;
   color: var(--foreground);
   outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
 }
 
 input,
@@ -262,7 +300,8 @@ input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.14);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
 
 .search-input {
@@ -270,6 +309,7 @@ textarea:focus {
 }
 
 .primary-button,
+.primary-action,
 .secondary-button,
 .text-button,
 .row-actions button {
@@ -282,12 +322,13 @@ textarea:focus {
   min-height: 44px;
   margin-top: 18px;
   border: 0;
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), #14b8a6);
   color: #ffffff;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.22);
 }
 
 .primary-button:hover {
-  background: var(--accent-dark);
+  background: linear-gradient(135deg, var(--accent-dark), #0f766e);
 }
 
 .primary-button:disabled {
@@ -299,8 +340,26 @@ textarea:focus {
   min-height: 40px;
   border: 1px solid var(--border);
   padding: 9px 14px;
-  background: var(--surface);
+  background: #ffffff;
   color: #344054;
+}
+
+.secondary-button:hover {
+  border-color: #b7c6da;
+  background: var(--surface-soft);
+}
+
+.primary-action {
+  min-height: 40px;
+  border: 0;
+  padding: 9px 15px;
+  background: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.20);
+}
+
+.primary-action:hover {
+  background: var(--accent-dark);
 }
 
 .text-button {
@@ -316,7 +375,8 @@ textarea:focus {
 table {
   width: 100%;
   min-width: 760px;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 th,
@@ -328,7 +388,7 @@ td {
 }
 
 th {
-  background: var(--surface-soft);
+  background: #f1f5fb;
   color: #475467;
   font-size: 12px;
   font-weight: 800;
@@ -341,7 +401,7 @@ td {
 }
 
 tbody tr:hover {
-  background: #f9fafb;
+  background: #f8fbff;
 }
 
 .row-actions {
@@ -354,6 +414,10 @@ tbody tr:hover {
   padding: 7px 10px;
   background: #ffffff;
   color: #344054;
+}
+
+.row-actions button:hover {
+  background: var(--surface-soft);
 }
 
 .row-actions button:last-child {
@@ -389,6 +453,14 @@ tbody tr:hover {
   .section-heading {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .topbar-actions {
+    justify-content: stretch;
+  }
+
+  .topbar-actions button {
+    flex: 1 1 150px;
   }
 
   .stats-grid,

@@ -13,7 +13,11 @@ training schema:
 - certificates
 
 The dashboard supports listing, searching, creating, editing, and deleting
-records for each table.
+records for each table. It also supports Excel workflows:
+
+- download a sample Excel file for the active table
+- import rows from `.xlsx` or `.xls`
+- export the current filtered rows to `.xlsx`
 
 ## Supabase setup
 

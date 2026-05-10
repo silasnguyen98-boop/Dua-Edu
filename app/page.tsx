@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import * as XLSX from "xlsx";
 import { supabase } from "@/lib/supabase/client";
 
 type FieldType = "text" | "email" | "number" | "datetime-local" | "textarea" | "select";
@@ -221,6 +222,7 @@ export default function Home() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeConfig = useMemo(
     () => tableConfigs.find((config) => config.name === activeTable) ?? tableConfigs[0],
@@ -373,6 +375,137 @@ export default function Home() {
     }, {});
   }
 
+  function normalizeImportValue(field: FieldConfig, value: unknown) {
+    if (value === null || value === undefined || value === "") {
+      return null;
+    }
+
+    if (field.type === "number") {
+      const numberValue = Number(value);
+      return Number.isNaN(numberValue) ? null : numberValue;
+    }
+
+    if (field.type === "datetime-local") {
+      if (typeof value === "number") {
+        const parsedDate = XLSX.SSF.parse_date_code(value);
+        if (!parsedDate) {
+          return null;
+        }
+
+        return new Date(
+          parsedDate.y,
+          parsedDate.m - 1,
+          parsedDate.d,
+          parsedDate.H,
+          parsedDate.M,
+          Math.floor(parsedDate.S),
+        ).toISOString();
+      }
+
+      const dateValue = new Date(String(value));
+      return Number.isNaN(dateValue.getTime()) ? null : dateValue.toISOString();
+    }
+
+    return String(value).trim();
+  }
+
+  function buildExcelRows(rows: Row[]) {
+    const exportColumns = [
+      "id",
+      ...activeConfig.fields.map((field) => field.name),
+      "created_at",
+    ];
+
+    return rows.map((row) =>
+      exportColumns.reduce<Record<string, string | number>>((excelRow, column) => {
+        const value = row[column];
+        excelRow[column] = value === null || value === undefined ? "" : String(value);
+        return excelRow;
+      }, {}),
+    );
+  }
+
+  function downloadWorkbook(filename: string, rows: Record<string, string | number>[]) {
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, activeConfig.name);
+    XLSX.writeFile(workbook, filename);
+  }
+
+  function downloadTemplate() {
+    const templateRow = activeConfig.fields.reduce<Record<string, string>>((row, field) => {
+      row[field.name] =
+        field.type === "number"
+          ? "0"
+          : field.type === "datetime-local"
+            ? "2026-05-10T09:00"
+            : field.optionsKey
+              ? "paste_uuid_here"
+              : "";
+      return row;
+    }, {});
+
+    downloadWorkbook(`${activeConfig.name}-template.xlsx`, [templateRow]);
+  }
+
+  function exportData() {
+    downloadWorkbook(`${activeConfig.name}-export.xlsx`, buildExcelRows(filteredRows));
+  }
+
+  async function importExcel(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    setIsSaving(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
+      const firstSheetName = workbook.SheetNames[0];
+
+      if (!firstSheetName) {
+        throw new Error("File Excel không có sheet nào.");
+      }
+
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
+        workbook.Sheets[firstSheetName],
+        { defval: "" },
+      );
+
+      const payload = rows
+        .map((row) =>
+          activeConfig.fields.reduce<Record<string, string | number | null>>((record, field) => {
+            record[field.name] = normalizeImportValue(field, row[field.name]);
+            return record;
+          }, {}),
+        )
+        .filter((row) => Object.values(row).some((value) => value !== null && value !== ""));
+
+      if (!payload.length) {
+        throw new Error("File Excel không có dòng dữ liệu hợp lệ.");
+      }
+
+      const { error: importError } = await supabase.from(activeTable).insert(payload);
+
+      if (importError) {
+        throw new Error(importError.message);
+      }
+
+      setMessage(`Đã import ${payload.length} dòng vào ${activeConfig.label}.`);
+      await loadAllTables();
+    } catch (importError) {
+      setError(importError instanceof Error ? importError.message : "Không thể import file Excel.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   async function saveRow(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
@@ -451,9 +584,31 @@ export default function Home() {
             <h2>{activeConfig.label}</h2>
             <p>{activeConfig.description}</p>
           </div>
-          <button className="secondary-button" onClick={() => void loadAllTables()} type="button">
-            Làm mới
-          </button>
+          <div className="topbar-actions">
+            <button className="secondary-button" onClick={() => void loadAllTables()} type="button">
+              Làm mới
+            </button>
+            <button className="secondary-button" onClick={downloadTemplate} type="button">
+              Tải file mẫu
+            </button>
+            <button className="secondary-button" onClick={exportData} type="button">
+              Export data
+            </button>
+            <button
+              className="primary-action"
+              onClick={() => fileInputRef.current?.click()}
+              type="button"
+            >
+              Import data
+            </button>
+            <input
+              accept=".xlsx,.xls"
+              className="file-input"
+              onChange={(event) => void importExcel(event)}
+              ref={fileInputRef}
+              type="file"
+            />
+          </div>
         </header>
 
         <section className="stats-grid" aria-label="Tổng quan">
