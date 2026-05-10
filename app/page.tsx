@@ -406,6 +406,7 @@ export default function Home() {
   const [classStatusFilter, setClassStatusFilter] = useState("all");
   const [classDetailSortField, setClassDetailSortField] = useState<string>("name");
   const [classDetailSortDir, setClassDetailSortDir] = useState<"asc" | "desc">("asc");
+  const [classSessionsFilterId, setClassSessionsFilterId] = useState<string | null>(getInitialClassId);
   const [classManagementSearch, setClassManagementSearch] = useState("");
   const [search, setSearch] = useState(getInitialSearch);
   const [isLoading, setIsLoading] = useState(true);
@@ -719,7 +720,13 @@ export default function Home() {
   };
 
   const filteredRows = useMemo(() => {
-    const rows = data[activeTable];
+    let rows = data[activeTable];
+    
+    if (activeTable === "class_sessions" && classSessionsFilterId) {
+      rows = rows.filter(row => String(row.class_id) === classSessionsFilterId)
+                 .sort((a, b) => Number(a.session_number) - Number(b.session_number));
+    }
+
     const query = search.trim().toLowerCase();
 
     if (!query) {
@@ -733,7 +740,7 @@ export default function Home() {
           .includes(query),
       ),
     );
-  }, [activeConfig.searchFields, activeTable, data, search]);
+  }, [activeConfig.searchFields, activeTable, data, search, classSessionsFilterId]);
 
   useEffect(() => {
     void loadAllTables();
@@ -741,12 +748,16 @@ export default function Home() {
 
   useEffect(() => {
     setEditingRow(null);
-    setForm(buildEmptyForm(activeConfig.fields));
+    const newForm = buildEmptyForm(activeConfig.fields);
+    if (activeConfig.name === "class_sessions" && classSessionsFilterId) {
+      newForm.class_id = classSessionsFilterId;
+    }
+    setForm(newForm);
     setRelationQueries({});
     setOpenRelationPicker(null);
     setMessage("");
     setError("");
-  }, [activeConfig]);
+  }, [activeConfig, classSessionsFilterId]);
 
   useEffect(() => {
     if (!isClassManagementView && !isClassDetailView && !isAttendanceView && !isProjectScoreView && !isAssignmentScoreView) {
@@ -1012,7 +1023,11 @@ export default function Home() {
 
   function resetForm() {
     setEditingRow(null);
-    setForm(buildEmptyForm(activeConfig.fields));
+    const newForm = buildEmptyForm(activeConfig.fields);
+    if (activeConfig.name === "class_sessions" && classSessionsFilterId) {
+      newForm.class_id = classSessionsFilterId;
+    }
+    setForm(newForm);
     setRelationQueries({});
     setOpenRelationPicker(null);
     setMessage("");
@@ -2891,19 +2906,35 @@ export default function Home() {
           </form>
 
           <section className="table-panel">
-            <div className="section-heading">
+            <div className="section-heading" style={{ flexWrap: "wrap", gap: "16px" }}>
               <div>
                 <p className="eyebrow">Dữ liệu</p>
                 <h3>Danh sách {activeConfig.label.toLowerCase()}</h3>
               </div>
-              <input
-                aria-label="Tìm kiếm"
-                className="search-input"
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Tìm kiếm..."
-                type="search"
-                value={search}
-              />
+              <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                {activeTable === "class_sessions" && (
+                  <select
+                    className="search-input"
+                    onChange={(e) => setClassSessionsFilterId(e.target.value)}
+                    value={classSessionsFilterId ?? ""}
+                  >
+                    <option value="">Tất cả lớp học</option>
+                    {data.classes.map((c) => (
+                      <option key={String(c.id)} value={String(c.id)}>
+                        {String(c.class_name)} ({String(c.class_code)})
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <input
+                  aria-label="Tìm kiếm"
+                  className="search-input"
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Tìm kiếm..."
+                  type="search"
+                  value={search}
+                />
+              </div>
             </div>
 
             <div className="table-wrap">
