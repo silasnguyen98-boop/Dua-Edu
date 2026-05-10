@@ -654,6 +654,62 @@ export default function Home() {
     downloadWorkbook(`${activeConfig.name}-export.xlsx`, buildExcelRows(filteredRows));
   }
 
+  async function skipDuplicateStudentEmails(
+    payload: Record<string, string | number | null>[],
+  ) {
+    if (activeTable !== "students") {
+      return { duplicateCount: 0, payload };
+    }
+
+    const seenEmails = new Set<string>();
+    let duplicateCount = 0;
+    const uniqueRows = payload.filter((row) => {
+      const email = String(row.email ?? "").trim().toLowerCase();
+
+      if (!email) {
+        return true;
+      }
+
+      if (seenEmails.has(email)) {
+        duplicateCount += 1;
+        return false;
+      }
+
+      seenEmails.add(email);
+      return true;
+    });
+    const emails = Array.from(seenEmails);
+
+    if (!emails.length) {
+      return { duplicateCount, payload: uniqueRows };
+    }
+
+    const { data: existingStudents, error: emailCheckError } = await supabase
+      .from("students")
+      .select("email")
+      .in("email", emails);
+
+    if (emailCheckError) {
+      throw new Error(emailCheckError.message);
+    }
+
+    const existingEmails = new Set(
+      (existingStudents ?? []).map((student) => String(student.email ?? "").trim().toLowerCase()),
+    );
+    const filteredPayload = uniqueRows.filter((row) => {
+      const email = String(row.email ?? "").trim().toLowerCase();
+
+      if (email && existingEmails.has(email)) {
+        duplicateCount += 1;
+        return false;
+      }
+
+      return true;
+    });
+
+    return { duplicateCount, payload: filteredPayload };
+  }
+
   async function importExcel(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -693,13 +749,29 @@ export default function Home() {
         throw new Error("File Excel không có dòng dữ liệu hợp lệ.");
       }
 
-      const { error: importError } = await supabase.from(activeTable).insert(payload);
+      const importData = await skipDuplicateStudentEmails(payload);
+
+      if (!importData.payload.length) {
+        setMessage(
+          importData.duplicateCount
+            ? `Không có dòng mới để import. Đã bỏ qua ${importData.duplicateCount} email trùng.`
+            : "Không có dòng mới để import.",
+        );
+        return;
+      }
+
+      const { error: importError } = await supabase.from(activeTable).insert(importData.payload);
 
       if (importError) {
         throw new Error(importError.message);
       }
 
-      setMessage(`Đã import ${payload.length} dòng vào ${activeConfig.label}.`);
+      setMessage(
+        `Đã import ${importData.payload.length} dòng vào ${activeConfig.label}.` +
+          (importData.duplicateCount
+            ? ` Đã bỏ qua ${importData.duplicateCount} email trùng.`
+            : ""),
+      );
       await loadAllTables();
     } catch (importError) {
       setError(importError instanceof Error ? importError.message : "Không thể import file Excel.");
