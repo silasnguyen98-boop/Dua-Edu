@@ -521,11 +521,14 @@ export default function Home() {
 
   const attendanceRecordsByEnrollment = useMemo(() => {
     const records = new Map<string, AttendanceRecord>();
+    const enrollmentIds = new Set(
+      selectedAttendanceClass?.enrollments.map((enrollment) => enrollment.id) ?? [],
+    );
 
     attendanceRecords
       .filter(
         (record) =>
-          String(record.class_id ?? "") === String(selectedAttendanceClassId ?? "") &&
+          enrollmentIds.has(String(record.enrollment_id ?? "")) &&
           Number(record.session_number ?? 0) === selectedAttendanceSession,
       )
       .forEach((record) => {
@@ -533,7 +536,7 @@ export default function Home() {
       });
 
     return records;
-  }, [attendanceRecords, selectedAttendanceClassId, selectedAttendanceSession]);
+  }, [attendanceRecords, selectedAttendanceClass, selectedAttendanceSession]);
 
   const selectedClassStatusOptions = useMemo(() => {
     const customStatuses =
@@ -1460,7 +1463,6 @@ export default function Home() {
     setMessage("");
 
     const payload = {
-      class_id: selectedAttendanceClass.id,
       enrollment_id: enrollment.id,
       session_number: selectedAttendanceSession,
       status,
