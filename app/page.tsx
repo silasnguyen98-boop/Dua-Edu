@@ -149,9 +149,9 @@ const tableConfigs: TableConfig[] = [
   {
     name: "enrollments",
     label: "Ghi danh",
-    description: "Quản lý học viên trong lớp và điểm số.",
-    columns: ["student_id", "class_id", "status", "final_score", "project_url", "created_at"],
-    searchFields: ["status", "project_url", "grade_note"],
+    description: "Quản lý học viên ghi danh vào từng lớp.",
+    columns: ["student_id", "class_id", "note", "created_at"],
+    searchFields: ["note"],
     fields: [
       {
         name: "student_id",
@@ -173,13 +173,6 @@ const tableConfigs: TableConfig[] = [
         optionsKey: "classes",
         optionLabel: "class_name",
       },
-      { name: "status", label: "Trạng thái", type: "text", required: true },
-      { name: "attendance_score", label: "Điểm chuyên cần", type: "number" },
-      { name: "assignment_score", label: "Điểm bài tập", type: "number" },
-      { name: "project_score", label: "Điểm project", type: "number" },
-      { name: "final_score", label: "Điểm cuối", type: "number" },
-      { name: "project_url", label: "Project URL", type: "text" },
-      { name: "grade_note", label: "Nhận xét điểm", type: "textarea" },
       { name: "note", label: "Ghi chú", type: "textarea" },
     ],
   },
@@ -423,7 +416,6 @@ export default function Home() {
               id: String(enrollment.id ?? ""),
               name: String(student?.full_name ?? String(enrollment.student_id ?? "-")),
               phone: String(student?.phone ?? "-"),
-              status: String(enrollment.status ?? "-"),
             };
           }),
           id: classId,
@@ -1498,7 +1490,6 @@ export default function Home() {
                         <th>Học viên</th>
                         <th>Email</th>
                         <th>Số điện thoại</th>
-                        <th>Trạng thái</th>
                         <th>Ngày ghi danh</th>
                       </tr>
                     </thead>
@@ -1509,13 +1500,12 @@ export default function Home() {
                             <td>{enrollment.name}</td>
                             <td>{enrollment.email}</td>
                             <td>{enrollment.phone}</td>
-                            <td>{enrollment.status}</td>
                             <td>{formatValue(enrollment.createdAt)}</td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={5}>Lớp này chưa có ghi danh.</td>
+                          <td colSpan={4}>Lớp này chưa có ghi danh.</td>
                         </tr>
                       )}
                     </tbody>
