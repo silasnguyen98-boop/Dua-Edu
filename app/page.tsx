@@ -1789,14 +1789,16 @@ export default function Home() {
           </div>
         </header>
 
-        <section className="stats-grid" aria-label="Tổng quan">
-          {stats.map((item) => (
-            <article className="stat-card" key={item.label}>
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
-            </article>
-          ))}
-        </section>
+        {isDashboardView && (
+          <section className="stats-grid" aria-label="Tổng quan">
+            {stats.map((item) => (
+              <article className="stat-card" key={item.label}>
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </article>
+            ))}
+          </section>
+        )}
 
         {isDashboardView && (
           <section className="analytics-grid" aria-label="Dashboard phân tích">
