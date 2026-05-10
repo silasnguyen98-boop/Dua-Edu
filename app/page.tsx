@@ -1639,16 +1639,16 @@ export default function Home() {
   const pageEyebrow = isDashboardView
     ? "Tổng quan"
     : isClassManagementView
-      ? "Quản lý lớp"
+      ? "Học vụ"
       : isClassDetailView
-        ? "Danh sách ghi danh"
+        ? "Chi tiết lớp"
         : isAttendanceView
           ? "Học vụ"
           : "Quản trị dữ liệu";
   const pageTitle = isDashboardView
     ? "Dashboard"
     : isClassManagementView
-      ? "Học viên từng lớp và sĩ số"
+      ? "Quản lý lớp"
       : isClassDetailView
         ? selectedClass?.className ?? "Chi tiết lớp"
         : isAttendanceView
@@ -1909,13 +1909,7 @@ export default function Home() {
 
         {isClassManagementView && (
           <section className="analytics-grid" aria-label="Quản lý lớp">
-            <article className="analytics-card class-size-card wide">
-              <div className="section-heading">
-                <div>
-                  <p className="eyebrow">Quản lý lớp</p>
-                  <h3>Học viên từng lớp và sĩ số</h3>
-                </div>
-              </div>
+            <article className="analytics-card class-size-card wide" style={{ paddingTop: "24px" }}>
               <div className="class-table">
                 <table>
                   <thead>
@@ -1979,17 +1973,8 @@ export default function Home() {
                 </div>
               </article>
             ) : selectedClass ? (
-              <article className="analytics-card detail-card wide">
-                <div className="section-heading">
-                  <div>
-                    <p className="eyebrow">Danh sách ghi danh</p>
-                    <h3>{selectedClass.className}</h3>
-                    <p>
-                      {selectedClass.courseName} · {selectedClass.teacherName} · Ngày bắt đầu{" "}
-                      {formatValue(selectedClass.startDate)} · {selectedClass.totalSessions} buổi ·
-                      Sĩ số {selectedClass.enrollmentCount}
-                    </p>
-                  </div>
+              <article className="analytics-card detail-card wide" style={{ paddingTop: "24px" }}>
+                <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "24px", alignItems: "flex-end", justifyContent: "space-between" }}>
                   <div className="class-detail-actions">
                     <label>
                       <span>Lọc trạng thái</span>
