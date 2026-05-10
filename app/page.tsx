@@ -79,10 +79,11 @@ const tableConfigs: TableConfig[] = [
     name: "courses",
     label: "Khoá học",
     description: "Quản lý chương trình học và phân loại khoá.",
-    columns: ["name", "course_type", "note", "created_at"],
-    searchFields: ["name", "course_type"],
+    columns: ["name", "course_code", "course_type", "note", "created_at"],
+    searchFields: ["name", "course_code", "course_type"],
     fields: [
       { name: "name", label: "Tên khoá học", type: "text", required: true },
+      { name: "course_code", label: "Mã viết tắt", type: "text" },
       { name: "course_type", label: "Loại khoá", type: "text" },
       { name: "note", label: "Ghi chú", type: "textarea" },
     ],
