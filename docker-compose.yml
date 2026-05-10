@@ -1,0 +1,15 @@
+services:
+  dua-edu:
+    build:
+      context: .
+      target: dev
+    container_name: dua-edu-admin
+    env_file:
+      - .env.local
+    ports:
+      - "3002:3002"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev:docker
