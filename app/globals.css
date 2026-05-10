@@ -74,17 +74,17 @@ button {
 }
 
 .brand-block {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  display: grid;
+  gap: 14px;
 }
 .brand-logo {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius);
-  object-fit: cover;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border);
+  width: 96px;
+  height: 96px;
+  border: 0;
+  border-radius: 8px;
+  object-fit: contain;
+  background: #ffffff;
+  box-shadow: none;
 }
 
 .workspace {
