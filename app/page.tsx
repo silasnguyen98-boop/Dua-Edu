@@ -26,7 +26,7 @@ type TableName =
   | "classes"
   | "enrollments"
   | "certificates";
-type ViewName = "dashboard" | "classManagement" | "classDetail" | "attendance" | "projectScore" | TableName;
+type ViewName = "dashboard" | "classManagement" | "classDetail" | "attendance" | "assignmentScore" | "projectScore" | TableName;
 
 type TableConfig = {
   name: TableName;
@@ -297,6 +297,7 @@ const isViewName = (value: string | null): value is ViewName =>
   value === "classManagement" ||
   value === "classDetail" ||
   value === "attendance" ||
+  value === "assignmentScore" ||
   value === "projectScore" ||
   isTableName(value);
 
@@ -379,6 +380,7 @@ export default function Home() {
   const isClassManagementView = activeView === "classManagement";
   const isClassDetailView = activeView === "classDetail";
   const isAttendanceView = activeView === "attendance";
+  const isAssignmentScoreView = activeView === "assignmentScore";
   const isProjectScoreView = activeView === "projectScore";
   const isDataView = isTableName(activeView);
 
@@ -494,6 +496,7 @@ export default function Home() {
 
             return {
               attendanceScore: enrollment.attendance_score ? Number(enrollment.attendance_score) : null,
+              assignmentScore: enrollment.assignment_score ? Number(enrollment.assignment_score) : null,
               projectScore: enrollment.project_score ? Number(enrollment.project_score) : null,
               projectUrl: enrollment.project_url ? String(enrollment.project_url) : "",
               createdAt: enrollment.created_at ? String(enrollment.created_at) : "",
@@ -651,7 +654,7 @@ export default function Home() {
   }, [activeConfig]);
 
   useEffect(() => {
-    if (!isClassManagementView && !isClassDetailView && !isAttendanceView && !isProjectScoreView) {
+    if (!isClassManagementView && !isClassDetailView && !isAttendanceView && !isProjectScoreView && !isAssignmentScoreView) {
       setSelectedClassId(null);
       setClassStatusFilter("all");
       window.localStorage.removeItem(storageKeys.classId);
@@ -660,7 +663,7 @@ export default function Home() {
     if (!isDashboardView) {
       setShowReturningDetails(false);
     }
-  }, [isAttendanceView, isClassManagementView, isClassDetailView, isDashboardView, isProjectScoreView]);
+  }, [isAttendanceView, isClassManagementView, isClassDetailView, isDashboardView, isProjectScoreView, isAssignmentScoreView]);
 
   useEffect(() => {
     if (!isAttendanceView || selectedAttendanceClassId || !analytics.classItems.length) {
@@ -686,9 +689,9 @@ export default function Home() {
     url.searchParams.set("view", activeView);
     url.searchParams.delete("table");
 
-    const urlClassId = isAttendanceView || isProjectScoreView ? selectedAttendanceClassId : selectedClassId;
+    const urlClassId = isAttendanceView || isProjectScoreView || isAssignmentScoreView ? selectedAttendanceClassId : selectedClassId;
 
-    if ((isClassDetailView || isAttendanceView || isProjectScoreView) && urlClassId) {
+    if ((isClassDetailView || isAttendanceView || isProjectScoreView || isAssignmentScoreView) && urlClassId) {
       url.searchParams.set("classId", urlClassId);
       window.localStorage.setItem(storageKeys.classId, urlClassId);
     } else {
@@ -716,6 +719,7 @@ export default function Home() {
     activeView,
     isAttendanceView,
     isProjectScoreView,
+    isAssignmentScoreView,
     isClassDetailView,
     isDataView,
     search,
@@ -1500,7 +1504,7 @@ export default function Home() {
     setUpdatingEnrollmentId(null);
   }
 
-  async function updateEnrollmentProjectField(enrollmentId: string, field: "project_score" | "project_url", value: number | string) {
+  async function updateEnrollmentProjectField(enrollmentId: string, field: "project_score" | "project_url" | "assignment_score", value: number | string) {
     if (!enrollmentId) return;
 
     setUpdatingEnrollmentId(enrollmentId);
@@ -1524,7 +1528,12 @@ export default function Home() {
         String(enrollment.id) === enrollmentId ? { ...enrollment, [field]: value } : enrollment,
       ),
     }));
-    setMessage(`Đã cập nhật ${field === "project_score" ? "điểm" : "link"} đồ án.`);
+    const messageFieldMap: Record<string, string> = {
+      "project_score": "điểm đồ án",
+      "project_url": "link đồ án",
+      "assignment_score": "điểm bài tập",
+    };
+    setMessage(`Đã cập nhật ${messageFieldMap[field]}.`);
     setUpdatingEnrollmentId(null);
   }
 
@@ -1714,15 +1723,13 @@ export default function Home() {
 
   const pageEyebrow = isDashboardView
     ? "Tổng quan"
-    : isClassManagementView
+    : isClassManagementView || isClassDetailView
       ? "Học vụ"
-      : isClassDetailView
-        ? "Chi tiết lớp"
-        : isAttendanceView
+      : isAttendanceView
+        ? "Học vụ"
+        : isProjectScoreView || isAssignmentScoreView
           ? "Học vụ"
-          : isProjectScoreView
-            ? "Học vụ"
-            : "Quản trị dữ liệu";
+          : "Quản trị dữ liệu";
   const pageTitle = isDashboardView
     ? "Dashboard"
     : isClassManagementView
@@ -1731,9 +1738,11 @@ export default function Home() {
         ? selectedClass?.className ?? "Chi tiết lớp"
         : isAttendanceView
           ? "Điểm danh"
-          : isProjectScoreView
-            ? "Điểm đồ án"
-            : activeConfig.label;
+          : isAssignmentScoreView
+            ? "Điểm bài tập"
+            : isProjectScoreView
+              ? "Điểm đồ án"
+              : activeConfig.label;
   const pageDescription = isDashboardView
     ? "Theo dõi ghi danh theo khoá học, giảng viên và tỉ lệ quay lại."
     : isClassManagementView
@@ -1744,9 +1753,11 @@ export default function Home() {
           : "Không tìm thấy lớp trong dữ liệu hiện tại."
         : isAttendanceView
           ? "Chọn lớp, chọn buổi học và cập nhật trạng thái điểm danh cho từng học viên."
-          : isProjectScoreView
-            ? "Nhập điểm đồ án cho từng học viên trong lớp."
-            : activeConfig.description;
+          : isAssignmentScoreView
+            ? "Nhập điểm bài tập cho từng học viên trong lớp."
+            : isProjectScoreView
+              ? "Nhập điểm đồ án cho từng học viên trong lớp."
+              : activeConfig.description;
 
   return (
     <main className="admin-shell">
@@ -1790,6 +1801,13 @@ export default function Home() {
             >
               <span>Điểm danh</span>
               <strong>{data.classes.length}</strong>
+            </button>
+            <button
+              className={isAssignmentScoreView ? "active" : ""}
+              onClick={() => setActiveView("assignmentScore")}
+              type="button"
+            >
+              <span>Điểm bài tập</span>
             </button>
             <button
               className={isProjectScoreView ? "active" : ""}
@@ -2365,6 +2383,93 @@ export default function Home() {
                 </>
               ) : (
                 <p className="empty-chart">Chưa có lớp để điểm danh.</p>
+              )}
+            </article>
+          </section>
+        )}
+
+        {isAssignmentScoreView && (
+          <section className="analytics-grid" aria-label="Điểm bài tập">
+            <article className="analytics-card detail-card wide" style={{ paddingTop: "24px" }}>
+              <div className="attendance-toolbar" style={{ flexDirection: "column", alignItems: "stretch", marginBottom: "24px" }}>
+                <label style={{ maxWidth: "100%" }}>
+                  <span>Lớp học</span>
+                  <select
+                    onChange={(event) => setSelectedAttendanceClassId(event.target.value || null)}
+                    value={selectedAttendanceClassId ?? ""}
+                  >
+                    <option value="">Chọn lớp học</option>
+                    {analytics.classItems.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.classCode} - {item.className}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {selectedAttendanceClass ? (
+                <>
+                  <p className="filter-summary">
+                    {selectedAttendanceClass.courseName} · {selectedAttendanceClass.teacherName} ·{" "}
+                    {selectedAttendanceClass.enrollmentCount} học viên ghi danh
+                  </p>
+                  <div className="class-table attendance-table">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Học viên</th>
+                          <th>Email</th>
+                          <th>Điểm bài tập (Hệ 10)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedAttendanceClass.enrollments.length ? (
+                          selectedAttendanceClass.enrollments.map((enrollment) => (
+                            <tr key={enrollment.id}>
+                              <td>{enrollment.name}</td>
+                              <td>{enrollment.email}</td>
+                              <td>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="10"
+                                  step="0.5"
+                                  defaultValue={enrollment.assignmentScore ?? ""}
+                                  disabled={Boolean(updatingEnrollmentId === enrollment.id)}
+                                  style={{
+                                    width: "80px",
+                                    padding: "6px 12px",
+                                    borderRadius: "8px",
+                                    border: "1px solid var(--border)",
+                                  }}
+                                  onBlur={(event) => {
+                                    const val = event.target.value;
+                                    const numVal = Number(val);
+                                    if (val && !isNaN(numVal) && numVal !== enrollment.assignmentScore) {
+                                      void updateEnrollmentProjectField(enrollment.id, "assignment_score", numVal);
+                                    }
+                                  }}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter") {
+                                      event.currentTarget.blur();
+                                    }
+                                  }}
+                                />
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={3}>Lớp này chưa có học viên ghi danh.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <p className="empty-chart">Chưa có lớp để nhập điểm bài tập.</p>
               )}
             </article>
           </section>
