@@ -683,7 +683,7 @@ export default function Home() {
     }
   };
 
-  const ClassDetailSortIcon = ({ field }: { field: string }) => {
+  const renderClassDetailSortIcon = (field: string) => {
     if (classDetailSortField !== field) return <span style={{ opacity: 0.3, marginLeft: "4px" }}>↕</span>;
     return <span style={{ marginLeft: "4px" }}>{classDetailSortDir === "asc" ? "↑" : "↓"}</span>;
   };
@@ -2148,54 +2148,60 @@ export default function Home() {
           </section>
         )}
 
-        {isClassManagementView && (() => {
-          const filteredClassItems = classManagementSearch
-            ? analytics.classItems.filter((item) =>
-                item.className.toLowerCase().includes(classManagementSearch.toLowerCase()) ||
-                item.classCode.toLowerCase().includes(classManagementSearch.toLowerCase()) ||
-                item.courseName.toLowerCase().includes(classManagementSearch.toLowerCase()) ||
-                item.teacherName.toLowerCase().includes(classManagementSearch.toLowerCase())
-              )
-            : analytics.classItems;
-
-          return (
-            <section className="analytics-grid" aria-label="Quản lý lớp">
-              <article className="analytics-card class-size-card wide" style={{ paddingTop: "24px" }}>
-                <div style={{ marginBottom: "24px", display: "flex", justifyContent: "flex-end" }}>
-                  <input
-                    type="text"
-                    placeholder="Tìm theo tên lớp, mã lớp, giảng viên..."
-                    value={classManagementSearch}
-                    onChange={(e) => setClassManagementSearch(e.target.value)}
-                    style={{
-                      padding: "8px 12px",
-                      borderRadius: "8px",
-                      border: "1px solid var(--border)",
-                      width: "300px",
-                      maxWidth: "100%",
-                    }}
-                  />
-                </div>
-                <div className="class-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Lớp</th>
-                        <th>Mã lớp</th>
-                        <th>Khoá học</th>
-                        <th>Giảng viên</th>
-                        <th>Ngày bắt đầu</th>
-                        <th>Số buổi</th>
-                        <th>Số bài tập</th>
-                        <th>Lịch học</th>
-                        <th>Thời gian học</th>
-                        <th>Sĩ số</th>
-                        <th>Danh sách</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredClassItems.length ? (
-                        filteredClassItems.map((item) => (
+        {isClassManagementView && (
+          <section className="analytics-grid" aria-label="Quản lý lớp">
+            <article className="analytics-card class-size-card wide" style={{ paddingTop: "24px" }}>
+              <div style={{ marginBottom: "24px", display: "flex", justifyContent: "flex-end" }}>
+                <input
+                  type="text"
+                  placeholder="Tìm theo tên lớp, mã lớp, giảng viên..."
+                  value={classManagementSearch}
+                  onChange={(e) => setClassManagementSearch(e.target.value)}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid var(--border)",
+                    width: "300px",
+                    maxWidth: "100%",
+                  }}
+                />
+              </div>
+              <div className="class-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Lớp</th>
+                      <th>Mã lớp</th>
+                      <th>Khoá học</th>
+                      <th>Giảng viên</th>
+                      <th>Ngày bắt đầu</th>
+                      <th>Số buổi</th>
+                      <th>Số bài tập</th>
+                      <th>Lịch học</th>
+                      <th>Thời gian học</th>
+                      <th>Sĩ số</th>
+                      <th>Danh sách</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(classManagementSearch
+                      ? analytics.classItems.filter((item) =>
+                          item.className.toLowerCase().includes(classManagementSearch.toLowerCase()) ||
+                          item.classCode.toLowerCase().includes(classManagementSearch.toLowerCase()) ||
+                          item.courseName.toLowerCase().includes(classManagementSearch.toLowerCase()) ||
+                          item.teacherName.toLowerCase().includes(classManagementSearch.toLowerCase())
+                        )
+                      : analytics.classItems
+                    ).length ? (
+                      (classManagementSearch
+                        ? analytics.classItems.filter((item) =>
+                            item.className.toLowerCase().includes(classManagementSearch.toLowerCase()) ||
+                            item.classCode.toLowerCase().includes(classManagementSearch.toLowerCase()) ||
+                            item.courseName.toLowerCase().includes(classManagementSearch.toLowerCase()) ||
+                            item.teacherName.toLowerCase().includes(classManagementSearch.toLowerCase())
+                          )
+                        : analytics.classItems
+                      ).map((item) => (
                         <tr key={item.id}>
                           <td>{item.className}</td>
                           <td>{item.classCode}</td>
@@ -2225,13 +2231,12 @@ export default function Home() {
                         <td colSpan={10}>Chưa có dữ liệu lớp hoặc ghi danh.</td>
                       </tr>
                     )}
-                    </tbody>
-                  </table>
-                </div>
-              </article>
-            </section>
-          );
-        })}
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+        )}
 
         {isClassDetailView && (
           <section className="analytics-grid" aria-label="Chi tiết lớp">
@@ -2277,12 +2282,12 @@ export default function Home() {
                   <table>
                     <thead>
                       <tr>
-                        <th onClick={() => handleClassDetailSort("name")} style={{ cursor: "pointer" }}>Học viên <ClassDetailSortIcon field="name" /></th>
-                        <th onClick={() => handleClassDetailSort("email")} style={{ cursor: "pointer" }}>Email <ClassDetailSortIcon field="email" /></th>
-                        <th onClick={() => handleClassDetailSort("attendanceScore")} style={{ cursor: "pointer", borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Điểm chuyên cần <ClassDetailSortIcon field="attendanceScore" /></th>
-                        <th onClick={() => handleClassDetailSort("assignmentScore")} style={{ cursor: "pointer", borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Điểm bài tập <ClassDetailSortIcon field="assignmentScore" /></th>
-                        <th onClick={() => handleClassDetailSort("projectScore")} style={{ cursor: "pointer", borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Điểm đồ án <ClassDetailSortIcon field="projectScore" /></th>
-                        <th onClick={() => handleClassDetailSort("finalScore")} style={{ cursor: "pointer", borderLeft: "1px solid var(--border)", paddingLeft: "16px", color: "var(--accent)", fontSize: "15px" }}>Điểm tổng kết <ClassDetailSortIcon field="finalScore" /></th>
+                        <th onClick={() => handleClassDetailSort("name")} style={{ cursor: "pointer" }}>Học viên {renderClassDetailSortIcon("name")}</th>
+                        <th onClick={() => handleClassDetailSort("email")} style={{ cursor: "pointer" }}>Email {renderClassDetailSortIcon("email")}</th>
+                        <th onClick={() => handleClassDetailSort("attendanceScore")} style={{ cursor: "pointer", borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Điểm chuyên cần {renderClassDetailSortIcon("attendanceScore")}</th>
+                        <th onClick={() => handleClassDetailSort("assignmentScore")} style={{ cursor: "pointer", borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Điểm bài tập {renderClassDetailSortIcon("assignmentScore")}</th>
+                        <th onClick={() => handleClassDetailSort("projectScore")} style={{ cursor: "pointer", borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Điểm đồ án {renderClassDetailSortIcon("projectScore")}</th>
+                        <th onClick={() => handleClassDetailSort("finalScore")} style={{ cursor: "pointer", borderLeft: "1px solid var(--border)", paddingLeft: "16px", color: "var(--accent)", fontSize: "15px" }}>Điểm tổng kết {renderClassDetailSortIcon("finalScore")}</th>
                         <th style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Trạng thái</th>
                       </tr>
                     </thead>
