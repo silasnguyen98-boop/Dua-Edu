@@ -5,7 +5,7 @@ import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 import { supabase } from "@/lib/supabase/client";
 
-type FieldType = "text" | "email" | "number" | "date" | "datetime-local" | "textarea" | "select";
+type FieldType = "text" | "email" | "number" | "date" | "time" | "datetime-local" | "textarea" | "select";
 
 type FieldConfig = {
   name: string;
@@ -25,7 +25,8 @@ type TableName =
   | "courses"
   | "classes"
   | "enrollments"
-  | "certificates";
+  | "certificates"
+  | "class_sessions";
 type ViewName = "dashboard" | "classManagement" | "classDetail" | "attendance" | "assignmentScore" | "projectScore" | TableName;
 
 type TableConfig = {
@@ -240,6 +241,34 @@ const tableConfigs: TableConfig[] = [
       { name: "note", label: "Ghi chú", type: "textarea" },
     ],
   },
+  {
+    name: "class_sessions",
+    label: "Quản lý buổi học",
+    description: "Quản lý các buổi học, lịch học, link video và trạng thái của từng buổi.",
+    columns: ["class_id", "session_number", "session_title", "session_date", "start_time", "end_time", "status"],
+    searchFields: ["session_title", "meeting_url", "recording_url", "status", "note"],
+    fields: [
+      {
+        name: "class_id",
+        label: "Lớp học",
+        type: "select",
+        importKey: "class_code",
+        exampleValue: "REACT-K01",
+        required: true,
+        optionsKey: "classes",
+        optionLabel: "class_name",
+      },
+      { name: "session_number", label: "Buổi số", type: "number", required: true },
+      { name: "session_title", label: "Tiêu đề buổi học", type: "text", required: true },
+      { name: "session_date", label: "Ngày học", type: "date" },
+      { name: "start_time", label: "Giờ bắt đầu", type: "time" },
+      { name: "end_time", label: "Giờ kết thúc", type: "time" },
+      { name: "meeting_url", label: "Link học online (Meeting URL)", type: "text" },
+      { name: "recording_url", label: "Link video xem lại (Recording URL)", type: "text" },
+      { name: "status", label: "Trạng thái", type: "text" },
+      { name: "note", label: "Ghi chú", type: "textarea" },
+    ],
+  },
 ];
 
 const emptyData: DataState = {
@@ -249,6 +278,7 @@ const emptyData: DataState = {
   classes: [],
   enrollments: [],
   certificates: [],
+  class_sessions: [],
 };
 
 const formatLabel = (value: string) =>
@@ -1927,6 +1957,14 @@ export default function Home() {
             >
               <span>Quản lý lớp</span>
               <strong>{data.classes.length}</strong>
+            </button>
+            <button
+              className={activeView === "class_sessions" ? "active" : ""}
+              onClick={() => setActiveView("class_sessions")}
+              type="button"
+            >
+              <span>Quản lý buổi học</span>
+              <strong>{data.class_sessions.length}</strong>
             </button>
             <button
               className={isAttendanceView ? "active" : ""}
