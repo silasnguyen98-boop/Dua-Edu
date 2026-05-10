@@ -38,6 +38,11 @@ type DataState = Record<TableName, Row[]>;
 type FormState = Record<string, string>;
 
 const logoUrl = "https://i.ibb.co/3yKrstMS/Thie-t-ke-chu-a-co-te-n-20.png";
+const storageKeys = {
+  search: "dua-edu-admin-search",
+  scrollY: "dua-edu-admin-scroll-y",
+  table: "dua-edu-admin-table",
+};
 
 const tableConfigs: TableConfig[] = [
   {
@@ -216,12 +221,38 @@ const toInputValue = (field: FieldConfig, value: Row[string]) => {
   return String(value);
 };
 
+const isTableName = (value: string | null): value is TableName =>
+  tableConfigs.some((config) => config.name === value);
+
+const getInitialTable = () => {
+  if (typeof window === "undefined") {
+    return "students";
+  }
+
+  const tableFromUrl = new URLSearchParams(window.location.search).get("table");
+  if (isTableName(tableFromUrl)) {
+    return tableFromUrl;
+  }
+
+  const tableFromStorage = window.localStorage.getItem(storageKeys.table);
+  return isTableName(tableFromStorage) ? tableFromStorage : "students";
+};
+
+const getInitialSearch = () => {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const searchFromUrl = new URLSearchParams(window.location.search).get("q");
+  return searchFromUrl ?? window.localStorage.getItem(storageKeys.search) ?? "";
+};
+
 export default function Home() {
-  const [activeTable, setActiveTable] = useState<TableName>("students");
+  const [activeTable, setActiveTable] = useState<TableName>(getInitialTable);
   const [data, setData] = useState<DataState>(emptyData);
   const [form, setForm] = useState<FormState>(() => buildEmptyForm(tableConfigs[0].fields));
   const [editingRow, setEditingRow] = useState<Row | null>(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(getInitialSearch);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -269,10 +300,46 @@ export default function Home() {
   useEffect(() => {
     setEditingRow(null);
     setForm(buildEmptyForm(activeConfig.fields));
-    setSearch("");
     setMessage("");
     setError("");
   }, [activeConfig]);
+
+  useEffect(() => {
+    window.localStorage.setItem(storageKeys.table, activeTable);
+    window.localStorage.setItem(storageKeys.search, search);
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("table", activeTable);
+
+    if (search.trim()) {
+      url.searchParams.set("q", search.trim());
+    } else {
+      url.searchParams.delete("q");
+    }
+
+    window.history.replaceState(null, "", url);
+  }, [activeTable, search]);
+
+  useEffect(() => {
+    const scrollY = Number(window.localStorage.getItem(storageKeys.scrollY) ?? "0");
+
+    if (scrollY > 0) {
+      window.requestAnimationFrame(() => window.scrollTo(0, scrollY));
+    }
+
+    const saveScrollPosition = () => {
+      window.localStorage.setItem(storageKeys.scrollY, String(window.scrollY));
+    };
+
+    window.addEventListener("scroll", saveScrollPosition, { passive: true });
+    window.addEventListener("beforeunload", saveScrollPosition);
+
+    return () => {
+      saveScrollPosition();
+      window.removeEventListener("scroll", saveScrollPosition);
+      window.removeEventListener("beforeunload", saveScrollPosition);
+    };
+  }, []);
 
   async function loadAllTables() {
     setIsLoading(true);
