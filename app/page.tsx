@@ -2528,7 +2528,7 @@ export default function Home() {
                           <th>Học viên</th>
                           <th>Email</th>
                           {Array.from({ length: assignmentNumberCount }, (_, i) => i + 1).map((num) => (
-                            <th key={num} style={{ textAlign: "center" }}>Bài {num}</th>
+                            <th key={num} style={{ textAlign: "center", borderLeft: "1px solid var(--border)" }}>Bài {num}</th>
                           ))}
                         </tr>
                       </thead>
@@ -2546,7 +2546,7 @@ export default function Home() {
                                   const currentScore = record?.score ? Number(record.score) : "";
 
                                   return (
-                                    <td key={num} style={{ textAlign: "center" }}>
+                                    <td key={num} style={{ textAlign: "center", borderLeft: "1px solid var(--border)" }}>
                                       <input
                                         type="number"
                                         min="0"
