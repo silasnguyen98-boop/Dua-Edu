@@ -484,6 +484,7 @@ export default function Home() {
             return {
               attendanceScore: enrollment.attendance_score ? Number(enrollment.attendance_score) : null,
               projectScore: enrollment.project_score ? Number(enrollment.project_score) : null,
+              projectUrl: enrollment.project_url ? String(enrollment.project_url) : "",
               createdAt: enrollment.created_at ? String(enrollment.created_at) : "",
               email: String(student?.email ?? "-"),
               id: String(enrollment.id ?? ""),
@@ -1486,10 +1487,8 @@ export default function Home() {
     setUpdatingEnrollmentId(null);
   }
 
-  async function updateEnrollmentProjectScore(enrollmentId: string, scoreStr: string) {
+  async function updateEnrollmentProjectField(enrollmentId: string, field: "project_score" | "project_url", value: number | string) {
     if (!enrollmentId) return;
-    const score = Number(scoreStr);
-    if (isNaN(score)) return;
 
     setUpdatingEnrollmentId(enrollmentId);
     setError("");
@@ -1497,7 +1496,7 @@ export default function Home() {
 
     const { error: updateError } = await supabase
       .from("enrollments")
-      .update({ project_score: score })
+      .update({ [field]: value })
       .eq("id", enrollmentId);
 
     if (updateError) {
@@ -1509,10 +1508,10 @@ export default function Home() {
     setData((current) => ({
       ...current,
       enrollments: current.enrollments.map((enrollment) =>
-        String(enrollment.id) === enrollmentId ? { ...enrollment, project_score: score } : enrollment,
+        String(enrollment.id) === enrollmentId ? { ...enrollment, [field]: value } : enrollment,
       ),
     }));
-    setMessage("Đã cập nhật điểm đồ án.");
+    setMessage(`Đã cập nhật ${field === "project_score" ? "điểm" : "link"} đồ án.`);
     setUpdatingEnrollmentId(null);
   }
 
@@ -2387,6 +2386,7 @@ export default function Home() {
                           <th>Email</th>
                           <th>Số điện thoại</th>
                           <th>Điểm đồ án (Hệ 10)</th>
+                          <th>Link đồ án</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2411,8 +2411,36 @@ export default function Home() {
                                     border: "1px solid var(--border)",
                                   }}
                                   onBlur={(event) => {
-                                    if (event.target.value && Number(event.target.value) !== enrollment.projectScore) {
-                                      void updateEnrollmentProjectScore(enrollment.id, event.target.value);
+                                    const val = event.target.value;
+                                    const numVal = Number(val);
+                                    if (val && !isNaN(numVal) && numVal !== enrollment.projectScore) {
+                                      void updateEnrollmentProjectField(enrollment.id, "project_score", numVal);
+                                    }
+                                  }}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter") {
+                                      event.currentTarget.blur();
+                                    }
+                                  }}
+                                />
+                              </td>
+                              <td>
+                                <input
+                                  type="url"
+                                  placeholder="https://..."
+                                  defaultValue={enrollment.projectUrl ?? ""}
+                                  disabled={Boolean(updatingEnrollmentId === enrollment.id)}
+                                  style={{
+                                    width: "100%",
+                                    minWidth: "200px",
+                                    padding: "6px 12px",
+                                    borderRadius: "8px",
+                                    border: "1px solid var(--border)",
+                                  }}
+                                  onBlur={(event) => {
+                                    const val = event.target.value;
+                                    if (val !== enrollment.projectUrl) {
+                                      void updateEnrollmentProjectField(enrollment.id, "project_url", val);
                                     }
                                   }}
                                   onKeyDown={(event) => {
@@ -2426,7 +2454,7 @@ export default function Home() {
                           ))
                         ) : (
                           <tr>
-                            <td colSpan={4}>Lớp này chưa có học viên ghi danh.</td>
+                            <td colSpan={5}>Lớp này chưa có học viên ghi danh.</td>
                           </tr>
                         )}
                       </tbody>
