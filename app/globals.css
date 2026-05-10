@@ -467,6 +467,51 @@ label span {
   font-weight: 700;
 }
 
+.relation-picker {
+  position: relative;
+}
+
+.relation-options {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: grid;
+  gap: 4px;
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 6px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+}
+
+.relation-options button {
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+  padding: 9px 10px;
+  text-align: left;
+}
+
+.relation-options button:hover,
+.relation-options button.selected {
+  background: var(--accent-soft);
+  color: #047857;
+}
+
+.relation-options p {
+  margin: 0;
+  padding: 10px;
+  color: #667085;
+  font-size: 13px;
+}
+
 .wide-field {
   grid-column: 1 / -1;
 }

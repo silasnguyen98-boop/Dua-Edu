@@ -303,6 +303,8 @@ export default function Home() {
   const [editingRow, setEditingRow] = useState<Row | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(getInitialClassId);
   const [showReturningDetails, setShowReturningDetails] = useState(false);
+  const [relationQueries, setRelationQueries] = useState<Record<string, string>>({});
+  const [openRelationPicker, setOpenRelationPicker] = useState<string | null>(null);
   const [search, setSearch] = useState(getInitialSearch);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -504,6 +506,8 @@ export default function Home() {
   useEffect(() => {
     setEditingRow(null);
     setForm(buildEmptyForm(activeConfig.fields));
+    setRelationQueries({});
+    setOpenRelationPicker(null);
     setMessage("");
     setError("");
   }, [activeConfig]);
@@ -604,6 +608,49 @@ export default function Home() {
     return `${label}${suffix}`;
   }
 
+  function getRelationLabel(field: FieldConfig, row: Row) {
+    const baseLabel = getOptionLabel(field, row);
+
+    if (field.optionsKey === "students") {
+      return [row.full_name, row.email, row.phone].filter(Boolean).join(" · ") || baseLabel;
+    }
+
+    if (field.optionsKey === "teachers") {
+      return [row.full_name, row.email, row.phone].filter(Boolean).join(" · ") || baseLabel;
+    }
+
+    if (field.optionsKey === "courses") {
+      return [row.course_code, row.name, row.course_type].filter(Boolean).join(" · ") || baseLabel;
+    }
+
+    if (field.optionsKey === "classes") {
+      return [row.class_code, row.class_name].filter(Boolean).join(" · ") || baseLabel;
+    }
+
+    if (field.optionsKey === "enrollments") {
+      const student = data.students.find((studentRow) => studentRow.id === row.student_id);
+      const classRow = data.classes.find((item) => item.id === row.class_id);
+      const studentLabel = [student?.email, student?.full_name].filter(Boolean).join(" · ");
+      const classLabel = [classRow?.class_code, classRow?.class_name].filter(Boolean).join(" · ");
+      return [studentLabel, classLabel].filter(Boolean).join(" | ") || baseLabel;
+    }
+
+    return baseLabel;
+  }
+
+  function getRelationPickerKey(field: FieldConfig) {
+    return `${activeTable}.${field.name}`;
+  }
+
+  function getSelectedRelation(field: FieldConfig) {
+    if (!field.optionsKey) {
+      return null;
+    }
+
+    const selectedId = form[field.name];
+    return data[field.optionsKey].find((row) => String(row.id) === selectedId) ?? null;
+  }
+
   function resolveReference(column: string, value: Row[string]) {
     if (!value || typeof value !== "string") {
       return formatValue(value);
@@ -640,6 +687,8 @@ export default function Home() {
 
     setEditingRow(row);
     setForm(nextForm);
+    setRelationQueries({});
+    setOpenRelationPicker(null);
     setMessage("");
     setError("");
   }
@@ -647,6 +696,8 @@ export default function Home() {
   function resetForm() {
     setEditingRow(null);
     setForm(buildEmptyForm(activeConfig.fields));
+    setRelationQueries({});
+    setOpenRelationPicker(null);
     setMessage("");
     setError("");
   }
@@ -1136,10 +1187,19 @@ export default function Home() {
 
   async function saveRow(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setIsSaving(true);
     setError("");
     setMessage("");
 
+    const missingField = activeConfig.fields.find(
+      (field) => field.required && !form[field.name]?.trim(),
+    );
+
+    if (missingField) {
+      setError(`Vui lòng ${missingField.optionsKey ? "chọn" : "nhập"} ${missingField.label}.`);
+      return;
+    }
+
+    setIsSaving(true);
     const payload = buildPayload();
     const request = editingRow?.id
       ? supabase.from(activeTable).update(payload).eq("id", editingRow.id)
@@ -1156,6 +1216,8 @@ export default function Home() {
     setMessage(editingRow ? "Đã cập nhật bản ghi." : "Đã thêm bản ghi mới.");
     setEditingRow(null);
     setForm(buildEmptyForm(activeConfig.fields));
+    setRelationQueries({});
+    setOpenRelationPicker(null);
     await loadAllTables();
     setIsSaving(false);
   }
@@ -1257,6 +1319,69 @@ export default function Home() {
           ))}
         </div>
       </div>
+    );
+  }
+
+  function renderRelationPicker(field: FieldConfig) {
+    const pickerKey = getRelationPickerKey(field);
+    const selected = getSelectedRelation(field);
+    const selectedLabel = selected ? getRelationLabel(field, selected) : "";
+    const query = relationQueries[pickerKey] ?? selectedLabel;
+    const normalizedQuery = query.trim().toLowerCase();
+    const options = field.optionsKey ? data[field.optionsKey] : [];
+    const matches = options
+      .filter((row) => {
+        if (!normalizedQuery) {
+          return true;
+        }
+
+        return getRelationLabel(field, row).toLowerCase().includes(normalizedQuery);
+      })
+      .slice(0, 12);
+
+    return (
+      <label className="relation-picker" key={field.name}>
+        <span>{field.label}</span>
+        <input
+          autoComplete="off"
+          onBlur={() => window.setTimeout(() => setOpenRelationPicker(null), 120)}
+          onChange={(event) => {
+            setRelationQueries((current) => ({ ...current, [pickerKey]: event.target.value }));
+            updateFormValue(field.name, "");
+            setOpenRelationPicker(pickerKey);
+          }}
+          onFocus={() => setOpenRelationPicker(pickerKey)}
+          placeholder={`Tìm ${field.label.toLowerCase()}...`}
+          required={field.required}
+          value={query}
+        />
+        {openRelationPicker === pickerKey && (
+          <div className="relation-options">
+            {matches.length ? (
+              matches.map((row) => {
+                const label = getRelationLabel(field, row);
+                return (
+                  <button
+                    className={String(row.id) === form[field.name] ? "selected" : ""}
+                    key={String(row.id)}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => {
+                      updateFormValue(field.name, String(row.id));
+                      setRelationQueries((current) => ({ ...current, [pickerKey]: label }));
+                      setOpenRelationPicker(null);
+                    }}
+                    type="button"
+                  >
+                    {label}
+                  </button>
+                );
+              })
+            ) : (
+              <p>Không tìm thấy kết quả phù hợp.</p>
+            )}
+          </div>
+        )}
+      </label>
     );
   }
 
@@ -1640,6 +1765,9 @@ export default function Home() {
 
             <div className="form-grid">
               {activeConfig.fields.map((field) => (
+                field.type === "select" && field.optionsKey ? (
+                  renderRelationPicker(field)
+                ) : (
                 <label className={field.type === "textarea" ? "wide-field" : ""} key={field.name}>
                   <span>{field.label}</span>
                   {field.type === "textarea" ? (
@@ -1678,6 +1806,7 @@ export default function Home() {
                     />
                   )}
                 </label>
+                )
               ))}
             </div>
 
