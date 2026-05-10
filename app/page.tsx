@@ -55,6 +55,8 @@ const storageKeys = {
   search: "dua-edu-admin-search",
   scrollY: "dua-edu-admin-scroll-y",
   view: "dua-edu-admin-view",
+  session: "dua-edu-admin-session",
+  attendanceMode: "dua-edu-admin-attendance-mode",
 };
 const courseTypeOptions = [
   { label: "Offline", value: "offline" },
@@ -322,6 +324,22 @@ const getInitialClassId = () => {
   );
 };
 
+const getInitialSession = () => {
+  if (typeof window === "undefined") {
+    return 1;
+  }
+  const val = Number(new URLSearchParams(window.location.search).get("session") ?? window.localStorage.getItem(storageKeys.session));
+  return Number.isFinite(val) && val > 0 ? val : 1;
+};
+
+const getInitialAttendanceMode = (): "session" | "summary" => {
+  if (typeof window === "undefined") {
+    return "session";
+  }
+  const val = new URLSearchParams(window.location.search).get("mode") ?? window.localStorage.getItem(storageKeys.attendanceMode);
+  return val === "summary" ? "summary" : "session";
+};
+
 export default function Home() {
   const [activeView, setActiveView] = useState<ViewName>(getInitialView);
   const [data, setData] = useState<DataState>(emptyData);
@@ -331,8 +349,8 @@ export default function Home() {
   const [editingRow, setEditingRow] = useState<Row | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(getInitialClassId);
   const [selectedAttendanceClassId, setSelectedAttendanceClassId] = useState<string | null>(getInitialClassId);
-  const [selectedAttendanceSession, setSelectedAttendanceSession] = useState(1);
-  const [attendanceMode, setAttendanceMode] = useState<"session" | "summary">("session");
+  const [selectedAttendanceSession, setSelectedAttendanceSession] = useState(getInitialSession);
+  const [attendanceMode, setAttendanceMode] = useState<"session" | "summary">(getInitialAttendanceMode);
   const [showReturningDetails, setShowReturningDetails] = useState(false);
   const [relationQueries, setRelationQueries] = useState<Record<string, string>>({});
   const [openRelationPicker, setOpenRelationPicker] = useState<string | null>(null);
@@ -660,6 +678,16 @@ export default function Home() {
       url.searchParams.delete("classId");
     }
 
+    if (isAttendanceView) {
+      url.searchParams.set("session", String(selectedAttendanceSession));
+      url.searchParams.set("mode", attendanceMode);
+      window.localStorage.setItem(storageKeys.session, String(selectedAttendanceSession));
+      window.localStorage.setItem(storageKeys.attendanceMode, attendanceMode);
+    } else {
+      url.searchParams.delete("session");
+      url.searchParams.delete("mode");
+    }
+
     if (isDataView && search.trim()) {
       url.searchParams.set("q", search.trim());
     } else {
@@ -675,6 +703,8 @@ export default function Home() {
     search,
     selectedAttendanceClassId,
     selectedClassId,
+    selectedAttendanceSession,
+    attendanceMode,
   ]);
 
   useEffect(() => {
