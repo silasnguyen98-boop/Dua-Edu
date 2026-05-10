@@ -2246,7 +2246,6 @@ export default function Home() {
                           <tr>
                             <th>Học viên</th>
                             <th>Email</th>
-                            <th>Số điện thoại</th>
                             <th>Trạng thái điểm danh</th>
                           </tr>
                         )}
@@ -2316,7 +2315,6 @@ export default function Home() {
                               <tr key={enrollment.id}>
                                 <td>{enrollment.name}</td>
                                 <td>{enrollment.email}</td>
-                                <td>{enrollment.phone}</td>
                                 <td>
                                   <select
                                     className={`attendance-select ${getAttendanceStatusClass(status)}`}
@@ -2384,7 +2382,6 @@ export default function Home() {
                         <tr>
                           <th>Học viên</th>
                           <th>Email</th>
-                          <th>Số điện thoại</th>
                           <th>Điểm đồ án (Hệ 10)</th>
                           <th>Link đồ án</th>
                         </tr>
@@ -2395,7 +2392,6 @@ export default function Home() {
                             <tr key={enrollment.id}>
                               <td>{enrollment.name}</td>
                               <td>{enrollment.email}</td>
-                              <td>{enrollment.phone}</td>
                               <td>
                                 <input
                                   type="number"
