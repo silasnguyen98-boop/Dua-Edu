@@ -12,6 +12,7 @@ type FieldConfig = {
   label: string;
   type: FieldType;
   required?: boolean;
+  options?: { label: string; value: string }[];
   optionsKey?: TableName;
   optionLabel?: string;
 };
@@ -43,6 +44,12 @@ const storageKeys = {
   scrollY: "dua-edu-admin-scroll-y",
   table: "dua-edu-admin-table",
 };
+const courseTypeOptions = [
+  { label: "Offline", value: "offline" },
+  { label: "Online", value: "online" },
+  { label: "E-learning", value: "elearning" },
+  { label: "Tự học", value: "self_study" },
+];
 
 const tableConfigs: TableConfig[] = [
   {
@@ -84,7 +91,13 @@ const tableConfigs: TableConfig[] = [
     fields: [
       { name: "name", label: "Tên khoá học", type: "text", required: true },
       { name: "course_code", label: "Mã viết tắt", type: "text" },
-      { name: "course_type", label: "Loại khoá", type: "text" },
+      {
+        name: "course_type",
+        label: "Loại khoá",
+        type: "select",
+        required: true,
+        options: courseTypeOptions,
+      },
       { name: "note", label: "Ghi chú", type: "textarea" },
     ],
   },
@@ -601,6 +614,30 @@ export default function Home() {
       to: { row: 4, column: fieldNames.length + 1 },
     };
 
+    activeConfig.fields.forEach((field, fieldIndex) => {
+      const options = field.options;
+
+      if (!options?.length) {
+        return;
+      }
+
+      const column = worksheet.getColumn(fieldIndex + 2);
+      column.eachCell({ includeEmpty: true }, (cell, rowNumber) => {
+        if (rowNumber < 5) {
+          return;
+        }
+
+        cell.dataValidation = {
+          type: "list",
+          allowBlank: !field.required,
+          formulae: [`"${options.map((option) => option.value).join(",")}"`],
+          showErrorMessage: true,
+          errorTitle: "Giá trị không hợp lệ",
+          error: `Chọn một trong: ${options.map((option) => option.value).join(", ")}`,
+        };
+      });
+    });
+
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -826,11 +863,17 @@ export default function Home() {
                       value={form[field.name] ?? ""}
                     >
                       <option value="">Chọn {field.label.toLowerCase()}</option>
-                      {(field.optionsKey ? data[field.optionsKey] : []).map((option) => (
-                        <option key={String(option.id)} value={String(option.id)}>
-                          {getOptionLabel(field, option)}
-                        </option>
-                      ))}
+                      {field.options
+                        ? field.options.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))
+                        : (field.optionsKey ? data[field.optionsKey] : []).map((option) => (
+                            <option key={String(option.id)} value={String(option.id)}>
+                              {getOptionLabel(field, option)}
+                            </option>
+                          ))}
                     </select>
                   ) : (
                     <input
