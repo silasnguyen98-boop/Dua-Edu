@@ -313,6 +313,7 @@ export default function Home() {
   const [relationQueries, setRelationQueries] = useState<Record<string, string>>({});
   const [openRelationPicker, setOpenRelationPicker] = useState<string | null>(null);
   const [updatingEnrollmentId, setUpdatingEnrollmentId] = useState<string | null>(null);
+  const [classStatusFilter, setClassStatusFilter] = useState("all");
   const [search, setSearch] = useState(getInitialSearch);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -491,6 +492,43 @@ export default function Home() {
     [analytics.classItems, selectedClassId],
   );
 
+  const selectedClassStatusOptions = useMemo(() => {
+    const customStatuses =
+      selectedClass?.enrollments
+        .map((enrollment) => enrollment.status)
+        .filter(
+          (status) =>
+            status &&
+            !enrollmentStatusOptions.some((option) => option.value === status),
+        ) ?? [];
+    const uniqueCustomStatuses = Array.from(new Set(customStatuses));
+
+    return [
+      { label: "Tất cả trạng thái", value: "all" },
+      ...enrollmentStatusOptions,
+      ...uniqueCustomStatuses.map((status) => ({ label: status, value: status })),
+      { label: "Chưa có trạng thái", value: "__empty" },
+    ];
+  }, [selectedClass]);
+
+  const selectedClassEnrollments = useMemo(() => {
+    if (!selectedClass) {
+      return [];
+    }
+
+    if (classStatusFilter === "all") {
+      return selectedClass.enrollments;
+    }
+
+    if (classStatusFilter === "__empty") {
+      return selectedClass.enrollments.filter((enrollment) => !enrollment.status);
+    }
+
+    return selectedClass.enrollments.filter(
+      (enrollment) => enrollment.status === classStatusFilter,
+    );
+  }, [classStatusFilter, selectedClass]);
+
   const filteredRows = useMemo(() => {
     const rows = data[activeTable];
     const query = search.trim().toLowerCase();
@@ -524,6 +562,7 @@ export default function Home() {
   useEffect(() => {
     if (!isClassManagementView && !isClassDetailView) {
       setSelectedClassId(null);
+      setClassStatusFilter("all");
       window.localStorage.removeItem(storageKeys.classId);
     }
 
@@ -1255,11 +1294,13 @@ export default function Home() {
 
   function openClassDetail(classId: string) {
     setSelectedClassId(classId);
+    setClassStatusFilter("all");
     setActiveView("classDetail");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function openClassManagement() {
+    setClassStatusFilter("all");
     setActiveView("classManagement");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -1740,10 +1781,29 @@ export default function Home() {
                       Sĩ số {selectedClass.enrollmentCount}
                     </p>
                   </div>
-                  <button className="text-button" onClick={openClassManagement} type="button">
-                    Quay lại
-                  </button>
+                  <div className="class-detail-actions">
+                    <label>
+                      <span>Lọc trạng thái</span>
+                      <select
+                        className="status-filter-select"
+                        onChange={(event) => setClassStatusFilter(event.target.value)}
+                        value={classStatusFilter}
+                      >
+                        {selectedClassStatusOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button className="text-button" onClick={openClassManagement} type="button">
+                      Quay lại
+                    </button>
+                  </div>
                 </div>
+                <p className="filter-summary">
+                  Đang hiển thị {selectedClassEnrollments.length}/{selectedClass.enrollmentCount} ghi danh
+                </p>
                 <div className="class-table">
                   <table>
                     <thead>
@@ -1756,8 +1816,8 @@ export default function Home() {
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedClass.enrollments.length ? (
-                        selectedClass.enrollments.map((enrollment) => (
+                      {selectedClassEnrollments.length ? (
+                        selectedClassEnrollments.map((enrollment) => (
                           <tr key={enrollment.id}>
                             <td>{enrollment.name}</td>
                             <td>{enrollment.email}</td>
@@ -1792,7 +1852,7 @@ export default function Home() {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={5}>Lớp này chưa có ghi danh.</td>
+                          <td colSpan={5}>Không có ghi danh phù hợp với bộ lọc này.</td>
                         </tr>
                       )}
                     </tbody>

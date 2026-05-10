@@ -420,6 +420,29 @@ p {
   min-width: 860px;
 }
 
+.class-detail-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.class-detail-actions label {
+  min-width: 190px;
+}
+
+.status-filter-select {
+  min-height: 36px;
+  padding: 7px 10px;
+  background: #ffffff;
+}
+
+.filter-summary {
+  margin: -6px 0 14px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .status-select {
   min-width: 150px;
   min-height: 36px;
