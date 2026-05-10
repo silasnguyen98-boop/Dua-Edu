@@ -133,8 +133,17 @@ const tableConfigs: TableConfig[] = [
     name: "classes",
     label: "Lớp học",
     description: "Gán lớp với khoá học và giảng viên phụ trách.",
-    columns: ["class_name", "class_code", "course_id", "teacher_id", "start_date", "total_sessions"],
-    searchFields: ["class_name", "class_code"],
+    columns: [
+      "class_name",
+      "class_code",
+      "course_id",
+      "teacher_id",
+      "start_date",
+      "total_sessions",
+      "schedule",
+      "study_time",
+    ],
+    searchFields: ["class_name", "class_code", "schedule", "study_time"],
     fields: [
       {
         name: "course_id",
@@ -160,6 +169,8 @@ const tableConfigs: TableConfig[] = [
       { name: "class_code", label: "Mã lớp", type: "text" },
       { name: "start_date", label: "Ngày bắt đầu", type: "date" },
       { name: "total_sessions", label: "Số buổi học", type: "number" },
+      { name: "schedule", label: "Lịch học", type: "text", exampleValue: "Thứ 2, 4, 6" },
+      { name: "study_time", label: "Thời gian học", type: "text", exampleValue: "19:30 - 21:30" },
       { name: "note", label: "Ghi chú", type: "textarea" },
     ],
   },
@@ -495,7 +506,9 @@ export default function Home() {
             };
           }),
           id: classId,
+          schedule: String(classRow.schedule ?? "-"),
           startDate: classRow.start_date ? String(classRow.start_date) : "-",
+          studyTime: String(classRow.study_time ?? "-"),
           teacherName: String(teacher?.full_name ?? "-"),
           totalSessions: classRow.total_sessions ? String(classRow.total_sessions) : "-",
         };
@@ -1727,7 +1740,7 @@ export default function Home() {
       ? "Theo dõi sĩ số từng lớp và mở trang riêng để xem danh sách ghi danh."
       : isClassDetailView
         ? selectedClass
-          ? `${selectedClass.courseName} · ${selectedClass.teacherName} · Sĩ số ${selectedClass.enrollmentCount}`
+          ? `${selectedClass.courseName} · ${selectedClass.teacherName} · ${selectedClass.schedule} · ${selectedClass.studyTime} · Sĩ số ${selectedClass.enrollmentCount}`
           : "Không tìm thấy lớp trong dữ liệu hiện tại."
         : isAttendanceView
           ? "Chọn lớp, chọn buổi học và cập nhật trạng thái điểm danh cho từng học viên."
@@ -1996,6 +2009,8 @@ export default function Home() {
                       <th>Giảng viên</th>
                       <th>Ngày bắt đầu</th>
                       <th>Số buổi</th>
+                      <th>Lịch học</th>
+                      <th>Thời gian học</th>
                       <th>Sĩ số</th>
                       <th>Danh sách</th>
                     </tr>
@@ -2010,6 +2025,8 @@ export default function Home() {
                           <td>{item.teacherName}</td>
                           <td>{formatValue(item.startDate)}</td>
                           <td>{item.totalSessions}</td>
+                          <td>{item.schedule}</td>
+                          <td>{item.studyTime}</td>
                           <td>
                             <strong>{item.enrollmentCount}</strong>
                           </td>
@@ -2026,7 +2043,7 @@ export default function Home() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={8}>Chưa có dữ liệu lớp hoặc ghi danh.</td>
+                        <td colSpan={10}>Chưa có dữ liệu lớp hoặc ghi danh.</td>
                       </tr>
                     )}
                   </tbody>
@@ -2072,7 +2089,9 @@ export default function Home() {
                   </div>
                 </div>
                 <p className="filter-summary">
-                  Đang hiển thị {selectedClassEnrollments.length}/{selectedClass.enrollmentCount} ghi danh
+                  {selectedClass.courseName} · {selectedClass.teacherName} · Lịch học{" "}
+                  {selectedClass.schedule} · Thời gian {selectedClass.studyTime} · Đang hiển thị{" "}
+                  {selectedClassEnrollments.length}/{selectedClass.enrollmentCount} ghi danh
                 </p>
                 <div className="class-table">
                   <table>
@@ -2225,6 +2244,7 @@ export default function Home() {
                 <>
                   <p className="filter-summary">
                     {selectedAttendanceClass.courseName} · {selectedAttendanceClass.teacherName} ·{" "}
+                    {selectedAttendanceClass.schedule} · {selectedAttendanceClass.studyTime} ·{" "}
                     {selectedAttendanceClass.enrollmentCount} học viên ghi danh
                   </p>
                   <div className={`class-table attendance-table ${attendanceMode === "summary" ? "table-wrap" : ""}`}>
@@ -2374,6 +2394,7 @@ export default function Home() {
                 <>
                   <p className="filter-summary">
                     {selectedAttendanceClass.courseName} · {selectedAttendanceClass.teacherName} ·{" "}
+                    {selectedAttendanceClass.schedule} · {selectedAttendanceClass.studyTime} ·{" "}
                     {selectedAttendanceClass.enrollmentCount} học viên ghi danh
                   </p>
                   <div className="class-table attendance-table">
