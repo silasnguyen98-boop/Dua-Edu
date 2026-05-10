@@ -26,7 +26,7 @@ type TableName =
   | "classes"
   | "enrollments"
   | "certificates";
-type ViewName = "dashboard" | "classManagement" | "classDetail" | "attendance" | TableName;
+type ViewName = "dashboard" | "classManagement" | "classDetail" | "attendance" | "projectScore" | TableName;
 
 type TableConfig = {
   name: TableName;
@@ -286,6 +286,7 @@ const isViewName = (value: string | null): value is ViewName =>
   value === "classManagement" ||
   value === "classDetail" ||
   value === "attendance" ||
+  value === "projectScore" ||
   isTableName(value);
 
 const getInitialView = () => {
@@ -367,6 +368,7 @@ export default function Home() {
   const isClassManagementView = activeView === "classManagement";
   const isClassDetailView = activeView === "classDetail";
   const isAttendanceView = activeView === "attendance";
+  const isProjectScoreView = activeView === "projectScore";
   const isDataView = isTableName(activeView);
 
   const activeConfig = useMemo(
@@ -481,6 +483,7 @@ export default function Home() {
 
             return {
               attendanceScore: enrollment.attendance_score ? Number(enrollment.attendance_score) : null,
+              projectScore: enrollment.project_score ? Number(enrollment.project_score) : null,
               createdAt: enrollment.created_at ? String(enrollment.created_at) : "",
               email: String(student?.email ?? "-"),
               id: String(enrollment.id ?? ""),
@@ -634,7 +637,7 @@ export default function Home() {
   }, [activeConfig]);
 
   useEffect(() => {
-    if (!isClassManagementView && !isClassDetailView && !isAttendanceView) {
+    if (!isClassManagementView && !isClassDetailView && !isAttendanceView && !isProjectScoreView) {
       setSelectedClassId(null);
       setClassStatusFilter("all");
       window.localStorage.removeItem(storageKeys.classId);
@@ -643,7 +646,7 @@ export default function Home() {
     if (!isDashboardView) {
       setShowReturningDetails(false);
     }
-  }, [isAttendanceView, isClassManagementView, isClassDetailView, isDashboardView]);
+  }, [isAttendanceView, isClassManagementView, isClassDetailView, isDashboardView, isProjectScoreView]);
 
   useEffect(() => {
     if (!isAttendanceView || selectedAttendanceClassId || !analytics.classItems.length) {
@@ -669,9 +672,9 @@ export default function Home() {
     url.searchParams.set("view", activeView);
     url.searchParams.delete("table");
 
-    const urlClassId = isAttendanceView ? selectedAttendanceClassId : selectedClassId;
+    const urlClassId = isAttendanceView || isProjectScoreView ? selectedAttendanceClassId : selectedClassId;
 
-    if ((isClassDetailView || isAttendanceView) && urlClassId) {
+    if ((isClassDetailView || isAttendanceView || isProjectScoreView) && urlClassId) {
       url.searchParams.set("classId", urlClassId);
       window.localStorage.setItem(storageKeys.classId, urlClassId);
     } else {
@@ -698,6 +701,7 @@ export default function Home() {
   }, [
     activeView,
     isAttendanceView,
+    isProjectScoreView,
     isClassDetailView,
     isDataView,
     search,
@@ -1482,6 +1486,36 @@ export default function Home() {
     setUpdatingEnrollmentId(null);
   }
 
+  async function updateEnrollmentProjectScore(enrollmentId: string, scoreStr: string) {
+    if (!enrollmentId) return;
+    const score = Number(scoreStr);
+    if (isNaN(score)) return;
+
+    setUpdatingEnrollmentId(enrollmentId);
+    setError("");
+    setMessage("");
+
+    const { error: updateError } = await supabase
+      .from("enrollments")
+      .update({ project_score: score })
+      .eq("id", enrollmentId);
+
+    if (updateError) {
+      setError(updateError.message);
+      setUpdatingEnrollmentId(null);
+      return;
+    }
+
+    setData((current) => ({
+      ...current,
+      enrollments: current.enrollments.map((enrollment) =>
+        String(enrollment.id) === enrollmentId ? { ...enrollment, project_score: score } : enrollment,
+      ),
+    }));
+    setMessage("Đã cập nhật điểm đồ án.");
+    setUpdatingEnrollmentId(null);
+  }
+
   function getAttendanceStatusClass(status: string) {
     if (attendanceStatusOptions.some((option) => option.value === status)) {
       return `attendance-${status}`;
@@ -1674,7 +1708,9 @@ export default function Home() {
         ? "Chi tiết lớp"
         : isAttendanceView
           ? "Học vụ"
-          : "Quản trị dữ liệu";
+          : isProjectScoreView
+            ? "Học vụ"
+            : "Quản trị dữ liệu";
   const pageTitle = isDashboardView
     ? "Dashboard"
     : isClassManagementView
@@ -1683,7 +1719,9 @@ export default function Home() {
         ? selectedClass?.className ?? "Chi tiết lớp"
         : isAttendanceView
           ? "Điểm danh"
-          : activeConfig.label;
+          : isProjectScoreView
+            ? "Điểm đồ án"
+            : activeConfig.label;
   const pageDescription = isDashboardView
     ? "Theo dõi ghi danh theo khoá học, giảng viên và tỉ lệ quay lại."
     : isClassManagementView
@@ -1694,7 +1732,9 @@ export default function Home() {
           : "Không tìm thấy lớp trong dữ liệu hiện tại."
         : isAttendanceView
           ? "Chọn lớp, chọn buổi học và cập nhật trạng thái điểm danh cho từng học viên."
-          : activeConfig.description;
+          : isProjectScoreView
+            ? "Nhập điểm đồ án cho từng học viên trong lớp."
+            : activeConfig.description;
 
   return (
     <main className="admin-shell">
@@ -1738,6 +1778,13 @@ export default function Home() {
             >
               <span>Điểm danh</span>
               <strong>{data.classes.length}</strong>
+            </button>
+            <button
+              className={isProjectScoreView ? "active" : ""}
+              onClick={() => setActiveView("projectScore")}
+              type="button"
+            >
+              <span>Điểm đồ án</span>
             </button>
           </nav>
         </div>
@@ -2301,6 +2348,93 @@ export default function Home() {
                 </>
               ) : (
                 <p className="empty-chart">Chưa có lớp để điểm danh.</p>
+              )}
+            </article>
+          </section>
+        )}
+
+        {isProjectScoreView && (
+          <section className="analytics-grid" aria-label="Điểm đồ án">
+            <article className="analytics-card detail-card wide" style={{ paddingTop: "24px" }}>
+              <div className="attendance-toolbar" style={{ flexDirection: "column", alignItems: "stretch", marginBottom: "24px" }}>
+                <label style={{ maxWidth: "100%" }}>
+                  <span>Lớp học</span>
+                  <select
+                    onChange={(event) => setSelectedAttendanceClassId(event.target.value || null)}
+                    value={selectedAttendanceClassId ?? ""}
+                  >
+                    <option value="">Chọn lớp học</option>
+                    {analytics.classItems.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.classCode} - {item.className}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {selectedAttendanceClass ? (
+                <>
+                  <p className="filter-summary">
+                    {selectedAttendanceClass.courseName} · {selectedAttendanceClass.teacherName} ·{" "}
+                    {selectedAttendanceClass.enrollmentCount} học viên ghi danh
+                  </p>
+                  <div className="class-table attendance-table">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Học viên</th>
+                          <th>Email</th>
+                          <th>Số điện thoại</th>
+                          <th>Điểm đồ án (Hệ 10)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedAttendanceClass.enrollments.length ? (
+                          selectedAttendanceClass.enrollments.map((enrollment) => (
+                            <tr key={enrollment.id}>
+                              <td>{enrollment.name}</td>
+                              <td>{enrollment.email}</td>
+                              <td>{enrollment.phone}</td>
+                              <td>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="10"
+                                  step="0.5"
+                                  defaultValue={enrollment.projectScore ?? ""}
+                                  disabled={Boolean(updatingEnrollmentId === enrollment.id)}
+                                  style={{
+                                    width: "80px",
+                                    padding: "6px 12px",
+                                    borderRadius: "8px",
+                                    border: "1px solid var(--border)",
+                                  }}
+                                  onBlur={(event) => {
+                                    if (event.target.value && Number(event.target.value) !== enrollment.projectScore) {
+                                      void updateEnrollmentProjectScore(enrollment.id, event.target.value);
+                                    }
+                                  }}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter") {
+                                      event.currentTarget.blur();
+                                    }
+                                  }}
+                                />
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={4}>Lớp này chưa có học viên ghi danh.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <p className="empty-chart">Chưa có lớp để nhập điểm đồ án.</p>
               )}
             </article>
           </section>
