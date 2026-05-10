@@ -55,11 +55,10 @@ button {
   flex-direction: column;
   gap: 28px;
   padding: 28px 20px;
-  background:
-    linear-gradient(180deg, rgba(16, 185, 129, 0.22), transparent 38%),
-    var(--nav);
-  color: #ffffff;
-  box-shadow: 10px 0 35px rgba(15, 23, 42, 0.10);
+  border-right: 1px solid var(--border);
+  background: #ffffff;
+  color: var(--foreground);
+  box-shadow: 10px 0 35px rgba(15, 23, 42, 0.06);
 }
 
 .eyebrow {
@@ -72,7 +71,7 @@ button {
 }
 
 .sidebar .eyebrow {
-  color: #bbf7d0;
+  color: var(--accent);
 }
 
 .brand-block {
@@ -83,11 +82,11 @@ button {
 .brand-logo {
   width: 96px;
   height: 96px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--border);
   border-radius: 8px;
   object-fit: contain;
   background: #ffffff;
-  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-soft);
 }
 
 h1,
@@ -129,7 +128,7 @@ p {
 .nav-tabs::before {
   height: 1px;
   margin-bottom: 6px;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--border);
   content: "";
 }
 
@@ -139,21 +138,21 @@ p {
   justify-content: space-between;
   width: 100%;
   min-height: 48px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 11px 12px;
-  background: rgba(255, 255, 255, 0.04);
-  color: #cbd5e1;
+  background: #ffffff;
+  color: #344054;
   text-align: left;
   transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
 .nav-tabs button.active,
 .nav-tabs button:hover {
-  border-color: rgba(187, 247, 208, 0.82);
-  background: rgba(16, 185, 129, 0.18);
-  color: #ffffff;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
+  border-color: rgba(5, 150, 105, 0.34);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  box-shadow: 0 10px 22px rgba(5, 150, 105, 0.12);
   transform: translateX(2px);
 }
 
@@ -163,7 +162,8 @@ p {
   height: 24px;
   place-items: center;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface-soft);
+  color: var(--accent-dark);
   font-size: 12px;
 }
 
