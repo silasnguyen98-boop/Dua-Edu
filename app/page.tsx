@@ -368,7 +368,6 @@ export default function Home() {
   const [selectedClassId, setSelectedClassId] = useState<string | null>(getInitialClassId);
   const [selectedAttendanceClassId, setSelectedAttendanceClassId] = useState<string | null>(getInitialClassId);
   const [selectedAttendanceSession, setSelectedAttendanceSession] = useState(getInitialSession);
-  const [selectedAssignmentNumber, setSelectedAssignmentNumber] = useState(1);
   const [attendanceMode, setAttendanceMode] = useState<"session" | "summary">(getInitialAttendanceMode);
   const [showReturningDetails, setShowReturningDetails] = useState(false);
   const [relationQueries, setRelationQueries] = useState<Record<string, string>>({});
@@ -599,23 +598,25 @@ export default function Home() {
   }, [selectedAttendanceClass]);
 
   const assignmentRecordsByEnrollment = useMemo(() => {
-    const records = new Map<string, AssignmentRecord>();
+    const records = new Map<string, Map<number, AssignmentRecord>>();
     const enrollmentIds = new Set(
       selectedAttendanceClass?.enrollments.map((enrollment) => enrollment.id) ?? [],
     );
 
     assignmentRecords
-      .filter(
-        (record) =>
-          enrollmentIds.has(String(record.enrollment_id ?? "")) &&
-          Number(record.assignment_number ?? 0) === selectedAssignmentNumber,
-      )
+      .filter((record) => enrollmentIds.has(String(record.enrollment_id ?? "")))
       .forEach((record) => {
-        records.set(String(record.enrollment_id ?? ""), record);
+        const enrollmentId = String(record.enrollment_id ?? "");
+        const assignmentNumber = Number(record.assignment_number ?? 0);
+        
+        if (!records.has(enrollmentId)) {
+          records.set(enrollmentId, new Map());
+        }
+        records.get(enrollmentId)!.set(assignmentNumber, record);
       });
 
     return records;
-  }, [assignmentRecords, selectedAttendanceClass, selectedAssignmentNumber]);
+  }, [assignmentRecords, selectedAttendanceClass]);
 
   const selectedClassStatusOptions = useMemo(() => {
     const customStatuses =
@@ -1642,7 +1643,7 @@ export default function Home() {
     setMessage("Đã cập nhật điểm danh.");
   }
 
-  async function updateAssignmentScore(enrollment: { id: string }, scoreStr: string) {
+  async function updateAssignmentScore(enrollment: { id: string }, assignmentNumber: number, scoreStr: string) {
     if (!selectedAttendanceClass || !enrollment.id) {
       setError("Không đủ dữ liệu để cập nhật điểm bài tập.");
       return;
@@ -1656,7 +1657,7 @@ export default function Home() {
 
     const payload = {
       enrollment_id: enrollment.id,
-      assignment_number: selectedAssignmentNumber,
+      assignment_number: assignmentNumber,
       score,
     };
 
@@ -2495,7 +2496,7 @@ export default function Home() {
             <article className="analytics-card detail-card wide" style={{ paddingTop: "24px" }}>
               <div className="attendance-toolbar" style={{ marginBottom: "24px" }}>
                 <div style={{ display: "flex", gap: "16px", flex: 1 }}>
-                  <label style={{ flex: 2 }}>
+                  <label style={{ flex: 1 }}>
                     <span>Lớp học</span>
                     <select
                       onChange={(event) => setSelectedAttendanceClassId(event.target.value || null)}
@@ -2505,20 +2506,6 @@ export default function Home() {
                       {analytics.classItems.map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.classCode} - {item.className}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label style={{ flex: 1 }}>
-                    <span>Bài tập số</span>
-                    <select
-                      disabled={!selectedAttendanceClass}
-                      onChange={(event) => setSelectedAssignmentNumber(Number(event.target.value))}
-                      value={selectedAssignmentNumber}
-                    >
-                      {Array.from({ length: assignmentNumberCount }, (_, i) => i + 1).map((num) => (
-                        <option key={num} value={num}>
-                          Bài tập {num}
                         </option>
                       ))}
                     </select>
@@ -2534,59 +2521,68 @@ export default function Home() {
                     {selectedAttendanceClass.courseName} · {selectedAttendanceClass.teacherName} ·{" "}
                     {selectedAttendanceClass.enrollmentCount} học viên ghi danh
                   </p>
-                  <div className="class-table attendance-table">
+                  <div className="class-table attendance-table" style={{ overflowX: "auto" }}>
                     <table>
                       <thead>
                         <tr>
                           <th>Học viên</th>
                           <th>Email</th>
-                          <th>Điểm bài tập {selectedAssignmentNumber} (Hệ 10)</th>
+                          {Array.from({ length: assignmentNumberCount }, (_, i) => i + 1).map((num) => (
+                            <th key={num} style={{ textAlign: "center" }}>Bài {num}</th>
+                          ))}
                         </tr>
                       </thead>
                       <tbody>
                         {selectedAttendanceClass.enrollments.length ? (
                           selectedAttendanceClass.enrollments.map((enrollment) => {
-                            const record = assignmentRecordsByEnrollment.get(enrollment.id);
-                            const currentScore = record?.score ? Number(record.score) : "";
+                            const studentRecords = assignmentRecordsByEnrollment.get(enrollment.id);
 
                             return (
                               <tr key={enrollment.id}>
                                 <td>{enrollment.name}</td>
                                 <td>{enrollment.email}</td>
-                                <td>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    max="10"
-                                    step="0.5"
-                                    defaultValue={currentScore}
-                                    disabled={Boolean(assignmentError)}
-                                    style={{
-                                      width: "80px",
-                                      padding: "6px 12px",
-                                      borderRadius: "8px",
-                                      border: "1px solid var(--border)",
-                                    }}
-                                    onBlur={(event) => {
-                                      const val = event.target.value;
-                                      const numVal = Number(val);
-                                      if (val && !isNaN(numVal) && numVal !== currentScore) {
-                                        void updateAssignmentScore(enrollment, val);
-                                      }
-                                    }}
-                                    onKeyDown={(event) => {
-                                      if (event.key === "Enter") {
-                                        event.currentTarget.blur();
-                                      }
-                                    }}
-                                  />
-                                </td>
+                                {Array.from({ length: assignmentNumberCount }, (_, i) => i + 1).map((num) => {
+                                  const record = studentRecords?.get(num);
+                                  const currentScore = record?.score ? Number(record.score) : "";
+
+                                  return (
+                                    <td key={num} style={{ textAlign: "center" }}>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max="10"
+                                        step="0.5"
+                                        defaultValue={currentScore}
+                                        disabled={Boolean(assignmentError)}
+                                        style={{
+                                          width: "80px",
+                                          padding: "6px 12px",
+                                          borderRadius: "8px",
+                                          border: "1px solid var(--border)",
+                                          textAlign: "center",
+                                        }}
+                                        onBlur={(event) => {
+                                          const val = event.target.value;
+                                          const numVal = Number(val);
+                                          if (val && !isNaN(numVal) && numVal !== currentScore) {
+                                            void updateAssignmentScore(enrollment, num, val);
+                                          }
+                                        }}
+                                        onKeyDown={(event) => {
+                                          if (event.key === "Enter") {
+                                            event.currentTarget.blur();
+                                          }
+                                        }}
+                                      />
+                                    </td>
+                                  );
+                                })}
                               </tr>
                             );
                           })
                         ) : (
                           <tr>
-                            <td colSpan={3}>Lớp này chưa có học viên ghi danh.</td>
+                            <td colSpan={2 + assignmentNumberCount}>Lớp này chưa có học viên ghi danh.</td>
                           </tr>
                         )}
                       </tbody>
