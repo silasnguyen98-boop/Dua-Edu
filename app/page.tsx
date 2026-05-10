@@ -26,7 +26,7 @@ type TableName =
   | "classes"
   | "enrollments"
   | "certificates";
-type ViewName = "dashboard" | TableName;
+type ViewName = "dashboard" | "classManagement" | "classDetail" | TableName;
 
 type TableConfig = {
   name: TableName;
@@ -50,6 +50,7 @@ type ChartItem = {
 
 const logoUrl = "https://i.ibb.co/3yKrstMS/Thie-t-ke-chu-a-co-te-n-20.png";
 const storageKeys = {
+  classId: "dua-edu-admin-class-id",
   search: "dua-edu-admin-search",
   scrollY: "dua-edu-admin-scroll-y",
   view: "dua-edu-admin-view",
@@ -257,7 +258,7 @@ const isTableName = (value: string | null): value is TableName =>
   tableConfigs.some((config) => config.name === value);
 
 const isViewName = (value: string | null): value is ViewName =>
-  value === "dashboard" || isTableName(value);
+  value === "dashboard" || value === "classManagement" || value === "classDetail" || isTableName(value);
 
 const getInitialView = () => {
   if (typeof window === "undefined") {
@@ -284,12 +285,23 @@ const getInitialSearch = () => {
   return searchFromUrl ?? window.localStorage.getItem(storageKeys.search) ?? "";
 };
 
+const getInitialClassId = () => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return (
+    new URLSearchParams(window.location.search).get("classId") ??
+    window.localStorage.getItem(storageKeys.classId)
+  );
+};
+
 export default function Home() {
   const [activeView, setActiveView] = useState<ViewName>(getInitialView);
   const [data, setData] = useState<DataState>(emptyData);
   const [form, setForm] = useState<FormState>(() => buildEmptyForm(tableConfigs[0].fields));
   const [editingRow, setEditingRow] = useState<Row | null>(null);
-  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(getInitialClassId);
   const [showReturningDetails, setShowReturningDetails] = useState(false);
   const [search, setSearch] = useState(getInitialSearch);
   const [isLoading, setIsLoading] = useState(true);
@@ -299,6 +311,9 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const activeTable: TableName = isTableName(activeView) ? activeView : "students";
   const isDashboardView = activeView === "dashboard";
+  const isClassManagementView = activeView === "classManagement";
+  const isClassDetailView = activeView === "classDetail";
+  const isDataView = isTableName(activeView);
 
   const activeConfig = useMemo(
     () => tableConfigs.find((config) => config.name === activeTable) ?? tableConfigs[0],
@@ -419,7 +434,9 @@ export default function Home() {
             };
           }),
           id: classId,
+          startDate: classRow.start_date ? String(classRow.start_date) : "-",
           teacherName: String(teacher?.full_name ?? "-"),
+          totalSessions: classRow.total_sessions ? String(classRow.total_sessions) : "-",
         };
       })
       .sort((a, b) => b.enrollmentCount - a.enrollmentCount);
@@ -492,11 +509,15 @@ export default function Home() {
   }, [activeConfig]);
 
   useEffect(() => {
-    if (!isDashboardView) {
+    if (!isClassManagementView && !isClassDetailView) {
       setSelectedClassId(null);
+      window.localStorage.removeItem(storageKeys.classId);
+    }
+
+    if (!isDashboardView) {
       setShowReturningDetails(false);
     }
-  }, [isDashboardView]);
+  }, [isClassManagementView, isClassDetailView, isDashboardView]);
 
   useEffect(() => {
     window.localStorage.setItem(storageKeys.view, activeView);
@@ -506,14 +527,21 @@ export default function Home() {
     url.searchParams.set("view", activeView);
     url.searchParams.delete("table");
 
-    if (!isDashboardView && search.trim()) {
+    if (isClassDetailView && selectedClassId) {
+      url.searchParams.set("classId", selectedClassId);
+      window.localStorage.setItem(storageKeys.classId, selectedClassId);
+    } else {
+      url.searchParams.delete("classId");
+    }
+
+    if (isDataView && search.trim()) {
       url.searchParams.set("q", search.trim());
     } else {
       url.searchParams.delete("q");
     }
 
     window.history.replaceState(null, "", url);
-  }, [activeView, isDashboardView, search]);
+  }, [activeView, isClassDetailView, isDataView, search, selectedClassId]);
 
   useEffect(() => {
     const scrollY = Number(window.localStorage.getItem(storageKeys.scrollY) ?? "0");
@@ -1154,6 +1182,17 @@ export default function Home() {
     await loadAllTables();
   }
 
+  function openClassDetail(classId: string) {
+    setSelectedClassId(classId);
+    setActiveView("classDetail");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function openClassManagement() {
+    setActiveView("classManagement");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function renderBarChart(items: ChartItem[], emptyText: string) {
     const maxValue = Math.max(...items.map((item) => item.value), 0);
 
@@ -1221,6 +1260,30 @@ export default function Home() {
     );
   }
 
+  const pageEyebrow = isDashboardView
+    ? "Tổng quan"
+    : isClassManagementView
+      ? "Quản lý lớp"
+      : isClassDetailView
+        ? "Danh sách ghi danh"
+        : "Quản trị dữ liệu";
+  const pageTitle = isDashboardView
+    ? "Dashboard"
+    : isClassManagementView
+      ? "Học viên từng lớp và sĩ số"
+      : isClassDetailView
+        ? selectedClass?.className ?? "Chi tiết lớp"
+        : activeConfig.label;
+  const pageDescription = isDashboardView
+    ? "Theo dõi ghi danh theo khoá học, giảng viên và tỉ lệ quay lại."
+    : isClassManagementView
+      ? "Theo dõi sĩ số từng lớp và mở trang riêng để xem danh sách ghi danh."
+      : isClassDetailView
+        ? selectedClass
+          ? `${selectedClass.courseName} · ${selectedClass.teacherName} · Sĩ số ${selectedClass.enrollmentCount}`
+          : "Không tìm thấy lớp trong dữ liệu hiện tại."
+        : activeConfig.description;
+
   return (
     <main className="admin-shell">
       <aside className="sidebar">
@@ -1241,6 +1304,14 @@ export default function Home() {
             <span>Dashboard</span>
             <strong>{data.enrollments.length}</strong>
           </button>
+          <button
+            className={isClassManagementView || isClassDetailView ? "active" : ""}
+            onClick={openClassManagement}
+            type="button"
+          >
+            <span>Quản lý lớp</span>
+            <strong>{data.classes.length}</strong>
+          </button>
           {tableConfigs.map((config) => (
             <button
               className={config.name === activeView ? "active" : ""}
@@ -1258,19 +1329,20 @@ export default function Home() {
       <section className="workspace">
         <header className="topbar">
           <div>
-            <p className="eyebrow">{isDashboardView ? "Tổng quan" : "Quản trị dữ liệu"}</p>
-            <h2>{isDashboardView ? "Dashboard" : activeConfig.label}</h2>
-            <p>
-              {isDashboardView
-                ? "Theo dõi ghi danh theo khoá học, giảng viên, sĩ số lớp và tỉ lệ quay lại."
-                : activeConfig.description}
-            </p>
+            <p className="eyebrow">{pageEyebrow}</p>
+            <h2>{pageTitle}</h2>
+            <p>{pageDescription}</p>
           </div>
           <div className="topbar-actions">
             <button className="secondary-button" onClick={() => void loadAllTables()} type="button">
               Làm mới
             </button>
-            {!isDashboardView && (
+            {isClassDetailView && (
+              <button className="secondary-button" onClick={openClassManagement} type="button">
+                Quay lại lớp
+              </button>
+            )}
+            {isDataView && (
               <>
                 <button className="secondary-button" onClick={() => void downloadTemplate()} type="button">
                   Tải file mẫu
@@ -1409,6 +1481,11 @@ export default function Home() {
               </article>
             )}
 
+          </section>
+        )}
+
+        {isClassManagementView && (
+          <section className="analytics-grid" aria-label="Quản lý lớp">
             <article className="analytics-card class-size-card wide">
               <div className="section-heading">
                 <div>
@@ -1424,6 +1501,8 @@ export default function Home() {
                       <th>Mã lớp</th>
                       <th>Khoá học</th>
                       <th>Giảng viên</th>
+                      <th>Ngày bắt đầu</th>
+                      <th>Số buổi</th>
                       <th>Sĩ số</th>
                       <th>Danh sách</th>
                     </tr>
@@ -1436,51 +1515,60 @@ export default function Home() {
                           <td>{item.classCode}</td>
                           <td>{item.courseName}</td>
                           <td>{item.teacherName}</td>
+                          <td>{formatValue(item.startDate)}</td>
+                          <td>{item.totalSessions}</td>
                           <td>
                             <strong>{item.enrollmentCount}</strong>
                           </td>
                           <td>
                             <button
                               className="secondary-button compact-button"
-                              onClick={() =>
-                                setSelectedClassId((current) =>
-                                  current === item.id ? null : item.id,
-                                )
-                              }
+                              onClick={() => openClassDetail(item.id)}
                               type="button"
                             >
-                              {selectedClassId === item.id ? "Ẩn" : "Xem"}
+                              Xem
                             </button>
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={6}>Chưa có dữ liệu lớp hoặc ghi danh.</td>
+                        <td colSpan={8}>Chưa có dữ liệu lớp hoặc ghi danh.</td>
                       </tr>
                     )}
                   </tbody>
                 </table>
               </div>
             </article>
+          </section>
+        )}
 
-            {selectedClass && (
+        {isClassDetailView && (
+          <section className="analytics-grid" aria-label="Chi tiết lớp">
+            {isLoading ? (
+              <article className="analytics-card detail-card wide">
+                <div className="section-heading">
+                  <div>
+                    <p className="eyebrow">Chi tiết lớp</p>
+                    <h3>Đang tải danh sách ghi danh...</h3>
+                    <p>Hệ thống đang lấy dữ liệu lớp từ Supabase.</p>
+                  </div>
+                </div>
+              </article>
+            ) : selectedClass ? (
               <article className="analytics-card detail-card wide">
                 <div className="section-heading">
                   <div>
                     <p className="eyebrow">Danh sách ghi danh</p>
                     <h3>{selectedClass.className}</h3>
                     <p>
-                      {selectedClass.courseName} · {selectedClass.teacherName} · Sĩ số{" "}
-                      {selectedClass.enrollmentCount}
+                      {selectedClass.courseName} · {selectedClass.teacherName} · Ngày bắt đầu{" "}
+                      {formatValue(selectedClass.startDate)} · {selectedClass.totalSessions} buổi ·
+                      Sĩ số {selectedClass.enrollmentCount}
                     </p>
                   </div>
-                  <button
-                    className="text-button"
-                    onClick={() => setSelectedClassId(null)}
-                    type="button"
-                  >
-                    Đóng
+                  <button className="text-button" onClick={openClassManagement} type="button">
+                    Quay lại
                   </button>
                 </div>
                 <div className="class-table">
@@ -1512,6 +1600,19 @@ export default function Home() {
                   </table>
                 </div>
               </article>
+            ) : (
+              <article className="analytics-card detail-card wide">
+                <div className="section-heading">
+                  <div>
+                    <p className="eyebrow">Chi tiết lớp</p>
+                    <h3>Không tìm thấy lớp</h3>
+                    <p>Lớp này có thể đã bị xoá hoặc chưa tải xong dữ liệu.</p>
+                  </div>
+                  <button className="text-button" onClick={openClassManagement} type="button">
+                    Quay lại
+                  </button>
+                </div>
+              </article>
             )}
           </section>
         )}
@@ -1522,7 +1623,7 @@ export default function Home() {
           </div>
         )}
 
-        {!isDashboardView && (
+        {isDataView && (
         <section className="management-grid">
           <form className="editor" onSubmit={(event) => void saveRow(event)}>
             <div className="section-heading">
