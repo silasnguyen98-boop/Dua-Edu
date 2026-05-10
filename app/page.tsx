@@ -2116,22 +2116,50 @@ export default function Home() {
                   </select>
                 </label>
 
-                <label>
-                  <span>Buổi học</span>
-                  <select
-                    onChange={(event) => setSelectedAttendanceSession(Number(event.target.value))}
-                    value={selectedAttendanceSession}
+                {selectedAttendanceSession !== 0 && (
+                  <label>
+                    <span>Buổi học</span>
+                    <select
+                      onChange={(event) => setSelectedAttendanceSession(Number(event.target.value))}
+                      value={selectedAttendanceSession}
+                    >
+                      {Array.from({ length: attendanceSessionCount }, (_, index) => index + 1).map(
+                        (sessionNumber) => (
+                          <option key={sessionNumber} value={sessionNumber}>
+                            Buổi {sessionNumber}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                  </label>
+                )}
+
+                <div style={{ display: "flex", alignItems: "flex-end", gap: "8px", marginLeft: "auto" }}>
+                  <button
+                    className="secondary-button"
+                    onClick={() => setSelectedAttendanceSession(selectedAttendanceSession === 0 ? 1 : selectedAttendanceSession)}
+                    style={{ 
+                      background: selectedAttendanceSession !== 0 ? "var(--accent-soft)" : "transparent",
+                      borderColor: selectedAttendanceSession !== 0 ? "var(--accent)" : "var(--border)",
+                      color: selectedAttendanceSession !== 0 ? "var(--accent-dark)" : "var(--foreground)"
+                    }}
+                    type="button"
                   >
-                    <option value={0}>Bảng tổng hợp</option>
-                    {Array.from({ length: attendanceSessionCount }, (_, index) => index + 1).map(
-                      (sessionNumber) => (
-                        <option key={sessionNumber} value={sessionNumber}>
-                          Buổi {sessionNumber}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                </label>
+                    Điểm danh
+                  </button>
+                  <button
+                    className="secondary-button"
+                    onClick={() => setSelectedAttendanceSession(0)}
+                    style={{ 
+                      background: selectedAttendanceSession === 0 ? "var(--accent-soft)" : "transparent",
+                      borderColor: selectedAttendanceSession === 0 ? "var(--accent)" : "var(--border)",
+                      color: selectedAttendanceSession === 0 ? "var(--accent-dark)" : "var(--foreground)"
+                    }}
+                    type="button"
+                  >
+                    Bảng tổng hợp
+                  </button>
+                </div>
               </div>
 
               {attendanceError && <div className="notice error">{attendanceError}</div>}
