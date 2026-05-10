@@ -332,6 +332,7 @@ export default function Home() {
   const [selectedClassId, setSelectedClassId] = useState<string | null>(getInitialClassId);
   const [selectedAttendanceClassId, setSelectedAttendanceClassId] = useState<string | null>(getInitialClassId);
   const [selectedAttendanceSession, setSelectedAttendanceSession] = useState(1);
+  const [attendanceMode, setAttendanceMode] = useState<"session" | "summary">("session");
   const [showReturningDetails, setShowReturningDetails] = useState(false);
   const [relationQueries, setRelationQueries] = useState<Record<string, string>>({});
   const [openRelationPicker, setOpenRelationPicker] = useState<string | null>(null);
@@ -2099,8 +2100,8 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="attendance-toolbar">
-                <label>
+              <div className="attendance-toolbar" style={{ flexDirection: "column", alignItems: "stretch" }}>
+                <label style={{ maxWidth: "100%" }}>
                   <span>Lớp học</span>
                   <select
                     onChange={(event) => {
@@ -2118,49 +2119,51 @@ export default function Home() {
                   </select>
                 </label>
 
-                {selectedAttendanceSession !== 0 && (
-                  <label>
-                    <span>Buổi học</span>
-                    <select
-                      onChange={(event) => setSelectedAttendanceSession(Number(event.target.value))}
-                      value={selectedAttendanceSession}
-                    >
-                      {Array.from({ length: attendanceSessionCount }, (_, index) => index + 1).map(
-                        (sessionNumber) => (
-                          <option key={sessionNumber} value={sessionNumber}>
-                            Buổi {sessionNumber}
-                          </option>
-                        ),
-                      )}
-                    </select>
-                  </label>
-                )}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "16px", flexWrap: "wrap" }}>
+                  {attendanceMode === "session" ? (
+                    <label style={{ flex: 1, minWidth: "200px", maxWidth: "300px" }}>
+                      <span>Buổi học</span>
+                      <select
+                        onChange={(event) => setSelectedAttendanceSession(Number(event.target.value))}
+                        value={selectedAttendanceSession}
+                      >
+                        {Array.from({ length: attendanceSessionCount }, (_, index) => index + 1).map(
+                          (sessionNumber) => (
+                            <option key={sessionNumber} value={sessionNumber}>
+                              Buổi {sessionNumber}
+                            </option>
+                          ),
+                        )}
+                      </select>
+                    </label>
+                  ) : <div />}
 
-                <div style={{ display: "flex", alignItems: "flex-end", gap: "8px", marginLeft: "auto" }}>
-                  <button
-                    className="secondary-button"
-                    onClick={() => setSelectedAttendanceSession(selectedAttendanceSession === 0 ? 1 : selectedAttendanceSession)}
-                    style={{ 
-                      background: selectedAttendanceSession !== 0 ? "var(--accent-soft)" : "transparent",
-                      borderColor: selectedAttendanceSession !== 0 ? "var(--accent)" : "var(--border)",
-                      color: selectedAttendanceSession !== 0 ? "var(--accent-dark)" : "var(--foreground)"
-                    }}
-                    type="button"
-                  >
-                    Điểm danh
-                  </button>
-                  <button
-                    className="secondary-button"
-                    onClick={() => setSelectedAttendanceSession(0)}
-                    style={{ 
-                      background: selectedAttendanceSession === 0 ? "var(--accent-soft)" : "transparent",
-                      borderColor: selectedAttendanceSession === 0 ? "var(--accent)" : "var(--border)",
-                      color: selectedAttendanceSession === 0 ? "var(--accent-dark)" : "var(--foreground)"
-                    }}
-                    type="button"
-                  >
-                    Bảng tổng hợp
-                  </button>
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: "8px" }}>
+                    <button
+                      className="secondary-button"
+                      onClick={() => setAttendanceMode("session")}
+                      style={{ 
+                        background: attendanceMode === "session" ? "var(--accent-soft)" : "transparent",
+                        borderColor: attendanceMode === "session" ? "var(--accent)" : "var(--border)",
+                        color: attendanceMode === "session" ? "var(--accent-dark)" : "var(--foreground)"
+                      }}
+                      type="button"
+                    >
+                      Điểm danh
+                    </button>
+                    <button
+                      className="secondary-button"
+                      onClick={() => setAttendanceMode("summary")}
+                      style={{ 
+                        background: attendanceMode === "summary" ? "var(--accent-soft)" : "transparent",
+                        borderColor: attendanceMode === "summary" ? "var(--accent)" : "var(--border)",
+                        color: attendanceMode === "summary" ? "var(--accent-dark)" : "var(--foreground)"
+                      }}
+                      type="button"
+                    >
+                      Bảng tổng hợp
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -2172,10 +2175,10 @@ export default function Home() {
                     {selectedAttendanceClass.courseName} · {selectedAttendanceClass.teacherName} ·{" "}
                     {selectedAttendanceClass.enrollmentCount} học viên ghi danh
                   </p>
-                  <div className={`class-table attendance-table ${selectedAttendanceSession === 0 ? "table-wrap" : ""}`}>
+                  <div className={`class-table attendance-table ${attendanceMode === "summary" ? "table-wrap" : ""}`}>
                     <table>
                       <thead>
-                        {selectedAttendanceSession === 0 ? (
+                        {attendanceMode === "summary" ? (
                           <tr>
                             <th>Học viên</th>
                             {Array.from({ length: attendanceSessionCount }, (_, i) => (
@@ -2199,7 +2202,7 @@ export default function Home() {
                       <tbody>
                         {selectedAttendanceClass.enrollments.length ? (
                           selectedAttendanceClass.enrollments.map((enrollment) => {
-                            if (selectedAttendanceSession === 0) {
+                            if (attendanceMode === "summary") {
                               let presentCount = 0;
                               let absentCount = 0;
                               let lateCount = 0;
@@ -2283,7 +2286,7 @@ export default function Home() {
                           })
                         ) : (
                           <tr>
-                            <td colSpan={selectedAttendanceSession === 0 ? 2 + attendanceSessionCount : 4}>Lớp này chưa có học viên ghi danh.</td>
+                            <td colSpan={attendanceMode === "summary" ? 6 + attendanceSessionCount : 4}>Lớp này chưa có học viên ghi danh.</td>
                           </tr>
                         )}
                       </tbody>
