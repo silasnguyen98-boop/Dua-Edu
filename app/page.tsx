@@ -374,6 +374,8 @@ export default function Home() {
   const [openRelationPicker, setOpenRelationPicker] = useState<string | null>(null);
   const [updatingEnrollmentId, setUpdatingEnrollmentId] = useState<string | null>(null);
   const [classStatusFilter, setClassStatusFilter] = useState("all");
+  const [classDetailSortField, setClassDetailSortField] = useState<string>("name");
+  const [classDetailSortDir, setClassDetailSortDir] = useState<"asc" | "desc">("asc");
   const [classManagementSearch, setClassManagementSearch] = useState("");
   const [search, setSearch] = useState(getInitialSearch);
   const [isLoading, setIsLoading] = useState(true);
@@ -644,18 +646,47 @@ export default function Home() {
       return [];
     }
 
-    if (classStatusFilter === "all") {
-      return selectedClass.enrollments;
+    let filtered = selectedClass.enrollments;
+
+    if (classStatusFilter !== "all") {
+      if (classStatusFilter === "__empty") {
+        filtered = filtered.filter((enrollment) => !enrollment.status);
+      } else {
+        filtered = filtered.filter((enrollment) => enrollment.status === classStatusFilter);
+      }
     }
 
-    if (classStatusFilter === "__empty") {
-      return selectedClass.enrollments.filter((enrollment) => !enrollment.status);
-    }
+    return filtered.slice().sort((a, b) => {
+      let aVal: any = a[classDetailSortField as keyof typeof a];
+      let bVal: any = b[classDetailSortField as keyof typeof b];
+      
+      if (aVal == null) aVal = "";
+      if (bVal == null) bVal = "";
 
-    return selectedClass.enrollments.filter(
-      (enrollment) => enrollment.status === classStatusFilter,
-    );
-  }, [classStatusFilter, selectedClass]);
+      let comparison = 0;
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        comparison = aVal - bVal;
+      } else {
+        comparison = String(aVal).localeCompare(String(bVal));
+      }
+
+      return classDetailSortDir === "asc" ? comparison : -comparison;
+    });
+  }, [classStatusFilter, selectedClass, classDetailSortField, classDetailSortDir]);
+
+  const handleClassDetailSort = (field: string) => {
+    if (classDetailSortField === field) {
+      setClassDetailSortDir(classDetailSortDir === "asc" ? "desc" : "asc");
+    } else {
+      setClassDetailSortField(field);
+      setClassDetailSortDir("asc");
+    }
+  };
+
+  const ClassDetailSortIcon = ({ field }: { field: string }) => {
+    if (classDetailSortField !== field) return <span style={{ opacity: 0.3, marginLeft: "4px" }}>↕</span>;
+    return <span style={{ marginLeft: "4px" }}>{classDetailSortDir === "asc" ? "↑" : "↓"}</span>;
+  };
 
   const filteredRows = useMemo(() => {
     const rows = data[activeTable];
@@ -2246,12 +2277,12 @@ export default function Home() {
                   <table>
                     <thead>
                       <tr>
-                        <th>Học viên</th>
-                        <th>Email</th>
-                        <th style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Điểm chuyên cần</th>
-                        <th style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Điểm bài tập</th>
-                        <th style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Điểm đồ án</th>
-                        <th style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px", color: "var(--accent)", fontSize: "15px" }}>Điểm tổng kết</th>
+                        <th onClick={() => handleClassDetailSort("name")} style={{ cursor: "pointer" }}>Học viên <ClassDetailSortIcon field="name" /></th>
+                        <th onClick={() => handleClassDetailSort("email")} style={{ cursor: "pointer" }}>Email <ClassDetailSortIcon field="email" /></th>
+                        <th onClick={() => handleClassDetailSort("attendanceScore")} style={{ cursor: "pointer", borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Điểm chuyên cần <ClassDetailSortIcon field="attendanceScore" /></th>
+                        <th onClick={() => handleClassDetailSort("assignmentScore")} style={{ cursor: "pointer", borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Điểm bài tập <ClassDetailSortIcon field="assignmentScore" /></th>
+                        <th onClick={() => handleClassDetailSort("projectScore")} style={{ cursor: "pointer", borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Điểm đồ án <ClassDetailSortIcon field="projectScore" /></th>
+                        <th onClick={() => handleClassDetailSort("finalScore")} style={{ cursor: "pointer", borderLeft: "1px solid var(--border)", paddingLeft: "16px", color: "var(--accent)", fontSize: "15px" }}>Điểm tổng kết <ClassDetailSortIcon field="finalScore" /></th>
                         <th style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Trạng thái</th>
                       </tr>
                     </thead>
