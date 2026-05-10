@@ -165,7 +165,7 @@ const tableConfigs: TableConfig[] = [
     name: "enrollments",
     label: "Ghi danh",
     description: "Quản lý học viên ghi danh vào từng lớp.",
-    columns: ["student_id", "class_id", "attendance_score", "note", "created_at"],
+    columns: ["student_id", "class_id", "status", "attendance_score", "note", "created_at"],
     searchFields: ["note"],
     fields: [
       {
@@ -187,6 +187,13 @@ const tableConfigs: TableConfig[] = [
         required: true,
         optionsKey: "classes",
         optionLabel: "class_name",
+      },
+      {
+        name: "status",
+        label: "Trạng thái",
+        type: "select",
+        required: true,
+        options: enrollmentStatusOptions,
       },
       { name: "attendance_score", label: "Điểm chuyên cần", type: "number" },
       { name: "note", label: "Ghi chú", type: "textarea" },
