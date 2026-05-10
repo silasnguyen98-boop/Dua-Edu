@@ -280,6 +280,8 @@ export default function Home() {
   const [data, setData] = useState<DataState>(emptyData);
   const [form, setForm] = useState<FormState>(() => buildEmptyForm(tableConfigs[0].fields));
   const [editingRow, setEditingRow] = useState<Row | null>(null);
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+  const [showReturningDetails, setShowReturningDetails] = useState(false);
   const [search, setSearch] = useState(getInitialSearch);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -309,11 +311,14 @@ export default function Home() {
   const analytics = useMemo(() => {
     const classById = new Map(data.classes.map((item) => [String(item.id), item]));
     const courseById = new Map(data.courses.map((item) => [String(item.id), item]));
+    const studentById = new Map(data.students.map((item) => [String(item.id), item]));
     const teacherById = new Map(data.teachers.map((item) => [String(item.id), item]));
     const courseEnrollments = new Map<string, number>();
     const teacherEnrollments = new Map<string, number>();
     const classEnrollments = new Map<string, number>();
-    const studentCourses = new Map<string, Set<string>>();
+    const classEnrollmentRows = new Map<string, Row[]>();
+    const studentClasses = new Map<string, Set<string>>();
+    const studentEnrollmentRows = new Map<string, Row[]>();
 
     data.enrollments.forEach((enrollment) => {
       const studentId = enrollment.student_id ? String(enrollment.student_id) : "";
@@ -328,20 +333,29 @@ export default function Home() {
 
       if (classId) {
         classEnrollments.set(classId, (classEnrollments.get(classId) ?? 0) + 1);
+        if (!classEnrollmentRows.has(classId)) {
+          classEnrollmentRows.set(classId, []);
+        }
+        classEnrollmentRows.get(classId)?.push(enrollment);
+
+        if (!studentClasses.has(studentId)) {
+          studentClasses.set(studentId, new Set());
+        }
+        studentClasses.get(studentId)?.add(classId);
       }
 
       if (courseId) {
         courseEnrollments.set(courseId, (courseEnrollments.get(courseId) ?? 0) + 1);
-
-        if (!studentCourses.has(studentId)) {
-          studentCourses.set(studentId, new Set());
-        }
-        studentCourses.get(studentId)?.add(courseId);
       }
 
       if (teacherId) {
         teacherEnrollments.set(teacherId, (teacherEnrollments.get(teacherId) ?? 0) + 1);
       }
+
+      if (!studentEnrollmentRows.has(studentId)) {
+        studentEnrollmentRows.set(studentId, []);
+      }
+      studentEnrollmentRows.get(studentId)?.push(enrollment);
     });
 
     const buildItems = (
@@ -382,14 +396,46 @@ export default function Home() {
           className: String(classRow.class_name ?? classId.slice(0, 8)),
           courseName: String(course?.name ?? "-"),
           enrollmentCount: classEnrollments.get(classId) ?? 0,
+          enrollments: (classEnrollmentRows.get(classId) ?? []).map((enrollment) => {
+            const student = enrollment.student_id
+              ? studentById.get(String(enrollment.student_id))
+              : undefined;
+
+            return {
+              createdAt: enrollment.created_at ? String(enrollment.created_at) : "",
+              email: String(student?.email ?? "-"),
+              id: String(enrollment.id ?? ""),
+              name: String(student?.full_name ?? String(enrollment.student_id ?? "-")),
+              phone: String(student?.phone ?? "-"),
+              status: String(enrollment.status ?? "-"),
+            };
+          }),
           id: classId,
           teacherName: String(teacher?.full_name ?? "-"),
         };
       })
       .sort((a, b) => b.enrollmentCount - a.enrollmentCount);
-    const returningStudents = Array.from(studentCourses.values()).filter(
-      (courses) => courses.size >= 2,
-    ).length;
+    const returningStudentItems = Array.from(studentClasses.entries())
+      .filter(([, classes]) => classes.size >= 2)
+      .map(([studentId, classes]) => {
+        const student = studentById.get(studentId);
+        const classNames = Array.from(classes).map((classId) => {
+          const classRow = classById.get(classId);
+          return classRow?.class_name ? String(classRow.class_name) : classId.slice(0, 8);
+        });
+
+        return {
+          classCount: classes.size,
+          classNames,
+          email: String(student?.email ?? "-"),
+          id: studentId,
+          name: String(student?.full_name ?? studentId.slice(0, 8)),
+          phone: String(student?.phone ?? "-"),
+          totalEnrollments: studentEnrollmentRows.get(studentId)?.length ?? 0,
+        };
+      })
+      .sort((a, b) => b.classCount - a.classCount || a.name.localeCompare(b.name));
+    const returningStudents = returningStudentItems.length;
     const returnRate = data.students.length
       ? Math.round((returningStudents / data.students.length) * 1000) / 10
       : 0;
@@ -398,10 +444,16 @@ export default function Home() {
       classItems,
       courseItems,
       returnRate,
+      returningStudentItems,
       returningStudents,
       teacherItems,
     };
   }, [data]);
+
+  const selectedClass = useMemo(
+    () => analytics.classItems.find((item) => item.id === selectedClassId) ?? null,
+    [analytics.classItems, selectedClassId],
+  );
 
   const filteredRows = useMemo(() => {
     const rows = data[activeTable];
@@ -430,6 +482,13 @@ export default function Home() {
     setMessage("");
     setError("");
   }, [activeConfig]);
+
+  useEffect(() => {
+    if (!isDashboardView) {
+      setSelectedClassId(null);
+      setShowReturningDetails(false);
+    }
+  }, [isDashboardView]);
 
   useEffect(() => {
     window.localStorage.setItem(storageKeys.view, activeView);
@@ -1138,12 +1197,64 @@ export default function Home() {
 
             <article className="analytics-card return-card">
               <p className="eyebrow">Quay lại học</p>
-              <h3>Học viên tham gia từ 2 khoá</h3>
+              <h3>Học viên ghi danh từ 2 lớp trở lên</h3>
               <strong>{analytics.returningStudents}</strong>
               <span>
                 Tỉ lệ quay lại: {analytics.returnRate}% trên tổng {data.students.length} học viên
               </span>
+              <button
+                className="secondary-button compact-button"
+                onClick={() => setShowReturningDetails((current) => !current)}
+                type="button"
+              >
+                {showReturningDetails ? "Ẩn chi tiết" : "Xem chi tiết"}
+              </button>
             </article>
+
+            {showReturningDetails && (
+              <article className="analytics-card detail-card wide">
+                <div className="section-heading">
+                  <div>
+                    <p className="eyebrow">Chi tiết quay lại</p>
+                    <h3>Danh sách học viên ghi danh từ 2 lớp trở lên</h3>
+                  </div>
+                </div>
+                <div className="class-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Học viên</th>
+                        <th>Email</th>
+                        <th>Số điện thoại</th>
+                        <th>Số lớp</th>
+                        <th>Số ghi danh</th>
+                        <th>Lớp đã học</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {analytics.returningStudentItems.length ? (
+                        analytics.returningStudentItems.map((student) => (
+                          <tr key={student.id}>
+                            <td>{student.name}</td>
+                            <td>{student.email}</td>
+                            <td>{student.phone}</td>
+                            <td>
+                              <strong>{student.classCount}</strong>
+                            </td>
+                            <td>{student.totalEnrollments}</td>
+                            <td>{student.classNames.join(", ")}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={6}>Chưa có học viên ghi danh từ 2 lớp trở lên.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            )}
 
             <article className="analytics-card class-size-card wide">
               <div className="section-heading">
@@ -1161,6 +1272,7 @@ export default function Home() {
                       <th>Khoá học</th>
                       <th>Giảng viên</th>
                       <th>Sĩ số</th>
+                      <th>Danh sách</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1174,17 +1286,82 @@ export default function Home() {
                           <td>
                             <strong>{item.enrollmentCount}</strong>
                           </td>
+                          <td>
+                            <button
+                              className="secondary-button compact-button"
+                              onClick={() =>
+                                setSelectedClassId((current) =>
+                                  current === item.id ? null : item.id,
+                                )
+                              }
+                              type="button"
+                            >
+                              {selectedClassId === item.id ? "Ẩn" : "Xem"}
+                            </button>
+                          </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={5}>Chưa có dữ liệu lớp hoặc ghi danh.</td>
+                        <td colSpan={6}>Chưa có dữ liệu lớp hoặc ghi danh.</td>
                       </tr>
                     )}
                   </tbody>
                 </table>
               </div>
             </article>
+
+            {selectedClass && (
+              <article className="analytics-card detail-card wide">
+                <div className="section-heading">
+                  <div>
+                    <p className="eyebrow">Danh sách ghi danh</p>
+                    <h3>{selectedClass.className}</h3>
+                    <p>
+                      {selectedClass.courseName} · {selectedClass.teacherName} · Sĩ số{" "}
+                      {selectedClass.enrollmentCount}
+                    </p>
+                  </div>
+                  <button
+                    className="text-button"
+                    onClick={() => setSelectedClassId(null)}
+                    type="button"
+                  >
+                    Đóng
+                  </button>
+                </div>
+                <div className="class-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Học viên</th>
+                        <th>Email</th>
+                        <th>Số điện thoại</th>
+                        <th>Trạng thái</th>
+                        <th>Ngày ghi danh</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedClass.enrollments.length ? (
+                        selectedClass.enrollments.map((enrollment) => (
+                          <tr key={enrollment.id}>
+                            <td>{enrollment.name}</td>
+                            <td>{enrollment.email}</td>
+                            <td>{enrollment.phone}</td>
+                            <td>{enrollment.status}</td>
+                            <td>{formatValue(enrollment.createdAt)}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5}>Lớp này chưa có ghi danh.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            )}
           </section>
         )}
 

@@ -290,6 +290,14 @@ p {
   grid-column: 1 / -1;
 }
 
+.detail-card {
+  grid-column: 1 / -1;
+  border-color: #b8dec5;
+  background:
+    linear-gradient(180deg, rgba(220, 252, 231, 0.42), rgba(255, 255, 255, 0.94)),
+    #ffffff;
+}
+
 .bar-chart {
   display: grid;
   gap: 14px;
@@ -399,12 +407,17 @@ p {
   line-height: 1.5;
 }
 
+.return-card .compact-button {
+  width: fit-content;
+  margin-top: 6px;
+}
+
 .class-table {
   overflow-x: auto;
 }
 
 .class-table table {
-  min-width: 720px;
+  min-width: 860px;
 }
 
 .class-table td strong {
@@ -532,6 +545,12 @@ textarea:focus {
 .secondary-button:hover {
   border-color: #b7c6da;
   background: var(--surface-soft);
+}
+
+.compact-button {
+  min-height: 34px;
+  padding: 7px 11px;
+  font-size: 13px;
 }
 
 .primary-action {
