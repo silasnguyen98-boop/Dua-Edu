@@ -41,6 +41,7 @@ type Row = Record<string, string | number | null>;
 type DataState = Record<TableName, Row[]>;
 type FormState = Record<string, string>;
 type AttendanceRecord = Row;
+type AssignmentRecord = Row;
 type ChartItem = {
   color: string;
   id: string;
@@ -360,11 +361,14 @@ export default function Home() {
   const [data, setData] = useState<DataState>(emptyData);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [attendanceError, setAttendanceError] = useState("");
+  const [assignmentRecords, setAssignmentRecords] = useState<AssignmentRecord[]>([]);
+  const [assignmentError, setAssignmentError] = useState("");
   const [form, setForm] = useState<FormState>(() => buildEmptyForm(tableConfigs[0].fields));
   const [editingRow, setEditingRow] = useState<Row | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(getInitialClassId);
   const [selectedAttendanceClassId, setSelectedAttendanceClassId] = useState<string | null>(getInitialClassId);
   const [selectedAttendanceSession, setSelectedAttendanceSession] = useState(getInitialSession);
+  const [selectedAssignmentNumber, setSelectedAssignmentNumber] = useState(1);
   const [attendanceMode, setAttendanceMode] = useState<"session" | "summary">(getInitialAttendanceMode);
   const [showReturningDetails, setShowReturningDetails] = useState(false);
   const [relationQueries, setRelationQueries] = useState<Record<string, string>>({});
@@ -589,6 +593,30 @@ export default function Home() {
     return records;
   }, [attendanceRecords, selectedAttendanceClass, selectedAttendanceSession]);
 
+  const assignmentNumberCount = useMemo(() => {
+    const totalAssignments = Number(selectedAttendanceClass?.totalAssignments ?? 0);
+    return Number.isFinite(totalAssignments) && totalAssignments > 0 ? Math.floor(totalAssignments) : 1;
+  }, [selectedAttendanceClass]);
+
+  const assignmentRecordsByEnrollment = useMemo(() => {
+    const records = new Map<string, AssignmentRecord>();
+    const enrollmentIds = new Set(
+      selectedAttendanceClass?.enrollments.map((enrollment) => enrollment.id) ?? [],
+    );
+
+    assignmentRecords
+      .filter(
+        (record) =>
+          enrollmentIds.has(String(record.enrollment_id ?? "")) &&
+          Number(record.assignment_number ?? 0) === selectedAssignmentNumber,
+      )
+      .forEach((record) => {
+        records.set(String(record.enrollment_id ?? ""), record);
+      });
+
+    return records;
+  }, [assignmentRecords, selectedAttendanceClass, selectedAssignmentNumber]);
+
   const selectedClassStatusOptions = useMemo(() => {
     const customStatuses =
       selectedClass?.enrollments
@@ -778,6 +806,7 @@ export default function Home() {
     if (entries) {
       setData(Object.fromEntries(entries) as DataState);
       await loadAttendanceRecords();
+      await loadAssignmentRecords();
     }
 
     setIsLoading(false);
@@ -800,6 +829,25 @@ export default function Home() {
     }
 
     setAttendanceRecords(rows ?? []);
+  }
+
+  async function loadAssignmentRecords() {
+    setAssignmentError("");
+
+    const { data: rows, error: tableError } = await supabase
+      .from("assignment_records")
+      .select("*")
+      .order("assignment_number", { ascending: true });
+
+    if (tableError) {
+      setAssignmentRecords([]);
+      setAssignmentError(
+        "Chưa tìm thấy bảng assignment_records. Hãy chạy migration Supabase mới để dùng tính năng điểm bài tập.",
+      );
+      return;
+    }
+
+    setAssignmentRecords(rows ?? []);
   }
 
   function updateFormValue(name: string, value: string) {
@@ -1592,6 +1640,55 @@ export default function Home() {
     }
 
     setMessage("Đã cập nhật điểm danh.");
+  }
+
+  async function updateAssignmentScore(enrollment: { id: string }, scoreStr: string) {
+    if (!selectedAttendanceClass || !enrollment.id) {
+      setError("Không đủ dữ liệu để cập nhật điểm bài tập.");
+      return;
+    }
+
+    const score = Number(scoreStr);
+    if (isNaN(score)) return;
+
+    setError("");
+    setMessage("");
+
+    const payload = {
+      enrollment_id: enrollment.id,
+      assignment_number: selectedAssignmentNumber,
+      score,
+    };
+
+    const { data: savedRows, error: saveError } = await supabase
+      .from("assignment_records")
+      .upsert(payload, { onConflict: "enrollment_id,assignment_number" })
+      .select("*");
+
+    if (saveError) {
+      setError(saveError.message);
+      return;
+    }
+
+    const savedRecord = savedRows?.[0] as AssignmentRecord | undefined;
+
+    if (savedRecord) {
+      setAssignmentRecords((current) => {
+        const exists = current.some((record) => String(record.id) === String(savedRecord.id));
+
+        if (exists) {
+          return current.map((record) =>
+            String(record.id) === String(savedRecord.id) ? savedRecord : record,
+          );
+        }
+
+        return [...current, savedRecord];
+      });
+    } else {
+      await loadAssignmentRecords();
+    }
+
+    setMessage("Đã cập nhật điểm bài tập.");
   }
 
   function renderBarChart(items: ChartItem[], emptyText: string) {
@@ -2396,22 +2493,40 @@ export default function Home() {
         {isAssignmentScoreView && (
           <section className="analytics-grid" aria-label="Điểm bài tập">
             <article className="analytics-card detail-card wide" style={{ paddingTop: "24px" }}>
-              <div className="attendance-toolbar" style={{ flexDirection: "column", alignItems: "stretch", marginBottom: "24px" }}>
-                <label style={{ maxWidth: "100%" }}>
-                  <span>Lớp học</span>
-                  <select
-                    onChange={(event) => setSelectedAttendanceClassId(event.target.value || null)}
-                    value={selectedAttendanceClassId ?? ""}
-                  >
-                    <option value="">Chọn lớp học</option>
-                    {analytics.classItems.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.classCode} - {item.className}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+              <div className="attendance-toolbar" style={{ marginBottom: "24px" }}>
+                <div style={{ display: "flex", gap: "16px", flex: 1 }}>
+                  <label style={{ flex: 2 }}>
+                    <span>Lớp học</span>
+                    <select
+                      onChange={(event) => setSelectedAttendanceClassId(event.target.value || null)}
+                      value={selectedAttendanceClassId ?? ""}
+                    >
+                      <option value="">Chọn lớp học</option>
+                      {analytics.classItems.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.classCode} - {item.className}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label style={{ flex: 1 }}>
+                    <span>Bài tập số</span>
+                    <select
+                      disabled={!selectedAttendanceClass}
+                      onChange={(event) => setSelectedAssignmentNumber(Number(event.target.value))}
+                      value={selectedAssignmentNumber}
+                    >
+                      {Array.from({ length: assignmentNumberCount }, (_, i) => i + 1).map((num) => (
+                        <option key={num} value={num}>
+                          Bài tập {num}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
               </div>
+
+              {assignmentError && <div className="notice error">{assignmentError}</div>}
 
               {selectedAttendanceClass ? (
                 <>
@@ -2425,45 +2540,50 @@ export default function Home() {
                         <tr>
                           <th>Học viên</th>
                           <th>Email</th>
-                          <th>Điểm bài tập (Hệ 10)</th>
+                          <th>Điểm bài tập {selectedAssignmentNumber} (Hệ 10)</th>
                         </tr>
                       </thead>
                       <tbody>
                         {selectedAttendanceClass.enrollments.length ? (
-                          selectedAttendanceClass.enrollments.map((enrollment) => (
-                            <tr key={enrollment.id}>
-                              <td>{enrollment.name}</td>
-                              <td>{enrollment.email}</td>
-                              <td>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="10"
-                                  step="0.5"
-                                  defaultValue={enrollment.assignmentScore ?? ""}
-                                  disabled={Boolean(updatingEnrollmentId === enrollment.id)}
-                                  style={{
-                                    width: "80px",
-                                    padding: "6px 12px",
-                                    borderRadius: "8px",
-                                    border: "1px solid var(--border)",
-                                  }}
-                                  onBlur={(event) => {
-                                    const val = event.target.value;
-                                    const numVal = Number(val);
-                                    if (val && !isNaN(numVal) && numVal !== enrollment.assignmentScore) {
-                                      void updateEnrollmentProjectField(enrollment.id, "assignment_score", numVal);
-                                    }
-                                  }}
-                                  onKeyDown={(event) => {
-                                    if (event.key === "Enter") {
-                                      event.currentTarget.blur();
-                                    }
-                                  }}
-                                />
-                              </td>
-                            </tr>
-                          ))
+                          selectedAttendanceClass.enrollments.map((enrollment) => {
+                            const record = assignmentRecordsByEnrollment.get(enrollment.id);
+                            const currentScore = record?.score ? Number(record.score) : "";
+
+                            return (
+                              <tr key={enrollment.id}>
+                                <td>{enrollment.name}</td>
+                                <td>{enrollment.email}</td>
+                                <td>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="10"
+                                    step="0.5"
+                                    defaultValue={currentScore}
+                                    disabled={Boolean(assignmentError)}
+                                    style={{
+                                      width: "80px",
+                                      padding: "6px 12px",
+                                      borderRadius: "8px",
+                                      border: "1px solid var(--border)",
+                                    }}
+                                    onBlur={(event) => {
+                                      const val = event.target.value;
+                                      const numVal = Number(val);
+                                      if (val && !isNaN(numVal) && numVal !== currentScore) {
+                                        void updateAssignmentScore(enrollment, val);
+                                      }
+                                    }}
+                                    onKeyDown={(event) => {
+                                      if (event.key === "Enter") {
+                                        event.currentTarget.blur();
+                                      }
+                                    }}
+                                  />
+                                </td>
+                              </tr>
+                            );
+                          })
                         ) : (
                           <tr>
                             <td colSpan={3}>Lớp này chưa có học viên ghi danh.</td>
