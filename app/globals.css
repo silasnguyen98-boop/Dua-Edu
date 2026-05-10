@@ -420,6 +420,13 @@ p {
   min-width: 860px;
 }
 
+.status-select {
+  min-width: 150px;
+  min-height: 36px;
+  padding: 7px 10px;
+  background: #ffffff;
+}
+
 .class-table td strong {
   display: inline-grid;
   min-width: 36px;

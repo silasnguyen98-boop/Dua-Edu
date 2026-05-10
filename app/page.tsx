@@ -61,6 +61,13 @@ const courseTypeOptions = [
   { label: "E-learning", value: "elearning" },
   { label: "Tự học", value: "self_study" },
 ];
+const enrollmentStatusOptions = [
+  { label: "Đang học", value: "active" },
+  { label: "Chờ xử lý", value: "pending" },
+  { label: "Hoàn thành", value: "completed" },
+  { label: "Tạm dừng", value: "paused" },
+  { label: "Đã huỷ", value: "cancelled" },
+];
 const chartColors = ["#059669", "#22c55e", "#14b8a6", "#84cc16", "#0f766e", "#65a30d"];
 
 const tableConfigs: TableConfig[] = [
@@ -305,6 +312,7 @@ export default function Home() {
   const [showReturningDetails, setShowReturningDetails] = useState(false);
   const [relationQueries, setRelationQueries] = useState<Record<string, string>>({});
   const [openRelationPicker, setOpenRelationPicker] = useState<string | null>(null);
+  const [updatingEnrollmentId, setUpdatingEnrollmentId] = useState<string | null>(null);
   const [search, setSearch] = useState(getInitialSearch);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -433,6 +441,7 @@ export default function Home() {
               id: String(enrollment.id ?? ""),
               name: String(student?.full_name ?? String(enrollment.student_id ?? "-")),
               phone: String(student?.phone ?? "-"),
+              status: String(enrollment.status ?? ""),
             };
           }),
           id: classId,
@@ -1255,6 +1264,37 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  async function updateEnrollmentStatus(enrollmentId: string, status: string) {
+    if (!enrollmentId) {
+      setError("Không tìm thấy ghi danh để cập nhật trạng thái.");
+      return;
+    }
+
+    setUpdatingEnrollmentId(enrollmentId);
+    setError("");
+    setMessage("");
+
+    const { error: updateError } = await supabase
+      .from("enrollments")
+      .update({ status: status || null })
+      .eq("id", enrollmentId);
+
+    if (updateError) {
+      setError(updateError.message);
+      setUpdatingEnrollmentId(null);
+      return;
+    }
+
+    setData((current) => ({
+      ...current,
+      enrollments: current.enrollments.map((enrollment) =>
+        String(enrollment.id) === enrollmentId ? { ...enrollment, status: status || null } : enrollment,
+      ),
+    }));
+    setMessage("Đã cập nhật trạng thái ghi danh.");
+    setUpdatingEnrollmentId(null);
+  }
+
   function renderBarChart(items: ChartItem[], emptyText: string) {
     const maxValue = Math.max(...items.map((item) => item.value), 0);
 
@@ -1704,6 +1744,7 @@ export default function Home() {
                         <th>Email</th>
                         <th>Số điện thoại</th>
                         <th>Ngày ghi danh</th>
+                        <th>Trạng thái</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1714,11 +1755,36 @@ export default function Home() {
                             <td>{enrollment.email}</td>
                             <td>{enrollment.phone}</td>
                             <td>{formatValue(enrollment.createdAt)}</td>
+                            <td>
+                              <select
+                                className="status-select"
+                                disabled={updatingEnrollmentId === enrollment.id}
+                                onChange={(event) =>
+                                  void updateEnrollmentStatus(enrollment.id, event.target.value)
+                                }
+                                value={enrollment.status}
+                              >
+                                <option value="">Chưa có trạng thái</option>
+                                {[
+                                  ...enrollmentStatusOptions,
+                                  ...(enrollment.status &&
+                                  !enrollmentStatusOptions.some(
+                                    (option) => option.value === enrollment.status,
+                                  )
+                                    ? [{ label: enrollment.status, value: enrollment.status }]
+                                    : []),
+                                ].map((option) => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={4}>Lớp này chưa có ghi danh.</td>
+                          <td colSpan={5}>Lớp này chưa có ghi danh.</td>
                         </tr>
                       )}
                     </tbody>
