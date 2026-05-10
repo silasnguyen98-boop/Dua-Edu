@@ -503,6 +503,7 @@ export default function Home() {
               attendanceScore: enrollment.attendance_score ? Number(enrollment.attendance_score) : null,
               assignmentScore: enrollment.assignment_score ? Number(enrollment.assignment_score) : null,
               projectScore: enrollment.project_score ? Number(enrollment.project_score) : null,
+              finalScore: enrollment.final_score ? Number(enrollment.final_score) : null,
               projectUrl: enrollment.project_url ? String(enrollment.project_url) : "",
               createdAt: enrollment.created_at ? String(enrollment.created_at) : "",
               email: String(student?.email ?? "-"),
@@ -2220,12 +2221,11 @@ export default function Home() {
                       <tr>
                         <th>Học viên</th>
                         <th>Email</th>
-                        <th>Số điện thoại</th>
-                        <th>Ngày ghi danh</th>
-                        <th>Điểm chuyên cần</th>
-                        <th>Điểm bài tập</th>
-                        <th>Điểm đồ án</th>
-                        <th>Trạng thái</th>
+                        <th style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Điểm chuyên cần</th>
+                        <th style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Điểm bài tập</th>
+                        <th style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Điểm đồ án</th>
+                        <th style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px", color: "var(--accent)", fontSize: "15px" }}>Điểm tổng kết</th>
+                        <th style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Trạng thái</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2234,12 +2234,13 @@ export default function Home() {
                           <tr key={enrollment.id}>
                             <td>{enrollment.name}</td>
                             <td>{enrollment.email}</td>
-                            <td>{enrollment.phone}</td>
-                            <td>{formatValue(enrollment.createdAt)}</td>
-                            <td>{formatValue(enrollment.attendanceScore)}</td>
-                            <td>{formatValue(enrollment.assignmentScore)}</td>
-                            <td>{formatValue(enrollment.projectScore)}</td>
-                            <td>
+                            <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>{formatValue(enrollment.attendanceScore)}</td>
+                            <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>{formatValue(enrollment.assignmentScore)}</td>
+                            <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>{formatValue(enrollment.projectScore)}</td>
+                            <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px", color: "var(--accent)" }}>
+                              <strong>{formatValue(enrollment.finalScore)}</strong>
+                            </td>
+                            <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>
                               <select
                                 className={`status-select ${getEnrollmentStatusClass(enrollment.status)}`}
                                 disabled={updatingEnrollmentId === enrollment.id}
@@ -2268,7 +2269,7 @@ export default function Home() {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={8}>Không có ghi danh phù hợp với bộ lọc này.</td>
+                          <td colSpan={7}>Không có ghi danh phù hợp với bộ lọc này.</td>
                         </tr>
                       )}
                     </tbody>
