@@ -1643,7 +1643,7 @@ export default function Home() {
       : isClassDetailView
         ? "Danh sách ghi danh"
         : isAttendanceView
-          ? "Điểm danh"
+          ? "Học vụ"
           : "Quản trị dữ liệu";
   const pageTitle = isDashboardView
     ? "Dashboard"
@@ -1652,7 +1652,7 @@ export default function Home() {
       : isClassDetailView
         ? selectedClass?.className ?? "Chi tiết lớp"
         : isAttendanceView
-          ? "Điểm danh theo buổi học"
+          ? "Điểm danh"
           : activeConfig.label;
   const pageDescription = isDashboardView
     ? "Theo dõi ghi danh theo khoá học, giảng viên và tỉ lệ quay lại."
@@ -2089,16 +2089,7 @@ export default function Home() {
 
         {isAttendanceView && (
           <section className="analytics-grid" aria-label="Điểm danh theo buổi học">
-            <article className="analytics-card detail-card wide">
-              <div className="section-heading">
-                <div>
-                  <p className="eyebrow">Điểm danh</p>
-                  <h3>Theo buổi học của từng lớp</h3>
-                  <p>
-                    Chọn lớp và buổi học, sau đó cập nhật trạng thái điểm danh cho từng học viên.
-                  </p>
-                </div>
-              </div>
+            <article className="analytics-card detail-card wide" style={{ paddingTop: "24px" }}>
 
               <div className="attendance-toolbar" style={{ flexDirection: "column", alignItems: "stretch" }}>
                 <label style={{ maxWidth: "100%" }}>
