@@ -37,6 +37,13 @@ type TableConfig = {
 type Row = Record<string, string | number | null>;
 type DataState = Record<TableName, Row[]>;
 type FormState = Record<string, string>;
+type ChartItem = {
+  color: string;
+  id: string;
+  label: string;
+  percent: number;
+  value: number;
+};
 
 const logoUrl = "https://i.ibb.co/3yKrstMS/Thie-t-ke-chu-a-co-te-n-20.png";
 const storageKeys = {
@@ -50,6 +57,7 @@ const courseTypeOptions = [
   { label: "E-learning", value: "elearning" },
   { label: "Tự học", value: "self_study" },
 ];
+const chartColors = ["#059669", "#22c55e", "#14b8a6", "#84cc16", "#0f766e", "#65a30d"];
 
 const tableConfigs: TableConfig[] = [
   {
@@ -289,6 +297,87 @@ export default function Home() {
     ],
     [data],
   );
+
+  const analytics = useMemo(() => {
+    const classById = new Map(data.classes.map((item) => [String(item.id), item]));
+    const courseById = new Map(data.courses.map((item) => [String(item.id), item]));
+    const teacherById = new Map(data.teachers.map((item) => [String(item.id), item]));
+    const courseStudents = new Map<string, Set<string>>();
+    const teacherStudents = new Map<string, Set<string>>();
+    const studentCourses = new Map<string, Set<string>>();
+
+    data.enrollments.forEach((enrollment) => {
+      const studentId = enrollment.student_id ? String(enrollment.student_id) : "";
+      const classId = enrollment.class_id ? String(enrollment.class_id) : "";
+      const classRow = classById.get(classId);
+      const courseId = classRow?.course_id ? String(classRow.course_id) : "";
+      const teacherId = classRow?.teacher_id ? String(classRow.teacher_id) : "";
+
+      if (!studentId) {
+        return;
+      }
+
+      if (courseId) {
+        if (!courseStudents.has(courseId)) {
+          courseStudents.set(courseId, new Set());
+        }
+        courseStudents.get(courseId)?.add(studentId);
+
+        if (!studentCourses.has(studentId)) {
+          studentCourses.set(studentId, new Set());
+        }
+        studentCourses.get(studentId)?.add(courseId);
+      }
+
+      if (teacherId) {
+        if (!teacherStudents.has(teacherId)) {
+          teacherStudents.set(teacherId, new Set());
+        }
+        teacherStudents.get(teacherId)?.add(studentId);
+      }
+    });
+
+    const buildItems = (
+      source: Map<string, Set<string>>,
+      labels: Map<string, Row>,
+      labelKey: string,
+      codeKey?: string,
+    ) => {
+      const total = Array.from(source.values()).reduce((sum, students) => sum + students.size, 0);
+
+      return Array.from(source.entries())
+        .map(([id, students], index) => {
+          const row = labels.get(id);
+          const code = codeKey && row?.[codeKey] ? `${String(row[codeKey])} - ` : "";
+          const label = row?.[labelKey] ? `${code}${String(row[labelKey])}` : id.slice(0, 8);
+
+          return {
+            color: chartColors[index % chartColors.length],
+            id,
+            label,
+            percent: total ? Math.round((students.size / total) * 1000) / 10 : 0,
+            value: students.size,
+          };
+        })
+        .sort((a, b) => b.value - a.value);
+    };
+
+    const courseItems = buildItems(courseStudents, courseById, "name", "course_code");
+    const teacherItems = buildItems(teacherStudents, teacherById, "full_name");
+    const returningStudents = Array.from(studentCourses.values()).filter(
+      (courses) => courses.size >= 2,
+    ).length;
+    const returnRate = data.students.length
+      ? Math.round((returningStudents / data.students.length) * 1000) / 10
+      : 0;
+
+    return {
+      courseItems,
+      returnRate,
+      returningStudents,
+      teacherItems,
+    };
+  }, [data]);
 
   const filteredRows = useMemo(() => {
     const rows = data[activeTable];
@@ -828,6 +917,73 @@ export default function Home() {
     await loadAllTables();
   }
 
+  function renderBarChart(items: ChartItem[], emptyText: string) {
+    const maxValue = Math.max(...items.map((item) => item.value), 0);
+
+    if (!items.length) {
+      return <p className="empty-chart">{emptyText}</p>;
+    }
+
+    return (
+      <div className="bar-chart">
+        {items.map((item) => (
+          <div className="bar-row" key={item.id}>
+            <div className="bar-meta">
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+            <div className="bar-track" aria-label={`${item.label}: ${item.value} học viên`}>
+              <span
+                className="bar-fill"
+                style={{
+                  background: item.color,
+                  width: `${maxValue ? Math.max((item.value / maxValue) * 100, 4) : 0}%`,
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  function renderPieChart(items: ChartItem[], emptyText: string) {
+    let cursor = 0;
+    const total = items.reduce((sum, item) => sum + item.value, 0);
+    const segments = items.map((item, index) => {
+      const start = cursor;
+      cursor += total ? (item.value / total) * 100 : 0;
+      const end = index === items.length - 1 ? 100 : cursor;
+      return `${item.color} ${start}% ${end}%`;
+    });
+
+    if (!items.length) {
+      return <p className="empty-chart">{emptyText}</p>;
+    }
+
+    return (
+      <div className="pie-layout">
+        <div
+          aria-label="Biểu đồ tròn"
+          className="pie-chart"
+          role="img"
+          style={{ background: `conic-gradient(${segments.join(", ")})` }}
+        >
+          <span>{items.length}</span>
+        </div>
+        <div className="pie-legend">
+          {items.map((item) => (
+            <div className="legend-row" key={item.id}>
+              <span className="legend-dot" style={{ background: item.color }} />
+              <span>{item.label}</span>
+              <strong>{item.percent}%</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main className="admin-shell">
       <aside className="sidebar">
@@ -895,6 +1051,57 @@ export default function Home() {
               <strong>{item.value}</strong>
             </article>
           ))}
+        </section>
+
+        <section className="analytics-grid" aria-label="Dashboard phân tích">
+          <article className="analytics-card wide">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">Theo khoá học</p>
+                <h3>Số học viên của các khoá</h3>
+              </div>
+            </div>
+            {renderBarChart(analytics.courseItems, "Chưa có dữ liệu ghi danh theo khoá.")}
+          </article>
+
+          <article className="analytics-card">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">Tỉ trọng</p>
+                <h3>% học viên các khoá</h3>
+              </div>
+            </div>
+            {renderPieChart(analytics.courseItems, "Chưa có dữ liệu để vẽ biểu đồ tròn.")}
+          </article>
+
+          <article className="analytics-card wide">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">Theo giảng viên</p>
+                <h3>Số học viên của mỗi giảng viên</h3>
+              </div>
+            </div>
+            {renderBarChart(analytics.teacherItems, "Chưa có dữ liệu ghi danh theo giảng viên.")}
+          </article>
+
+          <article className="analytics-card">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">Tỉ trọng</p>
+                <h3>% học viên theo giảng viên</h3>
+              </div>
+            </div>
+            {renderPieChart(analytics.teacherItems, "Chưa có dữ liệu để vẽ biểu đồ tròn.")}
+          </article>
+
+          <article className="analytics-card return-card">
+            <p className="eyebrow">Quay lại học</p>
+            <h3>Học viên tham gia từ 2 khoá</h3>
+            <strong>{analytics.returningStudents}</strong>
+            <span>
+              Tỉ lệ quay lại: {analytics.returnRate}% trên tổng {data.students.length} học viên
+            </span>
+          </article>
         </section>
 
         {(message || error) && (

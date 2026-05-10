@@ -197,6 +197,7 @@ p {
 }
 
 .stat-card,
+.analytics-card,
 .editor,
 .table-panel {
   border: 1px solid var(--border);
@@ -245,6 +246,129 @@ p {
   border-color: #fda29b;
   background: var(--danger-soft);
   color: var(--danger);
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
+  gap: 20px;
+}
+
+.analytics-card {
+  padding: 22px;
+}
+
+.analytics-card.wide {
+  min-width: 0;
+}
+
+.bar-chart {
+  display: grid;
+  gap: 14px;
+}
+
+.bar-row {
+  display: grid;
+  gap: 8px;
+}
+
+.bar-meta,
+.legend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bar-meta span,
+.legend-row span {
+  color: #344054;
+  font-size: 14px;
+}
+
+.bar-meta strong,
+.legend-row strong {
+  color: var(--foreground);
+  font-size: 14px;
+}
+
+.bar-track {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8f3ec;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.pie-layout {
+  display: grid;
+  gap: 18px;
+  justify-items: center;
+}
+
+.pie-chart {
+  width: 180px;
+  height: 180px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+}
+
+.pie-chart span {
+  display: grid;
+  width: 72px;
+  height: 72px;
+  place-items: center;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--accent-dark);
+  font-size: 24px;
+  font-weight: 800;
+  box-shadow: var(--shadow-soft);
+}
+
+.pie-legend {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+}
+
+.legend-row span:nth-child(2) {
+  flex: 1;
+}
+
+.return-card {
+  display: grid;
+  gap: 8px;
+  align-content: center;
+  background:
+    linear-gradient(135deg, rgba(5, 150, 105, 0.12), rgba(34, 197, 94, 0.06)),
+    rgba(255, 255, 255, 0.95);
+}
+
+.return-card strong {
+  color: var(--accent-dark);
+  font-size: 48px;
+  line-height: 1;
+}
+
+.return-card span,
+.empty-chart {
+  color: var(--muted);
+  line-height: 1.5;
 }
 
 .management-grid {
@@ -448,6 +572,10 @@ tbody tr:hover {
   .management-grid {
     grid-template-columns: 1fr;
   }
+
+  .analytics-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 780px) {
@@ -481,6 +609,11 @@ tbody tr:hover {
   .stats-grid,
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .pie-chart {
+    width: 150px;
+    height: 150px;
   }
 
   .search-input {
