@@ -1,5 +1,20 @@
 # Dua-Edu
 
+## Admin system
+
+Dua-Edu includes a Next.js admin dashboard for the Supabase tables in the
+training schema:
+
+- students
+- teachers
+- courses
+- classes
+- enrollments
+- certificates
+
+The dashboard supports listing, searching, creating, editing, and deleting
+records for each table.
+
 ## Supabase setup
 
 This project uses Supabase through `@supabase/supabase-js`.
