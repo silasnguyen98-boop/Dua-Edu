@@ -24,6 +24,7 @@ type TableName =
   | "classes"
   | "enrollments"
   | "certificates";
+type ViewName = "dashboard" | TableName;
 
 type TableConfig = {
   name: TableName;
@@ -49,7 +50,7 @@ const logoUrl = "https://i.ibb.co/3yKrstMS/Thie-t-ke-chu-a-co-te-n-20.png";
 const storageKeys = {
   search: "dua-edu-admin-search",
   scrollY: "dua-edu-admin-scroll-y",
-  table: "dua-edu-admin-table",
+  view: "dua-edu-admin-view",
 };
 const courseTypeOptions = [
   { label: "Offline", value: "offline" },
@@ -246,18 +247,23 @@ const toInputValue = (field: FieldConfig, value: Row[string]) => {
 const isTableName = (value: string | null): value is TableName =>
   tableConfigs.some((config) => config.name === value);
 
-const getInitialTable = () => {
+const isViewName = (value: string | null): value is ViewName =>
+  value === "dashboard" || isTableName(value);
+
+const getInitialView = () => {
   if (typeof window === "undefined") {
-    return "students";
+    return "dashboard";
   }
 
-  const tableFromUrl = new URLSearchParams(window.location.search).get("table");
-  if (isTableName(tableFromUrl)) {
-    return tableFromUrl;
+  const viewFromUrl =
+    new URLSearchParams(window.location.search).get("view") ??
+    new URLSearchParams(window.location.search).get("table");
+  if (isViewName(viewFromUrl)) {
+    return viewFromUrl;
   }
 
-  const tableFromStorage = window.localStorage.getItem(storageKeys.table);
-  return isTableName(tableFromStorage) ? tableFromStorage : "students";
+  const viewFromStorage = window.localStorage.getItem(storageKeys.view);
+  return isViewName(viewFromStorage) ? viewFromStorage : "dashboard";
 };
 
 const getInitialSearch = () => {
@@ -270,7 +276,7 @@ const getInitialSearch = () => {
 };
 
 export default function Home() {
-  const [activeTable, setActiveTable] = useState<TableName>(getInitialTable);
+  const [activeView, setActiveView] = useState<ViewName>(getInitialView);
   const [data, setData] = useState<DataState>(emptyData);
   const [form, setForm] = useState<FormState>(() => buildEmptyForm(tableConfigs[0].fields));
   const [editingRow, setEditingRow] = useState<Row | null>(null);
@@ -280,6 +286,8 @@ export default function Home() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const activeTable: TableName = isTableName(activeView) ? activeView : "students";
+  const isDashboardView = activeView === "dashboard";
 
   const activeConfig = useMemo(
     () => tableConfigs.find((config) => config.name === activeTable) ?? tableConfigs[0],
@@ -302,8 +310,9 @@ export default function Home() {
     const classById = new Map(data.classes.map((item) => [String(item.id), item]));
     const courseById = new Map(data.courses.map((item) => [String(item.id), item]));
     const teacherById = new Map(data.teachers.map((item) => [String(item.id), item]));
-    const courseStudents = new Map<string, Set<string>>();
-    const teacherStudents = new Map<string, Set<string>>();
+    const courseEnrollments = new Map<string, number>();
+    const teacherEnrollments = new Map<string, number>();
+    const classEnrollments = new Map<string, number>();
     const studentCourses = new Map<string, Set<string>>();
 
     data.enrollments.forEach((enrollment) => {
@@ -317,11 +326,12 @@ export default function Home() {
         return;
       }
 
+      if (classId) {
+        classEnrollments.set(classId, (classEnrollments.get(classId) ?? 0) + 1);
+      }
+
       if (courseId) {
-        if (!courseStudents.has(courseId)) {
-          courseStudents.set(courseId, new Set());
-        }
-        courseStudents.get(courseId)?.add(studentId);
+        courseEnrollments.set(courseId, (courseEnrollments.get(courseId) ?? 0) + 1);
 
         if (!studentCourses.has(studentId)) {
           studentCourses.set(studentId, new Set());
@@ -330,23 +340,20 @@ export default function Home() {
       }
 
       if (teacherId) {
-        if (!teacherStudents.has(teacherId)) {
-          teacherStudents.set(teacherId, new Set());
-        }
-        teacherStudents.get(teacherId)?.add(studentId);
+        teacherEnrollments.set(teacherId, (teacherEnrollments.get(teacherId) ?? 0) + 1);
       }
     });
 
     const buildItems = (
-      source: Map<string, Set<string>>,
+      source: Map<string, number>,
       labels: Map<string, Row>,
       labelKey: string,
       codeKey?: string,
     ) => {
-      const total = Array.from(source.values()).reduce((sum, students) => sum + students.size, 0);
+      const total = Array.from(source.values()).reduce((sum, value) => sum + value, 0);
 
       return Array.from(source.entries())
-        .map(([id, students], index) => {
+        .map(([id, value], index) => {
           const row = labels.get(id);
           const code = codeKey && row?.[codeKey] ? `${String(row[codeKey])} - ` : "";
           const label = row?.[labelKey] ? `${code}${String(row[labelKey])}` : id.slice(0, 8);
@@ -355,15 +362,31 @@ export default function Home() {
             color: chartColors[index % chartColors.length],
             id,
             label,
-            percent: total ? Math.round((students.size / total) * 1000) / 10 : 0,
-            value: students.size,
+            percent: total ? Math.round((value / total) * 1000) / 10 : 0,
+            value,
           };
         })
         .sort((a, b) => b.value - a.value);
     };
 
-    const courseItems = buildItems(courseStudents, courseById, "name", "course_code");
-    const teacherItems = buildItems(teacherStudents, teacherById, "full_name");
+    const courseItems = buildItems(courseEnrollments, courseById, "name", "course_code");
+    const teacherItems = buildItems(teacherEnrollments, teacherById, "full_name");
+    const classItems = data.classes
+      .map((classRow) => {
+        const classId = String(classRow.id ?? "");
+        const course = classRow.course_id ? courseById.get(String(classRow.course_id)) : undefined;
+        const teacher = classRow.teacher_id ? teacherById.get(String(classRow.teacher_id)) : undefined;
+
+        return {
+          classCode: String(classRow.class_code ?? "-"),
+          className: String(classRow.class_name ?? classId.slice(0, 8)),
+          courseName: String(course?.name ?? "-"),
+          enrollmentCount: classEnrollments.get(classId) ?? 0,
+          id: classId,
+          teacherName: String(teacher?.full_name ?? "-"),
+        };
+      })
+      .sort((a, b) => b.enrollmentCount - a.enrollmentCount);
     const returningStudents = Array.from(studentCourses.values()).filter(
       (courses) => courses.size >= 2,
     ).length;
@@ -372,6 +395,7 @@ export default function Home() {
       : 0;
 
     return {
+      classItems,
       courseItems,
       returnRate,
       returningStudents,
@@ -408,20 +432,21 @@ export default function Home() {
   }, [activeConfig]);
 
   useEffect(() => {
-    window.localStorage.setItem(storageKeys.table, activeTable);
+    window.localStorage.setItem(storageKeys.view, activeView);
     window.localStorage.setItem(storageKeys.search, search);
 
     const url = new URL(window.location.href);
-    url.searchParams.set("table", activeTable);
+    url.searchParams.set("view", activeView);
+    url.searchParams.delete("table");
 
-    if (search.trim()) {
+    if (!isDashboardView && search.trim()) {
       url.searchParams.set("q", search.trim());
     } else {
       url.searchParams.delete("q");
     }
 
     window.history.replaceState(null, "", url);
-  }, [activeTable, search]);
+  }, [activeView, isDashboardView, search]);
 
   useEffect(() => {
     const scrollY = Number(window.localStorage.getItem(storageKeys.scrollY) ?? "0");
@@ -932,7 +957,7 @@ export default function Home() {
               <span>{item.label}</span>
               <strong>{item.value}</strong>
             </div>
-            <div className="bar-track" aria-label={`${item.label}: ${item.value} học viên`}>
+            <div className="bar-track" aria-label={`${item.label}: ${item.value} ghi danh`}>
               <span
                 className="bar-fill"
                 style={{
@@ -996,11 +1021,19 @@ export default function Home() {
         </div>
 
         <nav className="nav-tabs" aria-label="Bảng dữ liệu">
+          <button
+            className={isDashboardView ? "active" : ""}
+            onClick={() => setActiveView("dashboard")}
+            type="button"
+          >
+            <span>Dashboard</span>
+            <strong>{data.enrollments.length}</strong>
+          </button>
           {tableConfigs.map((config) => (
             <button
-              className={config.name === activeTable ? "active" : ""}
+              className={config.name === activeView ? "active" : ""}
               key={config.name}
-              onClick={() => setActiveTable(config.name)}
+              onClick={() => setActiveView(config.name)}
               type="button"
             >
               <span>{config.label}</span>
@@ -1013,34 +1046,42 @@ export default function Home() {
       <section className="workspace">
         <header className="topbar">
           <div>
-            <p className="eyebrow">Dashboard</p>
-            <h2>{activeConfig.label}</h2>
-            <p>{activeConfig.description}</p>
+            <p className="eyebrow">{isDashboardView ? "Tổng quan" : "Quản trị dữ liệu"}</p>
+            <h2>{isDashboardView ? "Dashboard" : activeConfig.label}</h2>
+            <p>
+              {isDashboardView
+                ? "Theo dõi ghi danh theo khoá học, giảng viên, sĩ số lớp và tỉ lệ quay lại."
+                : activeConfig.description}
+            </p>
           </div>
           <div className="topbar-actions">
             <button className="secondary-button" onClick={() => void loadAllTables()} type="button">
               Làm mới
             </button>
-            <button className="secondary-button" onClick={() => void downloadTemplate()} type="button">
-              Tải file mẫu
-            </button>
-            <button className="secondary-button" onClick={exportData} type="button">
-              Export data
-            </button>
-            <button
-              className="primary-action"
-              onClick={() => fileInputRef.current?.click()}
-              type="button"
-            >
-              Import data
-            </button>
-            <input
-              accept=".xlsx,.xls"
-              className="file-input"
-              onChange={(event) => void importExcel(event)}
-              ref={fileInputRef}
-              type="file"
-            />
+            {!isDashboardView && (
+              <>
+                <button className="secondary-button" onClick={() => void downloadTemplate()} type="button">
+                  Tải file mẫu
+                </button>
+                <button className="secondary-button" onClick={exportData} type="button">
+                  Export data
+                </button>
+                <button
+                  className="primary-action"
+                  onClick={() => fileInputRef.current?.click()}
+                  type="button"
+                >
+                  Import data
+                </button>
+                <input
+                  accept=".xlsx,.xls"
+                  className="file-input"
+                  onChange={(event) => void importExcel(event)}
+                  ref={fileInputRef}
+                  type="file"
+                />
+              </>
+            )}
           </div>
         </header>
 
@@ -1053,56 +1094,99 @@ export default function Home() {
           ))}
         </section>
 
-        <section className="analytics-grid" aria-label="Dashboard phân tích">
-          <article className="analytics-card wide">
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">Theo khoá học</p>
-                <h3>Số học viên của các khoá</h3>
+        {isDashboardView && (
+          <section className="analytics-grid" aria-label="Dashboard phân tích">
+            <article className="analytics-card wide">
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">Theo khoá học</p>
+                  <h3>Số ghi danh của các khoá</h3>
+                </div>
               </div>
-            </div>
-            {renderBarChart(analytics.courseItems, "Chưa có dữ liệu ghi danh theo khoá.")}
-          </article>
+              {renderBarChart(analytics.courseItems, "Chưa có dữ liệu ghi danh theo khoá.")}
+            </article>
 
-          <article className="analytics-card">
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">Tỉ trọng</p>
-                <h3>% học viên các khoá</h3>
+            <article className="analytics-card">
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">Tỉ trọng</p>
+                  <h3>% ghi danh các khoá</h3>
+                </div>
               </div>
-            </div>
-            {renderPieChart(analytics.courseItems, "Chưa có dữ liệu để vẽ biểu đồ tròn.")}
-          </article>
+              {renderPieChart(analytics.courseItems, "Chưa có dữ liệu để vẽ biểu đồ tròn.")}
+            </article>
 
-          <article className="analytics-card wide">
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">Theo giảng viên</p>
-                <h3>Số học viên của mỗi giảng viên</h3>
+            <article className="analytics-card wide">
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">Theo giảng viên</p>
+                  <h3>Số ghi danh của mỗi giảng viên</h3>
+                </div>
               </div>
-            </div>
-            {renderBarChart(analytics.teacherItems, "Chưa có dữ liệu ghi danh theo giảng viên.")}
-          </article>
+              {renderBarChart(analytics.teacherItems, "Chưa có dữ liệu ghi danh theo giảng viên.")}
+            </article>
 
-          <article className="analytics-card">
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">Tỉ trọng</p>
-                <h3>% học viên theo giảng viên</h3>
+            <article className="analytics-card">
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">Tỉ trọng</p>
+                  <h3>% ghi danh theo giảng viên</h3>
+                </div>
               </div>
-            </div>
-            {renderPieChart(analytics.teacherItems, "Chưa có dữ liệu để vẽ biểu đồ tròn.")}
-          </article>
+              {renderPieChart(analytics.teacherItems, "Chưa có dữ liệu để vẽ biểu đồ tròn.")}
+            </article>
 
-          <article className="analytics-card return-card">
-            <p className="eyebrow">Quay lại học</p>
-            <h3>Học viên tham gia từ 2 khoá</h3>
-            <strong>{analytics.returningStudents}</strong>
-            <span>
-              Tỉ lệ quay lại: {analytics.returnRate}% trên tổng {data.students.length} học viên
-            </span>
-          </article>
-        </section>
+            <article className="analytics-card return-card">
+              <p className="eyebrow">Quay lại học</p>
+              <h3>Học viên tham gia từ 2 khoá</h3>
+              <strong>{analytics.returningStudents}</strong>
+              <span>
+                Tỉ lệ quay lại: {analytics.returnRate}% trên tổng {data.students.length} học viên
+              </span>
+            </article>
+
+            <article className="analytics-card class-size-card wide">
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">Quản lý lớp</p>
+                  <h3>Học viên từng lớp và sĩ số</h3>
+                </div>
+              </div>
+              <div className="class-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Lớp</th>
+                      <th>Mã lớp</th>
+                      <th>Khoá học</th>
+                      <th>Giảng viên</th>
+                      <th>Sĩ số</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analytics.classItems.length ? (
+                      analytics.classItems.map((item) => (
+                        <tr key={item.id}>
+                          <td>{item.className}</td>
+                          <td>{item.classCode}</td>
+                          <td>{item.courseName}</td>
+                          <td>{item.teacherName}</td>
+                          <td>
+                            <strong>{item.enrollmentCount}</strong>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5}>Chưa có dữ liệu lớp hoặc ghi danh.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+        )}
 
         {(message || error) && (
           <div className={error ? "notice error" : "notice"} role="status">
@@ -1110,6 +1194,7 @@ export default function Home() {
           </div>
         )}
 
+        {!isDashboardView && (
         <section className="management-grid">
           <form className="editor" onSubmit={(event) => void saveRow(event)}>
             <div className="section-heading">
@@ -1233,6 +1318,7 @@ export default function Home() {
             </div>
           </section>
         </section>
+        )}
       </section>
     </main>
   );

@@ -126,6 +126,13 @@ p {
   gap: 10px;
 }
 
+.nav-tabs::before {
+  height: 1px;
+  margin-bottom: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  content: "";
+}
+
 .nav-tabs button {
   display: flex;
   align-items: center;
@@ -138,7 +145,7 @@ p {
   background: rgba(255, 255, 255, 0.04);
   color: #cbd5e1;
   text-align: left;
-  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
 .nav-tabs button.active,
@@ -146,6 +153,7 @@ p {
   border-color: rgba(187, 247, 208, 0.82);
   background: rgba(16, 185, 129, 0.18);
   color: #ffffff;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
   transform: translateX(2px);
 }
 
@@ -206,6 +214,22 @@ p {
   box-shadow: var(--shadow);
 }
 
+.analytics-card,
+.editor,
+.table-panel,
+.stat-card {
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.analytics-card:hover,
+.editor:hover,
+.table-panel:hover,
+.stat-card:hover {
+  border-color: #b8dec5;
+  box-shadow: 0 22px 56px rgba(15, 23, 42, 0.10);
+  transform: translateY(-1px);
+}
+
 .stat-card {
   position: relative;
   overflow: hidden;
@@ -260,6 +284,10 @@ p {
 
 .analytics-card.wide {
   min-width: 0;
+}
+
+.class-size-card {
+  grid-column: 1 / -1;
 }
 
 .bar-chart {
@@ -369,6 +397,24 @@ p {
 .empty-chart {
   color: var(--muted);
   line-height: 1.5;
+}
+
+.class-table {
+  overflow-x: auto;
+}
+
+.class-table table {
+  min-width: 720px;
+}
+
+.class-table td strong {
+  display: inline-grid;
+  min-width: 36px;
+  height: 28px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
 }
 
 .management-grid {
