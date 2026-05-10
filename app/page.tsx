@@ -1675,43 +1675,75 @@ export default function Home() {
           </div>
         </div>
 
-        <nav className="nav-tabs" aria-label="Bảng dữ liệu">
-          <button
-            className={isDashboardView ? "active" : ""}
-            onClick={() => setActiveView("dashboard")}
-            type="button"
-          >
-            <span>Dashboard</span>
-            <strong>{data.enrollments.length}</strong>
-          </button>
-          <button
-            className={isClassManagementView || isClassDetailView ? "active" : ""}
-            onClick={openClassManagement}
-            type="button"
-          >
-            <span>Quản lý lớp</span>
-            <strong>{data.classes.length}</strong>
-          </button>
-          <button
-            className={isAttendanceView ? "active" : ""}
-            onClick={openAttendanceView}
-            type="button"
-          >
-            <span>Điểm danh</span>
-            <strong>{data.classes.length}</strong>
-          </button>
-          {tableConfigs.map((config) => (
+        <div className="nav-group">
+          <p className="eyebrow">Tổng quan</p>
+          <nav className="nav-tabs" aria-label="Tổng quan">
             <button
-              className={config.name === activeView ? "active" : ""}
-              key={config.name}
-              onClick={() => setActiveView(config.name)}
+              className={isDashboardView ? "active" : ""}
+              onClick={() => setActiveView("dashboard")}
               type="button"
             >
-              <span>{config.label}</span>
-              <strong>{data[config.name].length}</strong>
+              <span>Dashboard</span>
+              <strong>{data.enrollments.length}</strong>
             </button>
-          ))}
-        </nav>
+          </nav>
+        </div>
+
+        <div className="nav-group">
+          <p className="eyebrow">Học vụ</p>
+          <nav className="nav-tabs" aria-label="Nghiệp vụ học vụ">
+            <button
+              className={isClassManagementView || isClassDetailView ? "active" : ""}
+              onClick={openClassManagement}
+              type="button"
+            >
+              <span>Quản lý lớp</span>
+              <strong>{data.classes.length}</strong>
+            </button>
+            <button
+              className={isAttendanceView ? "active" : ""}
+              onClick={openAttendanceView}
+              type="button"
+            >
+              <span>Điểm danh</span>
+              <strong>{data.classes.length}</strong>
+            </button>
+          </nav>
+        </div>
+
+        <div className="nav-group">
+          <p className="eyebrow">Dữ liệu lõi</p>
+          <nav className="nav-tabs" aria-label="Dữ liệu hệ thống">
+            {tableConfigs.filter(c => ["courses", "classes", "teachers", "students"].includes(c.name)).map((config) => (
+              <button
+                className={config.name === activeView ? "active" : ""}
+                key={config.name}
+                onClick={() => setActiveView(config.name)}
+                type="button"
+              >
+                <span>{config.label}</span>
+                <strong>{data[config.name].length}</strong>
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        <div className="nav-group">
+          <p className="eyebrow">Mở rộng</p>
+          <nav className="nav-tabs" aria-label="Dữ liệu mở rộng">
+            {tableConfigs.filter(c => ["enrollments", "certificates"].includes(c.name)).map((config) => (
+              <button
+                className={config.name === activeView ? "active" : ""}
+                key={config.name}
+                onClick={() => setActiveView(config.name)}
+                type="button"
+              >
+                <span>{config.label}</span>
+                <strong>{data[config.name].length}</strong>
+              </button>
+            ))}
+          </nav>
+        </div>
       </aside>
 
       <section className="workspace">
