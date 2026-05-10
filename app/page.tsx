@@ -2223,6 +2223,8 @@ export default function Home() {
                         <th>Số điện thoại</th>
                         <th>Ngày ghi danh</th>
                         <th>Điểm chuyên cần</th>
+                        <th>Điểm bài tập</th>
+                        <th>Điểm đồ án</th>
                         <th>Trạng thái</th>
                       </tr>
                     </thead>
@@ -2235,6 +2237,8 @@ export default function Home() {
                             <td>{enrollment.phone}</td>
                             <td>{formatValue(enrollment.createdAt)}</td>
                             <td>{formatValue(enrollment.attendanceScore)}</td>
+                            <td>{formatValue(enrollment.assignmentScore)}</td>
+                            <td>{formatValue(enrollment.projectScore)}</td>
                             <td>
                               <select
                                 className={`status-select ${getEnrollmentStatusClass(enrollment.status)}`}
@@ -2264,7 +2268,7 @@ export default function Home() {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={5}>Không có ghi danh phù hợp với bộ lọc này.</td>
+                          <td colSpan={8}>Không có ghi danh phù hợp với bộ lọc này.</td>
                         </tr>
                       )}
                     </tbody>
