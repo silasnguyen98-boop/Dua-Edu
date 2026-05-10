@@ -1450,11 +1450,8 @@ export default function Home() {
     return "attendance-empty";
   }
 
-  async function updateAttendanceStatus(
-    enrollment: { id: string; studentId: string },
-    status: string,
-  ) {
-    if (!selectedAttendanceClass || !enrollment.id || !enrollment.studentId) {
+  async function updateAttendanceStatus(enrollment: { id: string }, status: string) {
+    if (!selectedAttendanceClass || !enrollment.id) {
       setError("Không đủ dữ liệu để cập nhật điểm danh.");
       return;
     }
@@ -1466,7 +1463,6 @@ export default function Home() {
       enrollment_id: enrollment.id,
       session_number: selectedAttendanceSession,
       status,
-      student_id: enrollment.studentId,
     };
 
     const { data: savedRows, error: saveError } = await supabase

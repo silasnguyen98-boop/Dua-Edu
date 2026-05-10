@@ -1,10 +1,9 @@
 create table if not exists public.attendance_records (
   id uuid primary key default gen_random_uuid(),
-  class_id uuid not null references public.classes(id) on delete cascade,
   enrollment_id uuid not null references public.enrollments(id) on delete cascade,
-  student_id uuid not null references public.students(id) on delete cascade,
   session_number int not null check (session_number > 0),
   status text not null default 'present' check (status = any (array['present'::text, 'absent'::text, 'late'::text, 'excused'::text])),
+  attendance_point numeric,
   note text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
