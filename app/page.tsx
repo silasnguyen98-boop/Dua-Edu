@@ -2090,6 +2090,7 @@ export default function Home() {
                     onChange={(event) => setSelectedAttendanceSession(Number(event.target.value))}
                     value={selectedAttendanceSession}
                   >
+                    <option value={0}>Bảng tổng hợp</option>
                     {Array.from({ length: attendanceSessionCount }, (_, index) => index + 1).map(
                       (sessionNumber) => (
                         <option key={sessionNumber} value={sessionNumber}>
@@ -2109,19 +2110,68 @@ export default function Home() {
                     {selectedAttendanceClass.courseName} · {selectedAttendanceClass.teacherName} ·{" "}
                     {selectedAttendanceClass.enrollmentCount} học viên ghi danh
                   </p>
-                  <div className="class-table attendance-table">
+                  <div className={`class-table attendance-table ${selectedAttendanceSession === 0 ? "table-wrap" : ""}`}>
                     <table>
                       <thead>
-                        <tr>
-                          <th>Học viên</th>
-                          <th>Email</th>
-                          <th>Số điện thoại</th>
-                          <th>Trạng thái điểm danh</th>
-                        </tr>
+                        {selectedAttendanceSession === 0 ? (
+                          <tr>
+                            <th>Học viên</th>
+                            {Array.from({ length: attendanceSessionCount }, (_, i) => (
+                              <th key={i} style={{ textAlign: "center" }}>B.{i + 1}</th>
+                            ))}
+                            <th style={{ textAlign: "center" }}>Điểm CC</th>
+                          </tr>
+                        ) : (
+                          <tr>
+                            <th>Học viên</th>
+                            <th>Email</th>
+                            <th>Số điện thoại</th>
+                            <th>Trạng thái điểm danh</th>
+                          </tr>
+                        )}
                       </thead>
                       <tbody>
                         {selectedAttendanceClass.enrollments.length ? (
                           selectedAttendanceClass.enrollments.map((enrollment) => {
+                            if (selectedAttendanceSession === 0) {
+                              return (
+                                <tr key={enrollment.id}>
+                                  <td>{enrollment.name}</td>
+                                  {Array.from({ length: attendanceSessionCount }, (_, i) => {
+                                    const record = attendanceRecords.find(
+                                      (r) => String(r.enrollment_id) === enrollment.id && Number(r.session_number) === i + 1
+                                    );
+                                    const status = record?.status ? String(record.status) : "-";
+                                    const shortStatus = status === "present" ? "✓" : status === "absent" ? "V" : status === "late" ? "M" : status === "excused" ? "P" : "-";
+                                    
+                                    let statusBg = "transparent";
+                                    let statusColor = "#667085";
+                                    if (status === "present") { statusBg = "#dcfce7"; statusColor = "#047857"; }
+                                    if (status === "absent") { statusBg = "#fee2e2"; statusColor = "#b42318"; }
+                                    if (status === "late") { statusBg = "#fef3c7"; statusColor = "#92400e"; }
+                                    if (status === "excused") { statusBg = "#e0f2fe"; statusColor = "#0369a1"; }
+
+                                    return (
+                                      <td key={i} style={{ textAlign: "center" }}>
+                                        <span 
+                                          style={{ 
+                                            display: "inline-grid", width: "24px", height: "24px", 
+                                            placeItems: "center", borderRadius: "4px", 
+                                            fontSize: "12px", fontWeight: "bold", 
+                                            background: statusBg, color: statusColor 
+                                          }} 
+                                          title={status}
+                                        >
+                                          {shortStatus}
+                                        </span>
+                                      </td>
+                                    );
+                                  })}
+                                  <td style={{ textAlign: "center", fontWeight: "bold" }}>{formatValue(enrollment.attendanceScore)}</td>
+                                </tr>
+                              );
+                            }
+
                             const record = attendanceRecordsByEnrollment.get(enrollment.id);
                             const status = String(record?.status ?? "present");
 
@@ -2151,7 +2201,7 @@ export default function Home() {
                           })
                         ) : (
                           <tr>
-                            <td colSpan={4}>Lớp này chưa có học viên ghi danh.</td>
+                            <td colSpan={selectedAttendanceSession === 0 ? 2 + attendanceSessionCount : 4}>Lớp này chưa có học viên ghi danh.</td>
                           </tr>
                         )}
                       </tbody>
