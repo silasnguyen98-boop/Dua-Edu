@@ -19,6 +19,15 @@ records for each table. It also supports Excel workflows:
 - import rows from `.xlsx` or `.xls`
 - export the current filtered rows to `.xlsx`
 
+Import files avoid raw database IDs. Relationship columns use readable lookup
+values instead:
+
+- `course_code` for courses
+- `teacher_email` for teachers
+- `student_email` for students
+- `class_code` for classes
+- `enrollment_key` as `student_email|class_code` for certificates
+
 ## Supabase setup
 
 This project uses Supabase through `@supabase/supabase-js`.

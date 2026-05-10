@@ -11,6 +11,8 @@ type FieldConfig = {
   name: string;
   label: string;
   type: FieldType;
+  exampleValue?: string;
+  importKey?: string;
   required?: boolean;
   options?: { label: string; value: string }[];
   optionsKey?: TableName;
@@ -121,6 +123,8 @@ const tableConfigs: TableConfig[] = [
         name: "course_id",
         label: "Khoá học",
         type: "select",
+        importKey: "course_code",
+        exampleValue: "REACT",
         required: true,
         optionsKey: "courses",
         optionLabel: "name",
@@ -129,6 +133,8 @@ const tableConfigs: TableConfig[] = [
         name: "teacher_id",
         label: "Giảng viên",
         type: "select",
+        importKey: "teacher_email",
+        exampleValue: "teacher@dua-edu.com",
         required: true,
         optionsKey: "teachers",
         optionLabel: "full_name",
@@ -149,6 +155,8 @@ const tableConfigs: TableConfig[] = [
         name: "student_id",
         label: "Học viên",
         type: "select",
+        importKey: "student_email",
+        exampleValue: "student@dua-edu.com",
         required: true,
         optionsKey: "students",
         optionLabel: "full_name",
@@ -157,6 +165,8 @@ const tableConfigs: TableConfig[] = [
         name: "class_id",
         label: "Lớp học",
         type: "select",
+        importKey: "class_code",
+        exampleValue: "REACT-K01",
         required: true,
         optionsKey: "classes",
         optionLabel: "class_name",
@@ -182,6 +192,8 @@ const tableConfigs: TableConfig[] = [
         name: "enrollment_id",
         label: "Ghi danh",
         type: "select",
+        importKey: "enrollment_key",
+        exampleValue: "student@dua-edu.com|REACT-K01",
         required: true,
         optionsKey: "enrollments",
         optionLabel: "id",
@@ -243,6 +255,8 @@ const toInputValue = (field: FieldConfig, value: Row[string]) => {
 
   return String(value);
 };
+
+const getImportColumnName = (field: FieldConfig) => field.importKey ?? field.name;
 
 const isTableName = (value: string | null): value is TableName =>
   tableConfigs.some((config) => config.name === value);
@@ -669,18 +683,55 @@ export default function Home() {
 
   function buildExcelRows(rows: Row[]) {
     const exportColumns = [
-      "id",
-      ...activeConfig.fields.map((field) => field.name),
+      ...activeConfig.fields.map(getImportColumnName),
       "created_at",
     ];
 
     return rows.map((row) =>
       exportColumns.reduce<Record<string, string | number>>((excelRow, column) => {
-        const value = row[column];
+        const field = activeConfig.fields.find((fieldItem) => getImportColumnName(fieldItem) === column);
+        const value = field ? getExportValue(field, row) : row[column];
         excelRow[column] = value === null || value === undefined ? "" : String(value);
         return excelRow;
       }, {}),
     );
+  }
+
+  function getExportValue(field: FieldConfig, row: Row) {
+    if (!field.importKey) {
+      return row[field.name];
+    }
+
+    if (field.importKey === "course_code") {
+      const course = data.courses.find((item) => item.id === row[field.name]);
+      return course?.course_code ?? course?.name ?? row[field.name];
+    }
+
+    if (field.importKey === "teacher_email") {
+      const teacher = data.teachers.find((item) => item.id === row[field.name]);
+      return teacher?.email ?? row[field.name];
+    }
+
+    if (field.importKey === "student_email") {
+      const student = data.students.find((item) => item.id === row[field.name]);
+      return student?.email ?? row[field.name];
+    }
+
+    if (field.importKey === "class_code") {
+      const classRow = data.classes.find((item) => item.id === row[field.name]);
+      return classRow?.class_code ?? classRow?.class_name ?? row[field.name];
+    }
+
+    if (field.importKey === "enrollment_key") {
+      const enrollment = data.enrollments.find((item) => item.id === row[field.name]);
+      const student = data.students.find((item) => item.id === enrollment?.student_id);
+      const classRow = data.classes.find((item) => item.id === enrollment?.class_id);
+      return student?.email && classRow?.class_code
+        ? `${student.email}|${classRow.class_code}`
+        : row[field.name];
+    }
+
+    return row[field.name];
   }
 
   function downloadWorkbook(filename: string, rows: Record<string, string | number>[]) {
@@ -691,16 +742,16 @@ export default function Home() {
   }
 
   function getTemplateValue(field: FieldConfig) {
+    if (field.exampleValue) {
+      return field.exampleValue;
+    }
+
     if (field.type === "number") {
       return 0;
     }
 
     if (field.type === "datetime-local") {
       return "2026-05-10T09:00";
-    }
-
-    if (field.optionsKey) {
-      return "paste_uuid_here";
     }
 
     if (field.name === "email") {
@@ -721,7 +772,7 @@ export default function Home() {
   async function downloadTemplate() {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(activeConfig.label);
-    const fieldNames = activeConfig.fields.map((field) => field.name);
+    const fieldNames = activeConfig.fields.map(getImportColumnName);
 
     workbook.creator = "Dua-Edu";
     workbook.created = new Date();
@@ -777,8 +828,8 @@ export default function Home() {
     worksheet.columns = [
       { key: "spacer", width: 3 },
       ...activeConfig.fields.map((field) => ({
-        key: field.name,
-        width: Math.max(18, field.label.length + 8, field.name.length + 6),
+        key: getImportColumnName(field),
+        width: Math.max(18, field.label.length + 8, getImportColumnName(field).length + 6),
       })),
     ];
     worksheet.views = [{ state: "frozen", ySplit: 4 }];
@@ -883,6 +934,89 @@ export default function Home() {
     return { duplicateCount, payload: filteredPayload };
   }
 
+  async function resolveImportReferences(payload: Record<string, string | number | null>[]) {
+    const normalizeKey = (value: string | number | null | undefined) =>
+      String(value ?? "").trim().toLowerCase();
+    const findByKey = (rows: Row[], key: string, value: string | number | null) =>
+      rows.find((row) => normalizeKey(row[key]) === normalizeKey(value));
+
+    if (activeTable === "classes") {
+      return payload.map((row, index) => {
+        const course = findByKey(data.courses, "course_code", row.course_id);
+        const teacher = findByKey(data.teachers, "email", row.teacher_id);
+
+        if (!course?.id) {
+          throw new Error(`Dòng ${index + 5}: không tìm thấy khoá học với course_code "${row.course_id}".`);
+        }
+
+        if (!teacher?.id) {
+          throw new Error(`Dòng ${index + 5}: không tìm thấy giảng viên với teacher_email "${row.teacher_id}".`);
+        }
+
+        return {
+          ...row,
+          course_id: String(course.id),
+          teacher_id: String(teacher.id),
+        };
+      });
+    }
+
+    if (activeTable === "enrollments") {
+      return payload.map((row, index) => {
+        const student = findByKey(data.students, "email", row.student_id);
+        const classRow = findByKey(data.classes, "class_code", row.class_id);
+
+        if (!student?.id) {
+          throw new Error(`Dòng ${index + 5}: không tìm thấy học viên với student_email "${row.student_id}".`);
+        }
+
+        if (!classRow?.id) {
+          throw new Error(`Dòng ${index + 5}: không tìm thấy lớp với class_code "${row.class_id}".`);
+        }
+
+        return {
+          ...row,
+          class_id: String(classRow.id),
+          student_id: String(student.id),
+        };
+      });
+    }
+
+    if (activeTable === "certificates") {
+      return payload.map((row, index) => {
+        const [email, classCode] = String(row.enrollment_id ?? "")
+          .split("|")
+          .map((value) => value.trim());
+        const student = findByKey(data.students, "email", email);
+        const classRow = findByKey(data.classes, "class_code", classCode);
+        const enrollment = data.enrollments.find(
+          (item) =>
+            normalizeKey(item.student_id) === normalizeKey(student?.id) &&
+            normalizeKey(item.class_id) === normalizeKey(classRow?.id),
+        );
+
+        if (!email || !classCode) {
+          throw new Error(
+            `Dòng ${index + 5}: enrollment_key phải có dạng student_email|class_code.`,
+          );
+        }
+
+        if (!enrollment?.id) {
+          throw new Error(
+            `Dòng ${index + 5}: không tìm thấy ghi danh với enrollment_key "${row.enrollment_id}".`,
+          );
+        }
+
+        return {
+          ...row,
+          enrollment_id: String(enrollment.id),
+        };
+      });
+    }
+
+    return payload;
+  }
+
   async function importExcel(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -912,7 +1046,7 @@ export default function Home() {
       const payload = rows
         .map((row) =>
           activeConfig.fields.reduce<Record<string, string | number | null>>((record, field) => {
-            record[field.name] = normalizeImportValue(field, row[field.name]);
+            record[field.name] = normalizeImportValue(field, row[getImportColumnName(field)]);
             return record;
           }, {}),
         )
@@ -922,7 +1056,8 @@ export default function Home() {
         throw new Error("File Excel không có dòng dữ liệu hợp lệ.");
       }
 
-      const importData = await skipDuplicateStudentEmails(payload);
+      const resolvedPayload = await resolveImportReferences(payload);
+      const importData = await skipDuplicateStudentEmails(resolvedPayload);
 
       if (!importData.payload.length) {
         setMessage(
