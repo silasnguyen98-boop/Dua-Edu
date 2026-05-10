@@ -423,8 +423,45 @@ p {
 .status-select {
   min-width: 150px;
   min-height: 36px;
+  border-color: transparent;
   padding: 7px 10px;
+  font-weight: 800;
+}
+
+.status-select.status-active {
+  background: #dcfce7;
+  color: #047857;
+}
+
+.status-select.status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-select.status-completed {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.status-select.status-paused {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.status-select.status-cancelled {
+  background: #fee2e2;
+  color: #b42318;
+}
+
+.status-select.status-custom {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.status-select.status-empty {
+  border-color: var(--border);
   background: #ffffff;
+  color: #667085;
 }
 
 .class-table td strong {

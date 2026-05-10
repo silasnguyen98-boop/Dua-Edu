@@ -1264,6 +1264,14 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function getEnrollmentStatusClass(status: string) {
+    if (enrollmentStatusOptions.some((option) => option.value === status)) {
+      return `status-${status}`;
+    }
+
+    return status ? "status-custom" : "status-empty";
+  }
+
   async function updateEnrollmentStatus(enrollmentId: string, status: string) {
     if (!enrollmentId) {
       setError("Không tìm thấy ghi danh để cập nhật trạng thái.");
@@ -1757,7 +1765,7 @@ export default function Home() {
                             <td>{formatValue(enrollment.createdAt)}</td>
                             <td>
                               <select
-                                className="status-select"
+                                className={`status-select ${getEnrollmentStatusClass(enrollment.status)}`}
                                 disabled={updatingEnrollmentId === enrollment.id}
                                 onChange={(event) =>
                                   void updateEnrollmentStatus(enrollment.id, event.target.value)
