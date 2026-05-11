@@ -5,7 +5,7 @@ import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { getUsers, createUser, updateUser, deleteUser } from "@/app/actions/users";
+import { getUsers, createUser, updateUser, deleteUser, type UserRole } from "@/app/actions/users";
 
 type FieldType = "text" | "email" | "number" | "date" | "time" | "datetime-local" | "textarea" | "select";
 
@@ -450,8 +450,13 @@ export default function Home() {
   const isAdminsView = activeView === "admins";
   const isDataView = isTableName(activeView);
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
-  const [adminForm, setAdminForm] = useState({ email: "", password: "", id: "" });
+  const [adminForm, setAdminForm] = useState({ email: "", password: "", username: "", role: "admin" as UserRole, id: "" });
   const [showAdminModal, setShowAdminModal] = useState(false);
+
+  const genPassword = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$";
+    return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  };
 
   const loadAdmins = async () => {
     try {
@@ -3098,9 +3103,9 @@ export default function Home() {
                 setMessage("");
                 const { data: { session } } = await supabase.auth.getSession();
                 if (!session) return;
-                await createUser(session.access_token, adminForm.email, adminForm.password);
-                setMessage("Tạo quản trị viên thành công!");
-                setAdminForm({ email: "", password: "", id: "" });
+                await createUser(session.access_token, adminForm.email, adminForm.password, adminForm.username, adminForm.role);
+                setMessage(`Tạo tài khoản "${adminForm.username}" (${adminForm.role}) thành công! Mật khẩu: ${adminForm.password}`);
+                setAdminForm({ email: "", password: "", username: "", role: "admin", id: "" });
                 await loadAdmins();
               } catch(err: any) {
                 setError(err.message || "Có lỗi xảy ra");
@@ -3111,17 +3116,49 @@ export default function Home() {
               <div className="section-heading">
                 <div>
                   <p className="eyebrow">Tài khoản</p>
-                  <h3>Thêm Quản Trị Viên</h3>
+                  <h3>Thêm người dùng hệ thống</h3>
                 </div>
               </div>
               <div className="form-grid">
+                <label>
+                  <span>Tên người dùng (Username)</span>
+                  <input type="text" required placeholder="vd: nguyen_van_a" value={adminForm.username} onChange={(e) => setAdminForm(prev => ({...prev, username: e.target.value}))} />
+                </label>
                 <label>
                   <span>Email đăng nhập</span>
                   <input type="email" required value={adminForm.email} onChange={(e) => setAdminForm(prev => ({...prev, email: e.target.value}))} />
                 </label>
                 <label>
+                  <span>Vai trò</span>
+                  <select value={adminForm.role} onChange={(e) => setAdminForm(prev => ({...prev, role: e.target.value as UserRole}))}>
+                    <option value="admin">Admin — Quản trị toàn quyền</option>
+                    <option value="operation">Operation — Vận hành</option>
+                    <option value="assistant">Assistant — Trợ lý</option>
+                    <option value="teacher">Teacher — Giảng viên</option>
+                    <option value="student">Student — Học viên</option>
+                  </select>
+                </label>
+                <label>
                   <span>Mật khẩu</span>
-                  <input type="text" required minLength={6} placeholder="Ít nhất 6 ký tự" value={adminForm.password} onChange={(e) => setAdminForm(prev => ({...prev, password: e.target.value}))} />
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <input
+                      type="text"
+                      required
+                      minLength={6}
+                      placeholder="Ít nhất 6 ký tự"
+                      value={adminForm.password}
+                      onChange={(e) => setAdminForm(prev => ({...prev, password: e.target.value}))}
+                      style={{ flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      style={{ whiteSpace: "nowrap", padding: "0 14px", fontSize: "13px" }}
+                      onClick={() => setAdminForm(prev => ({...prev, password: genPassword()}))}
+                    >
+                      Tự tạo
+                    </button>
+                  </div>
                 </label>
               </div>
               <div className="form-actions">
@@ -3142,41 +3179,65 @@ export default function Home() {
                 <table>
                   <thead>
                     <tr>
-                      <th>ID</th>
+                      <th>Username</th>
                       <th>Email</th>
+                      <th>Vai trò</th>
                       <th>Ngày tạo</th>
                       <th>Đăng nhập cuối</th>
-                      <th style={{ width: "120px" }}>Thao tác</th>
+                      <th style={{ width: "90px" }}>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {adminUsers.map(user => (
-                      <tr key={user.id}>
-                        <td><div style={{maxWidth: "100px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}} title={user.id}>{user.id}</div></td>
-                        <td><strong>{user.email}</strong></td>
-                        <td>{new Date(user.created_at).toLocaleString("vi-VN")}</td>
-                        <td>{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString("vi-VN") : "Chưa đăng nhập"}</td>
-                        <td>
-                          <button className="text-button" style={{ color: "var(--text-secondary)" }} onClick={async () => {
-                            if (confirm("Bạn có chắc chắn muốn xoá tài khoản " + user.email + " vĩnh viễn không?")) {
-                              try {
-                                const { data: { session } } = await supabase.auth.getSession();
-                                if (!session) return;
-                                await deleteUser(session.access_token, user.id);
-                                await loadAdmins();
-                                setMessage("Đã xoá tài khoản thành công.");
-                              } catch(err: any) {
-                                setError(err.message);
+                    {adminUsers.map(user => {
+                      const roleLabels: Record<string, string> = {
+                        admin: "Admin",
+                        operation: "Operation",
+                        assistant: "Assistant",
+                        teacher: "Teacher",
+                        student: "Student",
+                      };
+                      const roleColors: Record<string, string> = {
+                        admin: "#dc2626",
+                        operation: "#2563eb",
+                        assistant: "#7c3aed",
+                        teacher: "#059669",
+                        student: "#d97706",
+                      };
+                      return (
+                        <tr key={user.id}>
+                          <td><strong>{user.username || "—"}</strong></td>
+                          <td>{user.email}</td>
+                          <td>
+                            {user.role ? (
+                              <span style={{ display: "inline-block", padding: "2px 10px", borderRadius: "99px", fontSize: "12px", fontWeight: 600, background: (roleColors[user.role] || "#64748b") + "18", color: roleColors[user.role] || "#64748b" }}>
+                                {roleLabels[user.role] || user.role}
+                              </span>
+                            ) : "—"}
+                          </td>
+                          <td>{new Date(user.created_at).toLocaleString("vi-VN")}</td>
+                          <td>{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString("vi-VN") : "Chưa đăng nhập"}</td>
+                          <td>
+                            <button className="text-button" style={{ color: "var(--text-secondary)" }} onClick={async () => {
+                              if (confirm("Bạn có chắc chắn muốn xoá tài khoản " + (user.username || user.email) + " vĩnh viễn không?")) {
+                                try {
+                                  const { data: { session } } = await supabase.auth.getSession();
+                                  if (!session) return;
+                                  await deleteUser(session.access_token, user.id);
+                                  await loadAdmins();
+                                  setMessage("Đã xoá tài khoản thành công.");
+                                } catch(err: any) {
+                                  setError(err.message);
+                                }
                               }
-                            }
-                          }}>
-                            Xoá
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                            }}>
+                              Xoá
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                     {adminUsers.length === 0 && (
-                      <tr><td colSpan={5}>{isLoading ? "Đang tải danh sách..." : "Chưa có dữ liệu."}</td></tr>
+                      <tr><td colSpan={6}>{isLoading ? "Đang tải danh sách..." : "Chưa có dữ liệu."}</td></tr>
                     )}
                   </tbody>
                 </table>
