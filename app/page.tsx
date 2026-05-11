@@ -258,7 +258,6 @@ const tableConfigs: TableConfig[] = [
         optionsKey: "classes",
         optionLabel: "class_name",
       },
-      { name: "time_range", label: "Thời gian", type: "text" },
       { name: "session_number", label: "Buổi số", type: "number", required: true },
       { name: "session_title", label: "Tiêu đề buổi học", type: "text", required: true },
       { name: "session_date", label: "Ngày học", type: "date" },
