@@ -1753,6 +1753,28 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  async function openAssignAssistantModal(classId: string) {
+    setShowAssignModal(classId);
+    setClassAssistants([]);
+    setError("");
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        return;
+      }
+
+      const [assistants, users] = await Promise.all([
+        getClassAssistants(session.access_token, classId),
+        getUsers(session.access_token),
+      ]);
+      setClassAssistants(assistants);
+      setAdminUsers(users);
+    } catch (err: any) {
+      setError(err.message || "Không tải được danh sách trợ giảng.");
+    }
+  }
+
   function getEnrollmentStatusClass(status: string) {
     if (enrollmentStatusOptions.some((option) => option.value === status)) {
       return `status-${status}`;
@@ -2567,15 +2589,7 @@ export default function Home() {
                               <button
                                 className="secondary-button compact-button"
                                 style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff", border: "none" }}
-                                onClick={async () => {
-                                  setShowAssignModal(item.id);
-                                  try {
-                                    const { data: { session } } = await supabase.auth.getSession();
-                                    if (!session) return;
-                                    const list = await getClassAssistants(session.access_token, item.id);
-                                    setClassAssistants(list);
-                                  } catch {}
-                                }}
+                                onClick={() => void openAssignAssistantModal(item.id)}
                                 type="button"
                               >
                                 Phân công
@@ -2586,7 +2600,7 @@ export default function Home() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={currentUserRole !== "assistant" ? 11 : 10}>
+                        <td colSpan={currentUserRole !== "assistant" ? 12 : 11}>
                           {currentUserRole === "assistant" && assignedClassIds.length === 0
                             ? "Bạn chưa được phân công lớp nào. Liên hệ Admin để được cấp quyền."
                             : "Chưa có dữ liệu lớp hoặc ghi danh."}
@@ -3673,8 +3687,10 @@ export default function Home() {
                       >Phân công</button>
                     </div>
                   ))}
-                  {adminUsers.filter(u => u.role === "assistant").length === 0 && (
+                  {adminUsers.filter(u => u.role === "assistant").length === 0 ? (
                     <p style={{ margin: 0, fontSize: "13px", color: "var(--muted)" }}>Chưa có tài khoản nào có vai trò Assistant. Tạo tài khoản trong mục Hệ thống → Quản trị viên.</p>
+                  ) : adminUsers.filter(u => u.role === "assistant" && !classAssistants.some((a: any) => a.user_id === u.id)).length === 0 && (
+                    <p style={{ margin: 0, fontSize: "13px", color: "var(--muted)" }}>Tất cả assistant hiện có đã được phân công vào lớp này.</p>
                   )}
                 </div>
               </div>
