@@ -979,21 +979,23 @@ export default function Home() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
         router.push("/login");
       } else {
-        const role = session.user.user_metadata?.role ?? null;
-        setCurrentUserRole(role);
-        if (role === "assistant") {
-          const ids = await getMyAssignedClassIds(session.access_token);
-          setAssignedClassIds(ids);
-          setOpenSidebarGroup("academic");
-          if (!isAssistantAllowedView(activeView)) {
-            setActiveView("classManagement");
+        void (async () => {
+          const role = session.user.user_metadata?.role ?? null;
+          setCurrentUserRole(role);
+          if (role === "assistant") {
+            const ids = await getMyAssignedClassIds(session.access_token);
+            setAssignedClassIds(ids);
+            setOpenSidebarGroup("academic");
+            if (!isAssistantAllowedView(activeView)) {
+              setActiveView("classManagement");
+            }
           }
-        }
-        setIsAuthenticated(true);
+          setIsAuthenticated(true);
+        })();
       }
     });
 
@@ -1251,6 +1253,14 @@ export default function Home() {
         ? (rows ?? []).filter((row) => allowedEnrollmentIds.has(String(row.enrollment_id ?? "")))
         : rows ?? [],
     );
+  }
+
+  function getAssistantAllowedEnrollmentIds() {
+    if (!isAssistantUser) {
+      return null;
+    }
+
+    return new Set(data.enrollments.map((row) => String(row.id ?? "")));
   }
 
   function updateFormValue(name: string, value: string) {
@@ -2138,7 +2148,7 @@ export default function Home() {
         return [...current, savedRecord];
       });
     } else {
-      await loadAttendanceRecords();
+      await loadAttendanceRecords(getAssistantAllowedEnrollmentIds());
     }
 
     setMessage("Đã cập nhật điểm danh.");
@@ -2187,7 +2197,7 @@ export default function Home() {
         return [...current, savedRecord];
       });
     } else {
-      await loadAssignmentRecords();
+      await loadAssignmentRecords(getAssistantAllowedEnrollmentIds());
     }
 
     setMessage("Đã cập nhật điểm bài tập.");
