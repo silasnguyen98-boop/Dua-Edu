@@ -30,7 +30,7 @@ type TableName =
   | "certificates"
   | "class_sessions";
 type ViewName = "dashboard" | "classManagement" | "classDetail" | "attendance" | "assignmentScore" | "projectScore" | "admins" | TableName;
-type SidebarGroup = "overview" | "academic" | "coreData" | "extendedData" | "system";
+type SidebarGroup = "overview" | "academic" | "coreData" | "extendedData" | "system" | null;
 
 type TableConfig = {
   name: TableName;
@@ -393,36 +393,20 @@ const getInitialAttendanceMode = (): "session" | "summary" => {
 };
 
 const getSidebarGroupForView = (view: ViewName): SidebarGroup => {
-  if (view === "dashboard") {
-    return "overview";
-  }
-
+  if (view === "dashboard") return "overview";
   if (
-    view === "classManagement" ||
-    view === "classDetail" ||
-    view === "attendance" ||
-    view === "assignmentScore" ||
-    view === "projectScore" ||
-    view === "class_sessions"
-  ) {
-    return "academic";
-  }
-
-  if (view === "courses" || view === "classes" || view === "teachers" || view === "students") {
-    return "coreData";
-  }
-
-  if (view === "enrollments" || view === "certificates") {
-    return "extendedData";
-  }
-
+    view === "classManagement" || view === "classDetail" || view === "attendance" ||
+    view === "assignmentScore" || view === "projectScore" || view === "class_sessions"
+  ) return "academic";
+  if (view === "courses" || view === "classes" || view === "teachers" || view === "students") return "coreData";
+  if (view === "enrollments" || view === "certificates") return "extendedData";
   return "system";
 };
 
 export default function Home() {
   const [activeView, setActiveView] = useState<ViewName>(getInitialView);
   const [openSidebarGroup, setOpenSidebarGroup] = useState<SidebarGroup>(() =>
-    getSidebarGroupForView(getInitialView()),
+    getSidebarGroupForView(getInitialView())
   );
   const [data, setData] = useState<DataState>(emptyData);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
@@ -500,7 +484,7 @@ export default function Home() {
   };
 
   const toggleSidebarGroup = (group: SidebarGroup) => {
-    setOpenSidebarGroup((current) => (current === group ? current : group));
+    setOpenSidebarGroup((current) => (current === group ? null : group));
   };
 
   const stats = useMemo(
@@ -2145,7 +2129,11 @@ export default function Home() {
               type="button"
             >
               <span>Tổng quan</span>
-              <strong>{openSidebarGroup === "overview" ? "-" : "+"}</strong>
+              <strong>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openSidebarGroup === "overview" ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </strong>
             </button>
             {openSidebarGroup === "overview" && (
               <nav className="nav-tabs" aria-label="Tổng quan">
@@ -2168,7 +2156,11 @@ export default function Home() {
               type="button"
             >
               <span>Học vụ</span>
-              <strong>{openSidebarGroup === "academic" ? "-" : "+"}</strong>
+              <strong>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openSidebarGroup === "academic" ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </strong>
             </button>
             {openSidebarGroup === "academic" && (
               <nav className="nav-tabs" aria-label="Nghiệp vụ học vụ">
@@ -2221,7 +2213,11 @@ export default function Home() {
               type="button"
             >
               <span>Dữ liệu lõi</span>
-              <strong>{openSidebarGroup === "coreData" ? "-" : "+"}</strong>
+              <strong>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openSidebarGroup === "coreData" ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </strong>
             </button>
             {openSidebarGroup === "coreData" && (
               <nav className="nav-tabs" aria-label="Dữ liệu hệ thống">
@@ -2247,7 +2243,11 @@ export default function Home() {
               type="button"
             >
               <span>Mở rộng</span>
-              <strong>{openSidebarGroup === "extendedData" ? "-" : "+"}</strong>
+              <strong>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openSidebarGroup === "extendedData" ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </strong>
             </button>
             {openSidebarGroup === "extendedData" && (
               <nav className="nav-tabs" aria-label="Dữ liệu mở rộng">
@@ -2273,7 +2273,11 @@ export default function Home() {
               type="button"
             >
               <span>Hệ thống</span>
-              <strong>{openSidebarGroup === "system" ? "-" : "+"}</strong>
+              <strong>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openSidebarGroup === "system" ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </strong>
             </button>
             {openSidebarGroup === "system" && (
               <nav className="nav-tabs" aria-label="Hệ thống">
