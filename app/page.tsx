@@ -359,7 +359,7 @@ const getInitialSearch = () => {
   }
 
   const searchFromUrl = new URLSearchParams(window.location.search).get("q");
-  return searchFromUrl ?? window.localStorage.getItem(storageKeys.search) ?? "";
+  return searchFromUrl ?? "";
 };
 
 const getInitialClassId = () => {
@@ -420,6 +420,7 @@ export default function Home() {
   const router = useRouter();
   const [selectedSessionDetail, setSelectedSessionDetail] = useState<Row | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previousDataTableRef = useRef<TableName | null>(null);
   const activeTable: TableName = isTableName(activeView) ? activeView : "students";
   const isDashboardView = activeView === "dashboard";
   const isClassManagementView = activeView === "classManagement";
@@ -749,6 +750,18 @@ export default function Home() {
   }, [activeConfig.searchFields, activeTable, data, search, classSessionsFilterId]);
 
   useEffect(() => {
+    if (!isDataView) {
+      return;
+    }
+
+    if (previousDataTableRef.current && previousDataTableRef.current !== activeTable) {
+      setSearch("");
+    }
+
+    previousDataTableRef.current = activeTable;
+  }, [activeTable, isDataView]);
+
+  useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         router.push("/login");
@@ -895,30 +908,38 @@ export default function Home() {
     setIsLoading(true);
     setError("");
 
-    const entries = await Promise.all(
+    const results = await Promise.all(
       tableConfigs.map(async (config) => {
         const { data: rows, error: tableError } = await supabase
           .from(config.name)
           .select("*")
           .order("created_at", { ascending: false });
 
-        if (tableError) {
-          throw new Error(`${config.label}: ${tableError.message}`);
-        }
-
-        return [config.name, rows ?? []] as const;
+        return {
+          error: tableError ? `${config.label}: ${tableError.message}` : "",
+          name: config.name,
+          rows: (rows ?? []) as Row[],
+        };
       }),
-    ).catch((loadError: Error) => {
-      setError(loadError.message);
-      return null;
+    );
+
+    const nextData: DataState = { ...emptyData };
+    const loadErrors = results
+      .filter((result) => result.error)
+      .map((result) => result.error);
+
+    results.forEach((result) => {
+      nextData[result.name] = result.error ? [] : result.rows;
     });
 
-    if (entries) {
-      setData(Object.fromEntries(entries) as DataState);
-      await loadAttendanceRecords();
-      await loadAssignmentRecords();
+    setData(nextData);
+
+    if (loadErrors.length) {
+      setError(`Không tải được một số bảng: ${loadErrors.join("; ")}`);
     }
 
+    await loadAttendanceRecords();
+    await loadAssignmentRecords();
     setIsLoading(false);
   }
 
@@ -3077,7 +3098,9 @@ export default function Home() {
                   ) : (
                     <tr>
                       <td colSpan={activeConfig.columns.length + 1}>
-                        Chưa có dữ liệu cho bảng này.
+                        {data[activeTable].length
+                          ? `Không tìm thấy ${activeConfig.label.toLowerCase()} phù hợp với từ khoá "${search.trim()}".`
+                          : "Chưa có dữ liệu cho bảng này."}
                       </td>
                     </tr>
                   )}
