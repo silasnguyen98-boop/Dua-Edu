@@ -1678,6 +1678,34 @@ export default function Home() {
     setUpdatingEnrollmentId(null);
   }
 
+  const exportClassDetailExcel = () => {
+    if (!selectedClass) return;
+
+    const workbook = XLSX.utils.book_new();
+    
+    const worksheetData = [
+      ["Học viên", "Email", "Điểm chuyên cần", "Điểm bài tập", "Điểm đồ án", "Điểm tổng kết", "Trạng thái"]
+    ];
+
+    selectedClassEnrollments.forEach((enrollment) => {
+      worksheetData.push([
+        String(enrollment.name ?? ""),
+        String(enrollment.email ?? ""),
+        String(enrollment.attendance_score ?? ""),
+        String(enrollment.assignment_score ?? ""),
+        String(enrollment.project_score ?? ""),
+        String(enrollment.final_score ?? ""),
+        String(enrollment.status ?? "Chưa có")
+      ]);
+    });
+
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Danh sach lop");
+
+    const fileName = `DanhSachLop_${selectedClass.classCode}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+  };
+
   function getAttendanceStatusClass(status: string) {
     if (attendanceStatusOptions.some((option) => option.value === status)) {
       return `attendance-${status}`;
@@ -2332,6 +2360,9 @@ export default function Home() {
                         ))}
                       </select>
                     </label>
+                    <button className="primary-button" onClick={exportClassDetailExcel} type="button">
+                      Xuất Excel
+                    </button>
                     <button className="text-button" onClick={openClassManagement} type="button">
                       Quay lại
                     </button>
