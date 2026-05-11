@@ -5,7 +5,7 @@ import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { getUsers, createUser, updateUser, deleteUser, type UserRole } from "@/app/actions/users";
+import { getUsersSafe, createUser, updateUser, deleteUser, type UserRole } from "@/app/actions/users";
 import { getClassAssistants, assignAssistant, removeAssistant, getMyAssignedClassIds } from "@/app/actions/assistants";
 
 type FieldType = "text" | "email" | "number" | "date" | "time" | "datetime-local" | "textarea" | "select";
@@ -468,8 +468,11 @@ export default function Home() {
       setIsLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const users = await getUsers(session.access_token);
-      setAdminUsers(users);
+      const result = await getUsersSafe(session.access_token);
+      setAdminUsers(result.users);
+      if (!result.ok) {
+        setError(result.error);
+      }
     } catch (err: any) {
       setError(err.message || "Lỗi tải danh sách quản trị viên. Vui lòng thêm SUPABASE_SERVICE_ROLE_KEY vào .env.local.");
     } finally {
@@ -1764,12 +1767,15 @@ export default function Home() {
         return;
       }
 
-      const [assistants, users] = await Promise.all([
+      const [assistants, usersResult] = await Promise.all([
         getClassAssistants(session.access_token, classId),
-        getUsers(session.access_token),
+        getUsersSafe(session.access_token),
       ]);
       setClassAssistants(assistants);
-      setAdminUsers(users);
+      setAdminUsers(usersResult.users);
+      if (!usersResult.ok) {
+        setError(usersResult.error);
+      }
     } catch (err: any) {
       setError(err.message || "Không tải được danh sách trợ giảng.");
     }

@@ -2,24 +2,35 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-const getSupabaseAdmin = () => {
+const getSupabaseUserClient = (token: string) => {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key) throw new Error("Vui lòng cấu hình SUPABASE_SERVICE_ROLE_KEY.");
-  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+
+  if (!url || !key) {
+    throw new Error("Thiếu cấu hình Supabase public URL hoặc publishable key.");
+  }
+
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  });
 };
 
-const verifyAdmin = async (token: string) => {
-  const adminClient = getSupabaseAdmin();
-  const { data: { user }, error } = await adminClient.auth.getUser(token);
+const verifyUser = async (token: string) => {
+  const userClient = getSupabaseUserClient(token);
+  const { data: { user }, error } = await userClient.auth.getUser(token);
   if (error || !user) throw new Error("Phiên đăng nhập không hợp lệ.");
-  return adminClient;
+  return { user, userClient };
 };
 
 /** List all assistants assigned to a class */
 export async function getClassAssistants(token: string, classId: string) {
-  const adminClient = await verifyAdmin(token);
-  const { data, error } = await adminClient
+  const { userClient } = await verifyUser(token);
+  const { data, error } = await userClient
     .from("class_assistants")
     .select("*")
     .eq("class_id", classId)
@@ -30,8 +41,8 @@ export async function getClassAssistants(token: string, classId: string) {
 
 /** List all class assignments for a specific user */
 export async function getAssistantClasses(token: string, userId: string) {
-  const adminClient = await verifyAdmin(token);
-  const { data, error } = await adminClient
+  const { userClient } = await verifyUser(token);
+  const { data, error } = await userClient
     .from("class_assistants")
     .select("class_id")
     .eq("user_id", userId);
@@ -47,8 +58,8 @@ export async function assignAssistant(
   userEmail: string,
   userName: string,
 ) {
-  const adminClient = await verifyAdmin(token);
-  const { error } = await adminClient
+  const { userClient } = await verifyUser(token);
+  const { error } = await userClient
     .from("class_assistants")
     .upsert({ class_id: classId, user_id: userId, user_email: userEmail, user_name: userName }, { onConflict: "class_id,user_id" });
   if (error) throw new Error(error.message);
@@ -57,8 +68,8 @@ export async function assignAssistant(
 
 /** Remove an assistant from a class */
 export async function removeAssistant(token: string, classId: string, userId: string) {
-  const adminClient = await verifyAdmin(token);
-  const { error } = await adminClient
+  const { userClient } = await verifyUser(token);
+  const { error } = await userClient
     .from("class_assistants")
     .delete()
     .eq("class_id", classId)
@@ -69,10 +80,8 @@ export async function removeAssistant(token: string, classId: string, userId: st
 
 /** Get all class IDs assigned to the currently logged-in user */
 export async function getMyAssignedClassIds(token: string) {
-  const adminClient = await verifyAdmin(token);
-  const { data: { user } } = await adminClient.auth.getUser(token);
-  if (!user) return [];
-  const { data, error } = await adminClient
+  const { user, userClient } = await verifyUser(token);
+  const { data, error } = await userClient
     .from("class_assistants")
     .select("class_id")
     .eq("user_id", user.id);

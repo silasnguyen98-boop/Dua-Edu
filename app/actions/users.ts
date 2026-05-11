@@ -3,11 +3,23 @@
 import { createClient } from "@supabase/supabase-js";
 
 export type UserRole = "admin" | "operation" | "assistant" | "teacher" | "student";
+type AdminUser = {
+  id: string;
+  email?: string;
+  username: string;
+  role: string;
+  created_at: string;
+  last_sign_in_at?: string;
+};
 
 const getSupabaseAdmin = () => {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key) throw new Error("Vui lòng cấu hình SUPABASE_SERVICE_ROLE_KEY trong file .env.local để sử dụng tính năng này.");
+  if (!key) {
+    throw new Error(
+      "Thiếu SUPABASE_SERVICE_ROLE_KEY. Hãy thêm biến này trong Vercel Project Settings > Environment Variables.",
+    );
+  }
   return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
 };
 
@@ -30,6 +42,21 @@ export async function getUsers(token: string) {
     created_at: u.created_at,
     last_sign_in_at: u.last_sign_in_at,
   }));
+}
+
+export async function getUsersSafe(token: string): Promise<
+  | { ok: true; users: AdminUser[] }
+  | { ok: false; users: AdminUser[]; error: string }
+> {
+  try {
+    return { ok: true, users: await getUsers(token) };
+  } catch (error) {
+    return {
+      ok: false,
+      users: [],
+      error: error instanceof Error ? error.message : "Không tải được danh sách người dùng.",
+    };
+  }
 }
 
 export async function createUser(
