@@ -6,6 +6,7 @@ import * as XLSX from "xlsx";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { getUsers, createUser, updateUser, deleteUser, type UserRole } from "@/app/actions/users";
+import { getClassAssistants, assignAssistant, removeAssistant, getMyAssignedClassIds } from "@/app/actions/assistants";
 
 type FieldType = "text" | "email" | "number" | "date" | "time" | "datetime-local" | "textarea" | "select";
 
@@ -452,6 +453,10 @@ export default function Home() {
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [adminForm, setAdminForm] = useState({ email: "", password: "", username: "", role: "admin" as UserRole, id: "" });
   const [showAdminModal, setShowAdminModal] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [assignedClassIds, setAssignedClassIds] = useState<string[]>([]);
+  const [classAssistants, setClassAssistants] = useState<any[]>([]);
+  const [showAssignModal, setShowAssignModal] = useState<string | null>(null); // classId
 
   const genPassword = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$";
@@ -657,6 +662,17 @@ export default function Home() {
     };
   }, [data]);
 
+  // If current user is assistant, filter to only their assigned classes
+  const visibleClassItems = useMemo(() => {
+    if (currentUserRole === "assistant" && assignedClassIds.length > 0) {
+      return analytics.classItems.filter(item => assignedClassIds.includes(item.id));
+    }
+    if (currentUserRole === "assistant" && assignedClassIds.length === 0) {
+      return [];
+    }
+    return analytics.classItems;
+  }, [analytics.classItems, currentUserRole, assignedClassIds]);
+
   const selectedClass = useMemo(
     () => analytics.classItems.find((item) => item.id === selectedClassId) ?? null,
     [analytics.classItems, selectedClassId],
@@ -837,11 +853,21 @@ export default function Home() {
   }, [currentPage, totalPages]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) {
         router.push("/login");
       } else {
         setIsAuthenticated(true);
+        // Fetch current user role from metadata
+        const role = session.user.user_metadata?.role ?? null;
+        setCurrentUserRole(role);
+        // If assistant, fetch their assigned class IDs to filter data
+        if (role === "assistant") {
+          try {
+            const ids = await getMyAssignedClassIds(session.access_token);
+            setAssignedClassIds(ids);
+          } catch {}
+        }
       }
     });
 
@@ -2492,26 +2518,27 @@ export default function Home() {
                       <th>Thời gian học</th>
                       <th>Sĩ số</th>
                       <th>Danh sách</th>
+                      {currentUserRole !== "assistant" && <th>Trợ giảng</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {(classManagementSearch
-                      ? analytics.classItems.filter((item) =>
+                      ? visibleClassItems.filter((item) =>
                           item.className.toLowerCase().includes(classManagementSearch.toLowerCase()) ||
                           item.classCode.toLowerCase().includes(classManagementSearch.toLowerCase()) ||
                           item.courseName.toLowerCase().includes(classManagementSearch.toLowerCase()) ||
                           item.teacherName.toLowerCase().includes(classManagementSearch.toLowerCase())
                         )
-                      : analytics.classItems
+                      : visibleClassItems
                     ).length ? (
                       (classManagementSearch
-                        ? analytics.classItems.filter((item) =>
+                        ? visibleClassItems.filter((item) =>
                             item.className.toLowerCase().includes(classManagementSearch.toLowerCase()) ||
                             item.classCode.toLowerCase().includes(classManagementSearch.toLowerCase()) ||
                             item.courseName.toLowerCase().includes(classManagementSearch.toLowerCase()) ||
                             item.teacherName.toLowerCase().includes(classManagementSearch.toLowerCase())
                           )
-                        : analytics.classItems
+                        : visibleClassItems
                       ).map((item) => (
                         <tr key={item.id}>
                           <td>{item.className}</td>
@@ -2535,11 +2562,35 @@ export default function Home() {
                               Xem
                             </button>
                           </td>
+                          {currentUserRole !== "assistant" && (
+                            <td>
+                              <button
+                                className="secondary-button compact-button"
+                                style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff", border: "none" }}
+                                onClick={async () => {
+                                  setShowAssignModal(item.id);
+                                  try {
+                                    const { data: { session } } = await supabase.auth.getSession();
+                                    if (!session) return;
+                                    const list = await getClassAssistants(session.access_token, item.id);
+                                    setClassAssistants(list);
+                                  } catch {}
+                                }}
+                                type="button"
+                              >
+                                Phân công
+                              </button>
+                            </td>
+                          )}
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={10}>Chưa có dữ liệu lớp hoặc ghi danh.</td>
+                        <td colSpan={currentUserRole !== "assistant" ? 11 : 10}>
+                          {currentUserRole === "assistant" && assignedClassIds.length === 0
+                            ? "Bạn chưa được phân công lớp nào. Liên hệ Admin để được cấp quyền."
+                            : "Chưa có dữ liệu lớp hoặc ghi danh."}
+                        </td>
                       </tr>
                     )}
                   </tbody>
@@ -3550,6 +3601,85 @@ export default function Home() {
             </div>
           </section>
         </section>
+        )}
+
+        {/* ── Assign Assistant Modal ── */}
+        {showAssignModal && (
+          <div className="modal-overlay" onClick={() => setShowAssignModal(null)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "520px", padding: "0" }}>
+              {/* Header */}
+              <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#6366f1" }}>Phân công lớp</p>
+                  <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "var(--foreground)" }}>
+                    Trợ giảng của lớp — {analytics.classItems.find(c => c.id === showAssignModal)?.className ?? ""}
+                  </h3>
+                </div>
+                <button onClick={() => setShowAssignModal(null)} style={{ background: "none", border: "none", fontSize: "22px", cursor: "pointer", color: "var(--text-secondary)", lineHeight: 1 }}>×</button>
+              </div>
+
+              {/* Current assistants */}
+              <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border)" }}>
+                <p style={{ margin: "0 0 12px", fontSize: "12px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-secondary)" }}>Đang phân công ({classAssistants.length})</p>
+                {classAssistants.length === 0 ? (
+                  <p style={{ margin: 0, fontSize: "14px", color: "var(--muted)" }}>Chưa có trợ giảng nào được phân công.</p>
+                ) : (
+                  <div style={{ display: "grid", gap: "8px" }}>
+                    {classAssistants.map((a: any) => (
+                      <div key={a.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: "10px", background: "var(--surface-soft)", border: "1px solid var(--border)" }}>
+                        <div>
+                          <span style={{ fontWeight: 600, fontSize: "14px" }}>{a.user_name || "—"}</span>
+                          <span style={{ marginLeft: "8px", fontSize: "13px", color: "var(--text-secondary)" }}>{a.user_email}</span>
+                        </div>
+                        <button
+                          style={{ padding: "4px 12px", borderRadius: "8px", border: "1px solid #fecaca", background: "transparent", color: "#dc2626", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
+                          onClick={async () => {
+                            try {
+                              const { data: { session } } = await supabase.auth.getSession();
+                              if (!session) return;
+                              await removeAssistant(session.access_token, showAssignModal, a.user_id);
+                              const list = await getClassAssistants(session.access_token, showAssignModal);
+                              setClassAssistants(list);
+                            } catch (err: any) { setError(err.message); }
+                          }}
+                        >Xoá</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Add assistant */}
+              <div style={{ padding: "16px 24px 20px" }}>
+                <p style={{ margin: "0 0 10px", fontSize: "12px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-secondary)" }}>Thêm trợ giảng</p>
+                <div style={{ display: "grid", gap: "8px" }}>
+                  {adminUsers.filter(u => u.role === "assistant" && !classAssistants.some((a: any) => a.user_id === u.id)).map(u => (
+                    <div key={u.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: "10px", border: "1px solid var(--border)" }}>
+                      <div>
+                        <span style={{ fontWeight: 600, fontSize: "14px" }}>{u.username || "—"}</span>
+                        <span style={{ marginLeft: "8px", fontSize: "13px", color: "var(--text-secondary)" }}>{u.email}</span>
+                      </div>
+                      <button
+                        style={{ padding: "4px 14px", borderRadius: "8px", border: "none", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
+                        onClick={async () => {
+                          try {
+                            const { data: { session } } = await supabase.auth.getSession();
+                            if (!session) return;
+                            await assignAssistant(session.access_token, showAssignModal, u.id, u.email ?? "", u.username ?? "");
+                            const list = await getClassAssistants(session.access_token, showAssignModal);
+                            setClassAssistants(list);
+                          } catch (err: any) { setError(err.message); }
+                        }}
+                      >Phân công</button>
+                    </div>
+                  ))}
+                  {adminUsers.filter(u => u.role === "assistant").length === 0 && (
+                    <p style={{ margin: 0, fontSize: "13px", color: "var(--muted)" }}>Chưa có tài khoản nào có vai trò Assistant. Tạo tài khoản trong mục Hệ thống → Quản trị viên.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {selectedSessionDetail && (
