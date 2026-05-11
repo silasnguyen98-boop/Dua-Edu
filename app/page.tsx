@@ -35,7 +35,16 @@ type TableName =
   | "enrollments"
   | "certificates"
   | "class_sessions";
-type ViewName = "dashboard" | "classManagement" | "classDetail" | "attendance" | "assignmentScore" | "projectScore" | "admins" | TableName;
+type ViewName =
+  | "dashboard"
+  | "classManagement"
+  | "classDetail"
+  | "assistantAssignments"
+  | "attendance"
+  | "assignmentScore"
+  | "projectScore"
+  | "admins"
+  | TableName;
 type SidebarGroup = "overview" | "academic" | "coreData" | "extendedData" | "system" | null;
 
 type TableConfig = {
@@ -352,9 +361,11 @@ const isViewName = (value: string | null): value is ViewName =>
   value === "dashboard" ||
   value === "classManagement" ||
   value === "classDetail" ||
+  value === "assistantAssignments" ||
   value === "attendance" ||
   value === "assignmentScore" ||
   value === "projectScore" ||
+  value === "admins" ||
   isTableName(value);
 
 const getInitialView = () => {
@@ -412,7 +423,7 @@ const getInitialAttendanceMode = (): "session" | "summary" => {
 const getSidebarGroupForView = (view: ViewName): SidebarGroup => {
   if (view === "dashboard") return "overview";
   if (
-    view === "classManagement" || view === "classDetail" || view === "attendance" ||
+    view === "classManagement" || view === "classDetail" || view === "assistantAssignments" || view === "attendance" ||
     view === "assignmentScore" || view === "projectScore" || view === "class_sessions"
   ) return "academic";
   if (view === "courses" || view === "classes" || view === "teachers" || view === "students") return "coreData";
@@ -445,6 +456,8 @@ export default function Home() {
   const [classDetailSortDir, setClassDetailSortDir] = useState<"asc" | "desc">("asc");
   const [classSessionsFilterId, setClassSessionsFilterId] = useState<string | null>(getInitialClassId);
   const [classManagementSearch, setClassManagementSearch] = useState("");
+  const [assistantAssignmentSearch, setAssistantAssignmentSearch] = useState("");
+  const [assistantAssignmentsByClass, setAssistantAssignmentsByClass] = useState<Record<string, ClassAssistant[]>>({});
   const [search, setSearch] = useState(getInitialSearch);
   const [pageSize, setPageSize] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
@@ -461,6 +474,7 @@ export default function Home() {
   const isDashboardView = activeView === "dashboard";
   const isClassManagementView = activeView === "classManagement";
   const isClassDetailView = activeView === "classDetail";
+  const isAssistantAssignmentsView = activeView === "assistantAssignments";
   const isAttendanceView = activeView === "attendance";
   const isAssignmentScoreView = activeView === "assignmentScore";
   const isProjectScoreView = activeView === "projectScore";
@@ -691,6 +705,62 @@ export default function Home() {
     }
     return analytics.classItems;
   }, [analytics.classItems, currentUserRole, assignedClassIds]);
+
+  const loadAssistantAssignmentOverview = async () => {
+    try {
+      setIsLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const usersResult = await getUsersSafe(session.access_token);
+      setAdminUsers(usersResult.users);
+      if (!usersResult.ok) {
+        setError(usersResult.error);
+      }
+
+      const assignments = await Promise.all(
+        visibleClassItems.map(async (classItem) => [
+          classItem.id,
+          await loadClassAssistants(classItem.id),
+        ] as const),
+      );
+
+      setAssistantAssignmentsByClass(Object.fromEntries(assignments));
+    } catch (err: any) {
+      setError(err.message || "Không tải được dữ liệu phân công trợ giảng.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAssistantAssignmentsView && isAuthenticated) {
+      void loadAssistantAssignmentOverview();
+    }
+  }, [isAssistantAssignmentsView, isAuthenticated, visibleClassItems]);
+
+  const assistantUserByProfileId = useMemo(() => {
+    return new Map(
+      adminUsers.map((user) => [String(user.profile_id ?? user.id), user]),
+    );
+  }, [adminUsers]);
+
+  const assistantAssignmentClassItems = useMemo(() => {
+    const keyword = assistantAssignmentSearch.trim().toLowerCase();
+    if (!keyword) return visibleClassItems;
+
+    return visibleClassItems.filter((item) =>
+      item.className.toLowerCase().includes(keyword) ||
+      item.classCode.toLowerCase().includes(keyword) ||
+      item.courseName.toLowerCase().includes(keyword) ||
+      item.teacherName.toLowerCase().includes(keyword),
+    );
+  }, [assistantAssignmentSearch, visibleClassItems]);
+
+  const assignedAssistantTotal = useMemo(
+    () => Object.values(assistantAssignmentsByClass).reduce((sum, rows) => sum + rows.length, 0),
+    [assistantAssignmentsByClass],
+  );
 
   const selectedClass = useMemo(
     () => analytics.classItems.find((item) => item.id === selectedClassId) ?? null,
@@ -2171,7 +2241,7 @@ export default function Home() {
 
   const pageEyebrow = isDashboardView
     ? "Tổng quan"
-    : isClassManagementView || isClassDetailView
+    : isClassManagementView || isClassDetailView || isAssistantAssignmentsView
       ? "Học vụ"
       : isAttendanceView
         ? "Học vụ"
@@ -2184,6 +2254,8 @@ export default function Home() {
       ? "Quản trị viên"
     : isClassManagementView
       ? "Quản lý lớp"
+      : isAssistantAssignmentsView
+        ? "Phân công trợ giảng"
       : isClassDetailView
         ? selectedClass?.className ?? "Chi tiết lớp"
         : isAttendanceView
@@ -2199,6 +2271,8 @@ export default function Home() {
       ? "Quản lý danh sách tài khoản đăng nhập vào hệ thống."
     : isClassManagementView
       ? "Theo dõi sĩ số từng lớp và mở trang riêng để xem danh sách ghi danh."
+      : isAssistantAssignmentsView
+        ? "Theo dõi trợ giảng đang phụ trách từng lớp và mở nhanh thao tác phân công."
       : isClassDetailView
         ? selectedClass
           ? `${selectedClass.courseName} · ${selectedClass.teacherName} · ${selectedClass.schedule} · ${selectedClass.studyTime} · Sĩ số ${selectedClass.enrollmentCount}`
@@ -2294,6 +2368,16 @@ export default function Home() {
                   <span>Quản lý buổi học</span>
                   <strong>{data.class_sessions.length}</strong>
                 </button>
+                {currentUserRole !== "assistant" && (
+                  <button
+                    className={isAssistantAssignmentsView ? "active" : ""}
+                    onClick={() => changeView("assistantAssignments")}
+                    type="button"
+                  >
+                    <span>Phân công trợ giảng</span>
+                    <strong>{data.classes.length}</strong>
+                  </button>
+                )}
                 <button
                   className={isAttendanceView ? "active" : ""}
                   onClick={openAttendanceView}
@@ -2416,7 +2500,11 @@ export default function Home() {
             <p>{pageDescription}</p>
           </div>
           <div className="topbar-actions">
-            <button className="secondary-button" onClick={() => void loadAllTables()} type="button">
+            <button
+              className="secondary-button"
+              onClick={() => isAssistantAssignmentsView ? void loadAssistantAssignmentOverview() : void loadAllTables()}
+              type="button"
+            >
               Làm mới
             </button>
             {isClassDetailView && (
@@ -2666,6 +2754,109 @@ export default function Home() {
                             ? "Bạn chưa được phân công lớp nào. Liên hệ Admin để được cấp quyền."
                             : "Chưa có dữ liệu lớp hoặc ghi danh."}
                         </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+        )}
+
+        {isAssistantAssignmentsView && (
+          <section className="analytics-grid" aria-label="Phân công trợ giảng">
+            <article className="analytics-card wide" style={{ paddingTop: "24px" }}>
+              <div className="section-heading" style={{ alignItems: "flex-end", gap: "16px" }}>
+                <div>
+                  <p className="eyebrow">Trợ giảng</p>
+                  <h3>{assignedAssistantTotal} lượt phân công</h3>
+                  <p style={{ margin: "6px 0 0", color: "var(--text-secondary)" }}>
+                    Theo dõi {visibleClassItems.length} lớp và cập nhật trợ giảng phụ trách.
+                  </p>
+                </div>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  <input
+                    type="text"
+                    placeholder="Tìm lớp, mã lớp, khoá học..."
+                    value={assistantAssignmentSearch}
+                    onChange={(e) => setAssistantAssignmentSearch(e.target.value)}
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: "8px",
+                      border: "1px solid var(--border)",
+                      width: "280px",
+                      maxWidth: "100%",
+                    }}
+                  />
+                  <button
+                    className="secondary-button compact-button"
+                    onClick={() => void loadAssistantAssignmentOverview()}
+                    type="button"
+                  >
+                    Làm mới
+                  </button>
+                </div>
+              </div>
+
+              <div className="class-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Lớp</th>
+                      <th>Mã lớp</th>
+                      <th>Khoá học</th>
+                      <th>Giảng viên</th>
+                      <th>Sĩ số</th>
+                      <th>Trợ giảng hiện tại</th>
+                      <th>Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {assistantAssignmentClassItems.length ? (
+                      assistantAssignmentClassItems.map((item) => {
+                        const assignments = assistantAssignmentsByClass[item.id] ?? [];
+
+                        return (
+                          <tr key={item.id}>
+                            <td>{item.className}</td>
+                            <td>{item.classCode}</td>
+                            <td>{item.courseName}</td>
+                            <td>{item.teacherName}</td>
+                            <td>
+                              <strong>{item.enrollmentCount}</strong>
+                            </td>
+                            <td>
+                              {assignments.length ? (
+                                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                  {assignments.map((assignment) => {
+                                    const assistant = assistantUserByProfileId.get(String(assignment.assistant_id));
+                                    return (
+                                      <span key={assignment.id ?? assignment.assistant_id}>
+                                        {assistant?.username || assistant?.email || assignment.assistant_id}
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <span style={{ color: "var(--muted)" }}>Chưa phân công</span>
+                              )}
+                            </td>
+                            <td>
+                              <button
+                                className="secondary-button compact-button"
+                                style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff", border: "none" }}
+                                onClick={() => void openAssignAssistantModal(item.id)}
+                                type="button"
+                              >
+                                Phân công
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={7}>Không có lớp phù hợp để phân công trợ giảng.</td>
                       </tr>
                     )}
                   </tbody>
@@ -3716,6 +3907,7 @@ export default function Home() {
                               await removeAssistantFromClass(showAssignModal, a.assistant_id);
                               const list = await loadClassAssistants(showAssignModal);
                               setClassAssistants(list);
+                              setAssistantAssignmentsByClass((current) => ({ ...current, [showAssignModal]: list }));
                             } catch (err: any) { setError(err.message); }
                           }}
                         >Xoá</button>
@@ -3743,6 +3935,7 @@ export default function Home() {
                             await assignAssistantToClass(showAssignModal, u.profile_id ?? u.id);
                             const list = await loadClassAssistants(showAssignModal);
                             setClassAssistants(list);
+                            setAssistantAssignmentsByClass((current) => ({ ...current, [showAssignModal]: list }));
                           } catch (err: any) { setError(err.message); }
                         }}
                       >Phân công</button>
