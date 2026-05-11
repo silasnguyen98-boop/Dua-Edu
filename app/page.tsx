@@ -431,6 +431,14 @@ const getSidebarGroupForView = (view: ViewName): SidebarGroup => {
   return "system";
 };
 
+const isAssistantAllowedView = (view: ViewName) =>
+  view === "classManagement" ||
+  view === "classDetail" ||
+  view === "attendance" ||
+  view === "assignmentScore" ||
+  view === "projectScore" ||
+  view === "class_sessions";
+
 export default function Home() {
   const [activeView, setActiveView] = useState<ViewName>(getInitialView);
   const [openSidebarGroup, setOpenSidebarGroup] = useState<SidebarGroup>(() =>
@@ -480,6 +488,7 @@ export default function Home() {
   const isProjectScoreView = activeView === "projectScore";
   const isAdminsView = activeView === "admins";
   const isDataView = isTableName(activeView);
+  const isAssistantUser = currentUserRole === "assistant";
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [adminForm, setAdminForm] = useState({ email: "", password: "", username: "", role: "admin" as UserRole, id: "" });
   const [showAdminModal, setShowAdminModal] = useState(false);
@@ -522,6 +531,12 @@ export default function Home() {
   );
 
   const changeView = (view: ViewName) => {
+    if (isAssistantUser && !isAssistantAllowedView(view)) {
+      setOpenSidebarGroup("academic");
+      setActiveView("classManagement");
+      return;
+    }
+
     setOpenSidebarGroup(getSidebarGroupForView(view));
     setActiveView(view);
   };
@@ -763,13 +778,13 @@ export default function Home() {
   );
 
   const selectedClass = useMemo(
-    () => analytics.classItems.find((item) => item.id === selectedClassId) ?? null,
-    [analytics.classItems, selectedClassId],
+    () => visibleClassItems.find((item) => item.id === selectedClassId) ?? null,
+    [visibleClassItems, selectedClassId],
   );
 
   const selectedAttendanceClass = useMemo(
-    () => analytics.classItems.find((item) => item.id === selectedAttendanceClassId) ?? null,
-    [analytics.classItems, selectedAttendanceClassId],
+    () => visibleClassItems.find((item) => item.id === selectedAttendanceClassId) ?? null,
+    [visibleClassItems, selectedAttendanceClassId],
   );
 
   const attendanceSessionCount = useMemo(() => {
@@ -946,7 +961,6 @@ export default function Home() {
       if (!session) {
         router.push("/login");
       } else {
-        setIsAuthenticated(true);
         // Fetch current user role from metadata
         const role = session.user.user_metadata?.role ?? null;
         setCurrentUserRole(role);
@@ -954,31 +968,61 @@ export default function Home() {
         if (role === "assistant") {
           const ids = await getMyAssignedClassIds(session.access_token);
           setAssignedClassIds(ids);
+          setOpenSidebarGroup("academic");
+          if (!isAssistantAllowedView(getInitialView())) {
+            setActiveView("classManagement");
+          }
         }
+        setIsAuthenticated(true);
       }
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!session) {
         router.push("/login");
       } else {
+        const role = session.user.user_metadata?.role ?? null;
+        setCurrentUserRole(role);
+        if (role === "assistant") {
+          const ids = await getMyAssignedClassIds(session.access_token);
+          setAssignedClassIds(ids);
+          setOpenSidebarGroup("academic");
+          if (!isAssistantAllowedView(activeView)) {
+            setActiveView("classManagement");
+          }
+        }
         setIsAuthenticated(true);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [router]);
+  }, [activeView, router]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
     void loadAllTables();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isAssistantUser, assignedClassIds]);
+
+  useEffect(() => {
+    if (isAssistantUser && !isAssistantAllowedView(activeView)) {
+      setOpenSidebarGroup("academic");
+      setActiveView("classManagement");
+    }
+  }, [activeView, isAssistantUser]);
 
   useEffect(() => {
     if (activeTable === "class_sessions" && !classSessionsFilterId && data.classes.length > 0) {
       setClassSessionsFilterId(String(data.classes[0].id));
+    }
+
+    if (
+      activeTable === "class_sessions" &&
+      classSessionsFilterId &&
+      !data.classes.some((classRow) => String(classRow.id) === classSessionsFilterId)
+    ) {
+      setClassSessionsFilterId(data.classes[0]?.id ? String(data.classes[0].id) : null);
     }
   }, [activeTable, classSessionsFilterId, data.classes]);
 
@@ -1008,12 +1052,24 @@ export default function Home() {
   }, [isAttendanceView, isClassManagementView, isClassDetailView, isDashboardView, isProjectScoreView, isAssignmentScoreView]);
 
   useEffect(() => {
-    if (!isAttendanceView || selectedAttendanceClassId || !analytics.classItems.length) {
+    if (!isAttendanceView || selectedAttendanceClassId || !visibleClassItems.length) {
       return;
     }
 
-    setSelectedAttendanceClassId(analytics.classItems[0].id);
-  }, [analytics.classItems, isAttendanceView, selectedAttendanceClassId]);
+    setSelectedAttendanceClassId(visibleClassItems[0].id);
+  }, [visibleClassItems, isAttendanceView, selectedAttendanceClassId]);
+
+  useEffect(() => {
+    if (!isAttendanceView && !isAssignmentScoreView && !isProjectScoreView) {
+      return;
+    }
+
+    if (selectedAttendanceClassId && visibleClassItems.some((item) => item.id === selectedAttendanceClassId)) {
+      return;
+    }
+
+    setSelectedAttendanceClassId(visibleClassItems[0]?.id ?? null);
+  }, [isAttendanceView, isAssignmentScoreView, isProjectScoreView, selectedAttendanceClassId, visibleClassItems]);
 
   useEffect(() => {
     if (selectedAttendanceSession <= attendanceSessionCount) {
@@ -1120,18 +1176,38 @@ export default function Home() {
       nextData[result.name] = result.error ? [] : result.rows;
     });
 
+    let assistantEnrollmentIds: Set<string> | null = null;
+
+    if (isAssistantUser) {
+      const allowedClassIds = new Set(assignedClassIds);
+
+      nextData.classes = nextData.classes.filter((row) => allowedClassIds.has(String(row.id ?? "")));
+      nextData.class_sessions = nextData.class_sessions.filter((row) => allowedClassIds.has(String(row.class_id ?? "")));
+      nextData.enrollments = nextData.enrollments.filter((row) => allowedClassIds.has(String(row.class_id ?? "")));
+
+      assistantEnrollmentIds = new Set(nextData.enrollments.map((row) => String(row.id ?? "")));
+      const allowedStudentIds = new Set(nextData.enrollments.map((row) => String(row.student_id ?? "")));
+      const allowedCourseIds = new Set(nextData.classes.map((row) => String(row.course_id ?? "")));
+      const allowedTeacherIds = new Set(nextData.classes.map((row) => String(row.teacher_id ?? "")));
+
+      nextData.students = nextData.students.filter((row) => allowedStudentIds.has(String(row.id ?? "")));
+      nextData.courses = nextData.courses.filter((row) => allowedCourseIds.has(String(row.id ?? "")));
+      nextData.teachers = nextData.teachers.filter((row) => allowedTeacherIds.has(String(row.id ?? "")));
+      nextData.certificates = nextData.certificates.filter((row) => assistantEnrollmentIds?.has(String(row.enrollment_id ?? "")) ?? false);
+    }
+
     setData(nextData);
 
     if (loadErrors.length) {
       setError(`Không tải được một số bảng: ${loadErrors.join("; ")}`);
     }
 
-    await loadAttendanceRecords();
-    await loadAssignmentRecords();
+    await loadAttendanceRecords(assistantEnrollmentIds);
+    await loadAssignmentRecords(assistantEnrollmentIds);
     setIsLoading(false);
   }
 
-  async function loadAttendanceRecords() {
+  async function loadAttendanceRecords(allowedEnrollmentIds?: Set<string> | null) {
     setAttendanceError("");
 
     const { data: rows, error: tableError } = await supabase
@@ -1147,10 +1223,14 @@ export default function Home() {
       return;
     }
 
-    setAttendanceRecords(rows ?? []);
+    setAttendanceRecords(
+      allowedEnrollmentIds
+        ? (rows ?? []).filter((row) => allowedEnrollmentIds.has(String(row.enrollment_id ?? "")))
+        : rows ?? [],
+    );
   }
 
-  async function loadAssignmentRecords() {
+  async function loadAssignmentRecords(allowedEnrollmentIds?: Set<string> | null) {
     setAssignmentError("");
 
     const { data: rows, error: tableError } = await supabase
@@ -1166,7 +1246,11 @@ export default function Home() {
       return;
     }
 
-    setAssignmentRecords(rows ?? []);
+    setAssignmentRecords(
+      allowedEnrollmentIds
+        ? (rows ?? []).filter((row) => allowedEnrollmentIds.has(String(row.enrollment_id ?? "")))
+        : rows ?? [],
+    );
   }
 
   function updateFormValue(name: string, value: string) {
@@ -1835,7 +1919,7 @@ export default function Home() {
   }
 
   function openAttendanceView() {
-    setSelectedAttendanceClassId((current) => current ?? analytics.classItems[0]?.id ?? null);
+    setSelectedAttendanceClassId((current) => current ?? visibleClassItems[0]?.id ?? null);
     changeView("attendance");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -2293,6 +2377,14 @@ export default function Home() {
     );
   }
 
+  if (isAssistantUser && !isAssistantAllowedView(activeView)) {
+    return (
+      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--background)", color: "var(--text-secondary)", fontFamily: "var(--font-geist-sans)" }}>
+        Đang chuyển về khu vực học vụ...
+      </div>
+    );
+  }
+
   return (
     <main className="admin-shell">
       <aside className="sidebar">
@@ -2310,32 +2402,34 @@ export default function Home() {
         </div>
 
         <div className="sidebar-nav">
-          <div className="nav-group">
-            <button
-              className="sidebar-group-trigger"
-              onClick={() => toggleSidebarGroup("overview")}
-              type="button"
-            >
-              <span>Tổng quan</span>
-              <strong>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openSidebarGroup === "overview" ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </strong>
-            </button>
-            {openSidebarGroup === "overview" && (
-              <nav className="nav-tabs" aria-label="Tổng quan">
-                <button
-                  className={isDashboardView ? "active" : ""}
-                  onClick={() => changeView("dashboard")}
-                  type="button"
-                >
-                  <span>Dashboard</span>
-                  <strong>{data.enrollments.length}</strong>
-                </button>
-              </nav>
-            )}
-          </div>
+          {!isAssistantUser && (
+            <div className="nav-group">
+              <button
+                className="sidebar-group-trigger"
+                onClick={() => toggleSidebarGroup("overview")}
+                type="button"
+              >
+                <span>Tổng quan</span>
+                <strong>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openSidebarGroup === "overview" ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </strong>
+              </button>
+              {openSidebarGroup === "overview" && (
+                <nav className="nav-tabs" aria-label="Tổng quan">
+                  <button
+                    className={isDashboardView ? "active" : ""}
+                    onClick={() => changeView("dashboard")}
+                    type="button"
+                  >
+                    <span>Dashboard</span>
+                    <strong>{data.enrollments.length}</strong>
+                  </button>
+                </nav>
+              )}
+            </div>
+          )}
 
           <div className="nav-group">
             <button
@@ -2404,6 +2498,7 @@ export default function Home() {
             )}
           </div>
 
+          {!isAssistantUser && (
           <div className="nav-group">
             <button
               className="sidebar-group-trigger"
@@ -2433,7 +2528,9 @@ export default function Home() {
               </nav>
             )}
           </div>
+          )}
 
+          {!isAssistantUser && (
           <div className="nav-group">
             <button
               className="sidebar-group-trigger"
@@ -2463,7 +2560,9 @@ export default function Home() {
               </nav>
             )}
           </div>
+          )}
 
+          {!isAssistantUser && (
           <div className="nav-group">
             <button
               className="sidebar-group-trigger"
@@ -2489,6 +2588,7 @@ export default function Home() {
               </nav>
             )}
           </div>
+          )}
         </div>
       </aside>
 
@@ -3002,7 +3102,7 @@ export default function Home() {
                     value={selectedAttendanceClassId ?? ""}
                   >
                     <option value="">Chọn lớp học</option>
-                    {analytics.classItems.map((item) => (
+                    {visibleClassItems.map((item) => (
                       <option key={item.id} value={item.id}>
                         {item.classCode} - {item.className}
                       </option>
@@ -3202,7 +3302,7 @@ export default function Home() {
                       value={selectedAttendanceClassId ?? ""}
                     >
                       <option value="">Chọn lớp học</option>
-                      {analytics.classItems.map((item) => (
+                      {visibleClassItems.map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.classCode} - {item.className}
                         </option>
@@ -3306,7 +3406,7 @@ export default function Home() {
                     value={selectedAttendanceClassId ?? ""}
                   >
                     <option value="">Chọn lớp học</option>
-                    {analytics.classItems.map((item) => (
+                    {visibleClassItems.map((item) => (
                       <option key={item.id} value={item.id}>
                         {item.classCode} - {item.className}
                       </option>
