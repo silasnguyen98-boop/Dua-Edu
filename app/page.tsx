@@ -30,6 +30,7 @@ type TableName =
   | "certificates"
   | "class_sessions";
 type ViewName = "dashboard" | "classManagement" | "classDetail" | "attendance" | "assignmentScore" | "projectScore" | "admins" | TableName;
+type SidebarGroup = "overview" | "academic" | "coreData" | "extendedData" | "system";
 
 type TableConfig = {
   name: TableName;
@@ -391,8 +392,38 @@ const getInitialAttendanceMode = (): "session" | "summary" => {
   return val === "summary" ? "summary" : "session";
 };
 
+const getSidebarGroupForView = (view: ViewName): SidebarGroup => {
+  if (view === "dashboard") {
+    return "overview";
+  }
+
+  if (
+    view === "classManagement" ||
+    view === "classDetail" ||
+    view === "attendance" ||
+    view === "assignmentScore" ||
+    view === "projectScore" ||
+    view === "class_sessions"
+  ) {
+    return "academic";
+  }
+
+  if (view === "courses" || view === "classes" || view === "teachers" || view === "students") {
+    return "coreData";
+  }
+
+  if (view === "enrollments" || view === "certificates") {
+    return "extendedData";
+  }
+
+  return "system";
+};
+
 export default function Home() {
   const [activeView, setActiveView] = useState<ViewName>(getInitialView);
+  const [openSidebarGroup, setOpenSidebarGroup] = useState<SidebarGroup>(() =>
+    getSidebarGroupForView(getInitialView()),
+  );
   const [data, setData] = useState<DataState>(emptyData);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [attendanceError, setAttendanceError] = useState("");
@@ -462,6 +493,15 @@ export default function Home() {
     () => tableConfigs.find((config) => config.name === activeTable) ?? tableConfigs[0],
     [activeTable],
   );
+
+  const changeView = (view: ViewName) => {
+    setOpenSidebarGroup(getSidebarGroupForView(view));
+    setActiveView(view);
+  };
+
+  const toggleSidebarGroup = (group: SidebarGroup) => {
+    setOpenSidebarGroup((current) => (current === group ? current : group));
+  };
 
   const stats = useMemo(
     () => [
@@ -1682,19 +1722,19 @@ export default function Home() {
   function openClassDetail(classId: string) {
     setSelectedClassId(classId);
     setClassStatusFilter("all");
-    setActiveView("classDetail");
+    changeView("classDetail");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function openClassManagement() {
     setClassStatusFilter("all");
-    setActiveView("classManagement");
+    changeView("classManagement");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function openAttendanceView() {
     setSelectedAttendanceClassId((current) => current ?? analytics.classItems[0]?.id ?? null);
-    setActiveView("attendance");
+    changeView("attendance");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -2097,109 +2137,156 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="nav-group">
-          <p className="eyebrow">Tổng quan</p>
-          <nav className="nav-tabs" aria-label="Tổng quan">
+        <div className="sidebar-nav">
+          <div className="nav-group">
             <button
-              className={isDashboardView ? "active" : ""}
-              onClick={() => setActiveView("dashboard")}
+              className="sidebar-group-trigger"
+              onClick={() => toggleSidebarGroup("overview")}
               type="button"
             >
-              <span>Dashboard</span>
-              <strong>{data.enrollments.length}</strong>
+              <span>Tổng quan</span>
+              <strong>{openSidebarGroup === "overview" ? "-" : "+"}</strong>
             </button>
-          </nav>
-        </div>
+            {openSidebarGroup === "overview" && (
+              <nav className="nav-tabs" aria-label="Tổng quan">
+                <button
+                  className={isDashboardView ? "active" : ""}
+                  onClick={() => changeView("dashboard")}
+                  type="button"
+                >
+                  <span>Dashboard</span>
+                  <strong>{data.enrollments.length}</strong>
+                </button>
+              </nav>
+            )}
+          </div>
 
-        <div className="nav-group">
-          <p className="eyebrow">Học vụ</p>
-          <nav className="nav-tabs" aria-label="Nghiệp vụ học vụ">
+          <div className="nav-group">
             <button
-              className={isClassManagementView || isClassDetailView ? "active" : ""}
-              onClick={openClassManagement}
+              className="sidebar-group-trigger"
+              onClick={() => toggleSidebarGroup("academic")}
               type="button"
             >
-              <span>Quản lý lớp</span>
-              <strong>{data.classes.length}</strong>
+              <span>Học vụ</span>
+              <strong>{openSidebarGroup === "academic" ? "-" : "+"}</strong>
             </button>
-            <button
-              className={activeView === "class_sessions" ? "active" : ""}
-              onClick={() => setActiveView("class_sessions")}
-              type="button"
-            >
-              <span>Quản lý buổi học</span>
-              <strong>{data.class_sessions.length}</strong>
-            </button>
-            <button
-              className={isAttendanceView ? "active" : ""}
-              onClick={openAttendanceView}
-              type="button"
-            >
-              <span>Điểm danh</span>
-              <strong>{data.classes.length}</strong>
-            </button>
-            <button
-              className={isAssignmentScoreView ? "active" : ""}
-              onClick={() => setActiveView("assignmentScore")}
-              type="button"
-            >
-              <span>Điểm bài tập</span>
-            </button>
-            <button
-              className={isProjectScoreView ? "active" : ""}
-              onClick={() => setActiveView("projectScore")}
-              type="button"
-            >
-              <span>Điểm đồ án</span>
-            </button>
-          </nav>
-        </div>
+            {openSidebarGroup === "academic" && (
+              <nav className="nav-tabs" aria-label="Nghiệp vụ học vụ">
+                <button
+                  className={isClassManagementView || isClassDetailView ? "active" : ""}
+                  onClick={openClassManagement}
+                  type="button"
+                >
+                  <span>Quản lý lớp</span>
+                  <strong>{data.classes.length}</strong>
+                </button>
+                <button
+                  className={activeView === "class_sessions" ? "active" : ""}
+                  onClick={() => changeView("class_sessions")}
+                  type="button"
+                >
+                  <span>Quản lý buổi học</span>
+                  <strong>{data.class_sessions.length}</strong>
+                </button>
+                <button
+                  className={isAttendanceView ? "active" : ""}
+                  onClick={openAttendanceView}
+                  type="button"
+                >
+                  <span>Điểm danh</span>
+                  <strong>{data.classes.length}</strong>
+                </button>
+                <button
+                  className={isAssignmentScoreView ? "active" : ""}
+                  onClick={() => changeView("assignmentScore")}
+                  type="button"
+                >
+                  <span>Điểm bài tập</span>
+                </button>
+                <button
+                  className={isProjectScoreView ? "active" : ""}
+                  onClick={() => changeView("projectScore")}
+                  type="button"
+                >
+                  <span>Điểm đồ án</span>
+                </button>
+              </nav>
+            )}
+          </div>
 
-        <div className="nav-group">
-          <p className="eyebrow">Dữ liệu lõi</p>
-          <nav className="nav-tabs" aria-label="Dữ liệu hệ thống">
-            {tableConfigs.filter(c => ["courses", "classes", "teachers", "students"].includes(c.name)).map((config) => (
-              <button
-                className={config.name === activeView ? "active" : ""}
-                key={config.name}
-                onClick={() => setActiveView(config.name)}
-                type="button"
-              >
-                <span>{config.label}</span>
-                <strong>{data[config.name].length}</strong>
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        <div className="nav-group">
-          <p className="eyebrow">Mở rộng</p>
-          <nav className="nav-tabs" aria-label="Dữ liệu mở rộng">
-            {tableConfigs.filter(c => ["enrollments", "certificates"].includes(c.name)).map((config) => (
-              <button
-                className={config.name === activeView ? "active" : ""}
-                key={config.name}
-                onClick={() => setActiveView(config.name)}
-                type="button"
-              >
-                <span>{config.label}</span>
-                <strong>{data[config.name].length}</strong>
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        <div className="nav-group">
-          <p className="eyebrow">Hệ thống</p>
-          <nav className="nav-tabs" aria-label="Hệ thống">
+          <div className="nav-group">
             <button
-              className={isAdminsView ? "active" : ""}
-              onClick={() => setActiveView("admins")}
+              className="sidebar-group-trigger"
+              onClick={() => toggleSidebarGroup("coreData")}
               type="button"
             >
-              <span>Quản trị viên</span>
+              <span>Dữ liệu lõi</span>
+              <strong>{openSidebarGroup === "coreData" ? "-" : "+"}</strong>
             </button>
-          </nav>
+            {openSidebarGroup === "coreData" && (
+              <nav className="nav-tabs" aria-label="Dữ liệu hệ thống">
+                {tableConfigs.filter(c => ["courses", "classes", "teachers", "students"].includes(c.name)).map((config) => (
+                  <button
+                    className={config.name === activeView ? "active" : ""}
+                    key={config.name}
+                    onClick={() => changeView(config.name)}
+                    type="button"
+                  >
+                    <span>{config.label}</span>
+                    <strong>{data[config.name].length}</strong>
+                  </button>
+                ))}
+              </nav>
+            )}
+          </div>
+
+          <div className="nav-group">
+            <button
+              className="sidebar-group-trigger"
+              onClick={() => toggleSidebarGroup("extendedData")}
+              type="button"
+            >
+              <span>Mở rộng</span>
+              <strong>{openSidebarGroup === "extendedData" ? "-" : "+"}</strong>
+            </button>
+            {openSidebarGroup === "extendedData" && (
+              <nav className="nav-tabs" aria-label="Dữ liệu mở rộng">
+                {tableConfigs.filter(c => ["enrollments", "certificates"].includes(c.name)).map((config) => (
+                  <button
+                    className={config.name === activeView ? "active" : ""}
+                    key={config.name}
+                    onClick={() => changeView(config.name)}
+                    type="button"
+                  >
+                    <span>{config.label}</span>
+                    <strong>{data[config.name].length}</strong>
+                  </button>
+                ))}
+              </nav>
+            )}
+          </div>
+
+          <div className="nav-group">
+            <button
+              className="sidebar-group-trigger"
+              onClick={() => toggleSidebarGroup("system")}
+              type="button"
+            >
+              <span>Hệ thống</span>
+              <strong>{openSidebarGroup === "system" ? "-" : "+"}</strong>
+            </button>
+            {openSidebarGroup === "system" && (
+              <nav className="nav-tabs" aria-label="Hệ thống">
+                <button
+                  className={isAdminsView ? "active" : ""}
+                  onClick={() => changeView("admins")}
+                  type="button"
+                >
+                  <span>Quản trị viên</span>
+                </button>
+              </nav>
+            )}
+          </div>
         </div>
       </aside>
 
@@ -3040,49 +3127,57 @@ export default function Home() {
               </div>
             </form>
 
-            <div className="data-table" style={{ gridColumn: "1 / -1", marginTop: "24px" }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Email</th>
-                    <th>Ngày tạo</th>
-                    <th>Đăng nhập cuối</th>
-                    <th style={{ width: "120px" }}>Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {adminUsers.map(user => (
-                    <tr key={user.id}>
-                      <td><div style={{maxWidth: "100px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}} title={user.id}>{user.id}</div></td>
-                      <td><strong>{user.email}</strong></td>
-                      <td>{new Date(user.created_at).toLocaleString("vi-VN")}</td>
-                      <td>{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString("vi-VN") : "Chưa đăng nhập"}</td>
-                      <td>
-                        <button className="text-button" style={{ color: "var(--text-secondary)" }} onClick={async () => {
-                          if (confirm("Bạn có chắc chắn muốn xoá tài khoản " + user.email + " vĩnh viễn không?")) {
-                            try {
-                              const { data: { session } } = await supabase.auth.getSession();
-                              if (!session) return;
-                              await deleteUser(session.access_token, user.id);
-                              await loadAdmins();
-                              setMessage("Đã xoá tài khoản thành công.");
-                            } catch(err: any) {
-                              setError(err.message);
-                            }
-                          }
-                        }}>
-                          Xoá
-                        </button>
-                      </td>
+            <section className="table-panel admin-users-panel">
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">Dữ liệu</p>
+                  <h3>Danh sách quản trị viên</h3>
+                </div>
+              </div>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Email</th>
+                      <th>Ngày tạo</th>
+                      <th>Đăng nhập cuối</th>
+                      <th style={{ width: "120px" }}>Thao tác</th>
                     </tr>
-                  ))}
-                  {adminUsers.length === 0 && (
-                    <tr><td colSpan={5}>{isLoading ? "Đang tải danh sách..." : "Chưa có dữ liệu."}</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {adminUsers.map(user => (
+                      <tr key={user.id}>
+                        <td><div style={{maxWidth: "100px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}} title={user.id}>{user.id}</div></td>
+                        <td><strong>{user.email}</strong></td>
+                        <td>{new Date(user.created_at).toLocaleString("vi-VN")}</td>
+                        <td>{user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString("vi-VN") : "Chưa đăng nhập"}</td>
+                        <td>
+                          <button className="text-button" style={{ color: "var(--text-secondary)" }} onClick={async () => {
+                            if (confirm("Bạn có chắc chắn muốn xoá tài khoản " + user.email + " vĩnh viễn không?")) {
+                              try {
+                                const { data: { session } } = await supabase.auth.getSession();
+                                if (!session) return;
+                                await deleteUser(session.access_token, user.id);
+                                await loadAdmins();
+                                setMessage("Đã xoá tài khoản thành công.");
+                              } catch(err: any) {
+                                setError(err.message);
+                              }
+                            }
+                          }}>
+                            Xoá
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {adminUsers.length === 0 && (
+                      <tr><td colSpan={5}>{isLoading ? "Đang tải danh sách..." : "Chưa có dữ liệu."}</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </section>
         )}
 
