@@ -5,7 +5,8 @@ import { createClient } from "@supabase/supabase-js";
 type AssistantAssignment = Record<string, unknown>;
 type ActionResult<T> =
   | ({ ok: true; error?: never } & T)
-  | ({ ok: false; error: string } & T);
+  | ({ ok: false; error: string } & Partial<T>);
+type EmptyActionResult = { ok: true } | { ok: false; error: string };
 
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "Không thực hiện được thao tác phân công trợ giảng.";
@@ -101,7 +102,7 @@ export async function assignAssistantSafe(
   token: string,
   classId: string,
   userId: string,
-): Promise<ActionResult<Record<string, never>>> {
+): Promise<EmptyActionResult> {
   try {
     await assignAssistant(token, classId, userId);
     return { ok: true };
@@ -126,7 +127,7 @@ export async function removeAssistantSafe(
   token: string,
   classId: string,
   userId: string,
-): Promise<ActionResult<Record<string, never>>> {
+): Promise<EmptyActionResult> {
   try {
     await removeAssistant(token, classId, userId);
     return { ok: true };
