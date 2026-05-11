@@ -6,12 +6,6 @@ import * as XLSX from "xlsx";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { getUsersSafe, createUser, updateUser, deleteUser, type UserRole } from "@/app/actions/users";
-import {
-  assignAssistantSafe,
-  getClassAssistantsSafe,
-  getMyAssignedClassIds,
-  removeAssistantSafe,
-} from "@/app/actions/assistants";
 
 type FieldType = "text" | "email" | "number" | "date" | "time" | "datetime-local" | "textarea" | "select";
 
@@ -52,6 +46,17 @@ type DataState = Record<TableName, Row[]>;
 type FormState = Record<string, string>;
 type AttendanceRecord = Row;
 type AssignmentRecord = Row;
+type ClassAssistant = {
+  assistant_id: string;
+  assigned_at?: string | null;
+  assigned_by?: string | null;
+  class_id: string;
+  created_at?: string | null;
+  id?: string;
+  note?: string | null;
+  status?: string | null;
+  updated_at?: string | null;
+};
 type ChartItem = {
   color: string;
   id: string;
@@ -460,7 +465,7 @@ export default function Home() {
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [assignedClassIds, setAssignedClassIds] = useState<string[]>([]);
-  const [classAssistants, setClassAssistants] = useState<any[]>([]);
+  const [classAssistants, setClassAssistants] = useState<ClassAssistant[]>([]);
   const [showAssignModal, setShowAssignModal] = useState<string | null>(null); // classId
 
   const genPassword = () => {
@@ -872,7 +877,12 @@ export default function Home() {
         // If assistant, fetch their assigned class IDs to filter data
         if (role === "assistant") {
           try {
-            const ids = await getMyAssignedClassIds(session.access_token);
+            const { data: rows } = await supabase
+              .from("class_assistants")
+              .select("class_id")
+              .eq("assistant_id", session.user.id)
+              .eq("status", "active");
+            const ids = (rows ?? []).map((row) => String(row.class_id));
             setAssignedClassIds(ids);
           } catch {}
         }
@@ -1772,20 +1782,71 @@ export default function Home() {
         return;
       }
 
-      const [assistantsResult, usersResult] = await Promise.all([
-        getClassAssistantsSafe(session.access_token, classId),
+      const [assistants, usersResult] = await Promise.all([
+        loadClassAssistants(classId),
         getUsersSafe(session.access_token),
       ]);
-      setClassAssistants(assistantsResult.assistants);
-      if (!assistantsResult.ok) {
-        setError(assistantsResult.error);
-      }
+      setClassAssistants(assistants);
       setAdminUsers(usersResult.users);
       if (!usersResult.ok) {
         setError(usersResult.error);
       }
     } catch (err: any) {
       setError(err.message || "Không tải được danh sách trợ giảng.");
+    }
+  }
+
+  async function loadClassAssistants(classId: string) {
+    const { data: rows, error: assistantsError } = await supabase
+      .from("class_assistants")
+      .select("*")
+      .eq("class_id", classId)
+      .eq("status", "active")
+      .order("created_at", { ascending: true });
+
+    if (assistantsError) {
+      throw new Error(assistantsError.message);
+    }
+
+    return (rows ?? []) as ClassAssistant[];
+  }
+
+  async function assignAssistantToClass(classId: string, assistantId: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      throw new Error("Phiên đăng nhập không hợp lệ. Vui lòng đăng xuất rồi đăng nhập lại.");
+    }
+
+    const now = new Date().toISOString();
+    const { error: assignError } = await supabase
+      .from("class_assistants")
+      .upsert(
+        {
+          assistant_id: assistantId,
+          assigned_at: now,
+          assigned_by: user.id,
+          class_id: classId,
+          status: "active",
+          updated_at: now,
+        },
+        { onConflict: "class_id,assistant_id" },
+      );
+
+    if (assignError) {
+      throw new Error(assignError.message);
+    }
+  }
+
+  async function removeAssistantFromClass(classId: string, assistantId: string) {
+    const { error: removeError } = await supabase
+      .from("class_assistants")
+      .update({ status: "inactive", updated_at: new Date().toISOString() })
+      .eq("class_id", classId)
+      .eq("assistant_id", assistantId);
+
+    if (removeError) {
+      throw new Error(removeError.message);
     }
   }
 
@@ -3666,18 +3727,9 @@ export default function Home() {
                           style={{ padding: "4px 12px", borderRadius: "8px", border: "1px solid #fecaca", background: "transparent", color: "#dc2626", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
                           onClick={async () => {
                             try {
-                              const { data: { session } } = await supabase.auth.getSession();
-                              if (!session) return;
-                              const removeResult = await removeAssistantSafe(session.access_token, showAssignModal, a.assistant_id);
-                              if (!removeResult.ok) {
-                                setError(removeResult.error);
-                                return;
-                              }
-                              const listResult = await getClassAssistantsSafe(session.access_token, showAssignModal);
-                              setClassAssistants(listResult.assistants);
-                              if (!listResult.ok) {
-                                setError(listResult.error);
-                              }
+                              await removeAssistantFromClass(showAssignModal, a.assistant_id);
+                              const list = await loadClassAssistants(showAssignModal);
+                              setClassAssistants(list);
                             } catch (err: any) { setError(err.message); }
                           }}
                         >Xoá</button>
@@ -3702,18 +3754,9 @@ export default function Home() {
                         style={{ padding: "4px 14px", borderRadius: "8px", border: "none", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
                         onClick={async () => {
                           try {
-                            const { data: { session } } = await supabase.auth.getSession();
-                            if (!session) return;
-                            const assignResult = await assignAssistantSafe(session.access_token, showAssignModal, u.id);
-                            if (!assignResult.ok) {
-                              setError(assignResult.error);
-                              return;
-                            }
-                            const listResult = await getClassAssistantsSafe(session.access_token, showAssignModal);
-                            setClassAssistants(listResult.assistants);
-                            if (!listResult.ok) {
-                              setError(listResult.error);
-                            }
+                            await assignAssistantToClass(showAssignModal, u.id);
+                            const list = await loadClassAssistants(showAssignModal);
+                            setClassAssistants(list);
                           } catch (err: any) { setError(err.message); }
                         }}
                       >Phân công</button>
