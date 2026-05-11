@@ -18,6 +18,18 @@ type EnrollmentData = {
     courses: {
       name: string;
     } | null;
+    class_sessions?: {
+      session_number: number;
+      session_title: string;
+      session_date: string | null;
+      start_time: string | null;
+      end_time: string | null;
+      meeting_url: string | null;
+      recording_url: string | null;
+      slide_url: string | null;
+      reference_url: string | null;
+      assignment_url: string | null;
+    }[];
   } | null;
 };
 
@@ -64,6 +76,18 @@ export default function TraCuuPage() {
               class_name,
               courses (
                 name
+              ),
+              class_sessions (
+                session_number,
+                session_title,
+                session_date,
+                start_time,
+                end_time,
+                meeting_url,
+                recording_url,
+                slide_url,
+                reference_url,
+                assignment_url
               )
             )
           )
@@ -194,6 +218,55 @@ export default function TraCuuPage() {
                         <div style={{ fontSize: "28px", fontWeight: 800, color: "#10B981" }}>{enrollment.final_score ?? "-"}</div>
                       </div>
                     </div>
+
+                    {enrollment.status === "active" && enrollment.classes?.class_sessions && enrollment.classes.class_sessions.length > 0 && (
+                      <div style={{ padding: "20px", borderTop: "1px solid var(--border)" }}>
+                        <h5 style={{ fontSize: "16px", fontWeight: 600, marginBottom: "16px" }}>Lịch học & Tài nguyên</h5>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                          {enrollment.classes.class_sessions
+                            .sort((a, b) => a.session_number - b.session_number)
+                            .map((session) => (
+                            <div key={session.session_number} style={{ padding: "16px", background: "var(--background)", borderRadius: "12px", border: "1px solid var(--border)" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
+                                <div>
+                                  <div style={{ fontWeight: 600, fontSize: "15px", marginBottom: "4px" }}>Buổi {session.session_number}: {session.session_title}</div>
+                                  <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+                                    {session.session_date ? new Intl.DateTimeFormat("vi-VN").format(new Date(session.session_date)) : "Chưa có ngày"} • {session.start_time ?? "-"} đến {session.end_time ?? "-"}
+                                  </div>
+                                </div>
+                              </div>
+                              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                                {session.meeting_url && (
+                                  <a href={session.meeting_url} target="_blank" rel="noreferrer" style={{ fontSize: "12px", padding: "6px 12px", background: "rgba(59, 130, 246, 0.1)", color: "#3B82F6", borderRadius: "6px", textDecoration: "none", fontWeight: 500 }}>
+                                    Link học
+                                  </a>
+                                )}
+                                {session.slide_url && (
+                                  <a href={session.slide_url} target="_blank" rel="noreferrer" style={{ fontSize: "12px", padding: "6px 12px", background: "var(--surface)", border: "1px solid var(--border)", color: "var(--foreground)", borderRadius: "6px", textDecoration: "none", fontWeight: 500 }}>
+                                    Slide
+                                  </a>
+                                )}
+                                {session.reference_url && (
+                                  <a href={session.reference_url} target="_blank" rel="noreferrer" style={{ fontSize: "12px", padding: "6px 12px", background: "var(--surface)", border: "1px solid var(--border)", color: "var(--foreground)", borderRadius: "6px", textDecoration: "none", fontWeight: 500 }}>
+                                    Tài liệu
+                                  </a>
+                                )}
+                                {session.assignment_url && (
+                                  <a href={session.assignment_url} target="_blank" rel="noreferrer" style={{ fontSize: "12px", padding: "6px 12px", background: "rgba(245, 158, 11, 0.1)", color: "#D97706", borderRadius: "6px", textDecoration: "none", fontWeight: 500 }}>
+                                    Bài tập
+                                  </a>
+                                )}
+                                {session.recording_url && (
+                                  <a href={session.recording_url} target="_blank" rel="noreferrer" style={{ fontSize: "12px", padding: "6px 12px", background: "rgba(239, 68, 68, 0.1)", color: "#DC2626", borderRadius: "6px", textDecoration: "none", fontWeight: 500 }}>
+                                    Record
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
