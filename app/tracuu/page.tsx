@@ -118,146 +118,159 @@ export default function TraCuuPage() {
   const renderStatus = (status: string | null) => {
     switch (status) {
       case "active":
-        return <span className="status-badge" style={{ background: "rgba(16, 185, 129, 0.15)", color: "#10B981" }}>Đang học</span>;
+        return <span className="status-badge active-badge">Đang học</span>;
       case "completed":
-        return <span className="status-badge" style={{ background: "rgba(59, 130, 246, 0.15)", color: "#3B82F6" }}>Hoàn thành</span>;
+        return <span className="status-badge completed-badge">Hoàn thành</span>;
       case "dropped":
-        return <span className="status-badge" style={{ background: "rgba(239, 68, 68, 0.15)", color: "#EF4444" }}>Bỏ học</span>;
+        return <span className="status-badge dropped-badge">Bỏ học</span>;
       case "reserved":
-        return <span className="status-badge" style={{ background: "rgba(245, 158, 11, 0.15)", color: "#F59E0B" }}>Bảo lưu</span>;
+        return <span className="status-badge reserved-badge">Bảo lưu</span>;
       case "cancelled":
-        return <span className="status-badge" style={{ background: "rgba(107, 114, 128, 0.15)", color: "#6B7280" }}>Đã huỷ</span>;
+        return <span className="status-badge cancelled-badge">Đã huỷ</span>;
       default:
-        return <span className="status-badge" style={{ background: "var(--border)", color: "var(--foreground)" }}>Chưa rõ</span>;
+        return <span className="status-badge default-badge">Chưa rõ</span>;
     }
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--background)", fontFamily: "var(--font-geist-sans)" }}>
+    <div className="tracuu-container">
+      {/* Dynamic Background */}
+      <div className="bg-shape bg-shape-1"></div>
+      <div className="bg-shape bg-shape-2"></div>
+
       {/* Header */}
-      <header style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)", padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <img alt="Dua-Edu" src="https://i.ibb.co/3yKrstMS/Thie-t-ke-chu-a-co-te-n-20.png" style={{ height: "32px", borderRadius: "8px" }} />
-          <h1 style={{ fontSize: "18px", fontWeight: 600, margin: 0, color: "var(--foreground)" }}>Cổng tra cứu kết quả học tập</h1>
+      <header className="tracuu-header">
+        <div className="header-content">
+          <div className="logo-section">
+            <img alt="Dua-Edu" src="https://i.ibb.co/3yKrstMS/Thie-t-ke-chu-a-co-te-n-20.png" className="logo-img" />
+            <h1 className="logo-text">Cổng Sinh Viên</h1>
+          </div>
+          <Link href="/login" className="login-link">
+            Đăng nhập Quản trị
+          </Link>
         </div>
-        <Link href="/" style={{ color: "var(--text-secondary)", fontSize: "14px", textDecoration: "none" }}>
-          Đăng nhập Quản trị
-        </Link>
       </header>
 
-      <main style={{ maxWidth: "800px", margin: "0 auto", padding: "40px 24px" }}>
-        {/* Search Box */}
-        <div style={{ background: "var(--surface)", borderRadius: "16px", padding: "32px", boxShadow: "0 4px 20px rgba(0,0,0,0.2)", border: "1px solid var(--border)", marginBottom: "32px" }}>
-          <h2 style={{ fontSize: "24px", fontWeight: 700, marginBottom: "8px", textAlign: "center" }}>Tra cứu điểm & trạng thái</h2>
-          <p style={{ color: "var(--text-secondary)", textAlign: "center", marginBottom: "24px" }}>Vui lòng nhập địa chỉ Email bạn đã đăng ký để xem kết quả học tập.</p>
+      <main className="tracuu-main">
+        {/* Search Hero Box */}
+        <div className={`search-card ${searched && !loading ? 'search-card-compact' : ''}`}>
+          <h2 className="search-title">Tra cứu Điểm & Lịch học</h2>
+          <p className="search-subtitle">Nhập địa chỉ Email bạn đã đăng ký để xem tiến trình học tập.</p>
           
-          <form onSubmit={handleSearch} style={{ display: "flex", gap: "12px", maxWidth: "500px", margin: "0 auto" }}>
-            <input 
-              type="email" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Ví dụ: student@gmail.com" 
-              required
-              style={{ flex: 1, padding: "12px 16px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--background)", color: "var(--foreground)", fontSize: "16px", outline: "none" }}
-            />
-            <button 
-              type="submit" 
-              disabled={loading}
-              style={{ padding: "12px 24px", borderRadius: "8px", border: "none", background: "var(--primary)", color: "white", fontSize: "16px", fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, transition: "background 0.2s" }}
-            >
-              {loading ? "Đang tìm..." : "Tra cứu"}
+          <form onSubmit={handleSearch} className="search-form">
+            <div className="input-group">
+              <svg className="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+              <input 
+                type="email" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Ví dụ: student@gmail.com" 
+                required
+                className="search-input"
+              />
+            </div>
+            <button type="submit" disabled={loading} className={`search-btn ${loading ? 'loading' : ''}`}>
+              {loading ? "Đang tìm..." : "Tra cứu ngay"}
             </button>
           </form>
-          {error && <div style={{ color: "#EF4444", textAlign: "center", marginTop: "16px", fontSize: "14px", padding: "12px", background: "rgba(239, 68, 68, 0.1)", borderRadius: "8px" }}>{error}</div>}
+          {error && <div className="error-message">{error}</div>}
         </div>
 
         {/* Results */}
         {!loading && searched && studentData && (
-          <div>
-            <div style={{ marginBottom: "24px" }}>
-              <h3 style={{ fontSize: "20px", fontWeight: 600 }}>Kết quả tra cứu</h3>
-              <p style={{ color: "var(--text-secondary)" }}>Học viên: <strong style={{ color: "var(--foreground)" }}>{studentData.full_name}</strong> ({studentData.email})</p>
+          <div className="results-container">
+            <div className="student-profile">
+              <div className="profile-avatar">
+                {studentData.full_name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <h3 className="profile-name">{studentData.full_name}</h3>
+                <p className="profile-email">{studentData.email}</p>
+              </div>
             </div>
 
             {studentData.enrollments && studentData.enrollments.length > 0 ? (
-              <div style={{ display: "grid", gap: "24px" }}>
+              <div className="classes-grid">
                 {studentData.enrollments.map((enrollment) => (
-                  <div key={enrollment.id} style={{ background: "var(--surface)", borderRadius: "16px", border: "1px solid var(--border)", overflow: "hidden", boxShadow: "0 2px 10px rgba(0,0,0,0.1)" }}>
-                    <div style={{ padding: "20px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
+                  <div key={enrollment.id} className="class-card animate-fade-in">
+                    <div className="class-card-header">
                       <div>
-                        <div style={{ fontSize: "12px", color: "var(--primary)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "4px" }}>
+                        <div className="course-name">
                           {enrollment.classes?.courses?.name ?? "Khoá học"}
                         </div>
-                        <h4 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>
+                        <h4 className="class-name">
                           {enrollment.classes?.class_name ?? "Lớp học chưa rõ"}
                         </h4>
-                        <div style={{ fontSize: "14px", color: "var(--text-secondary)", marginTop: "4px" }}>
+                        <div className="class-code">
                           Mã lớp: {enrollment.classes?.class_code ?? "-"}
                         </div>
                       </div>
-                      <div>
+                      <div className="class-status">
                         {renderStatus(enrollment.status)}
                       </div>
                     </div>
 
-                    <div style={{ padding: "20px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "16px", background: "rgba(0,0,0,0.2)" }}>
-                      <div style={{ textAlign: "center", padding: "16px", background: "var(--surface)", borderRadius: "12px", border: "1px solid var(--border)" }}>
-                        <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "8px", textTransform: "uppercase", fontWeight: 500 }}>Chuyên cần</div>
-                        <div style={{ fontSize: "24px", fontWeight: 700, color: "var(--foreground)" }}>{enrollment.attendance_score ?? "-"}</div>
+                    <div className="scores-grid">
+                      <div className="score-item">
+                        <div className="score-label">Chuyên cần</div>
+                        <div className="score-value">{enrollment.attendance_score ?? "-"}</div>
                       </div>
-                      <div style={{ textAlign: "center", padding: "16px", background: "var(--surface)", borderRadius: "12px", border: "1px solid var(--border)" }}>
-                        <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "8px", textTransform: "uppercase", fontWeight: 500 }}>Bài tập</div>
-                        <div style={{ fontSize: "24px", fontWeight: 700, color: "var(--foreground)" }}>{enrollment.assignment_score ?? "-"}</div>
+                      <div className="score-item">
+                        <div className="score-label">Bài tập</div>
+                        <div className="score-value">{enrollment.assignment_score ?? "-"}</div>
                       </div>
-                      <div style={{ textAlign: "center", padding: "16px", background: "var(--surface)", borderRadius: "12px", border: "1px solid var(--border)" }}>
-                        <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "8px", textTransform: "uppercase", fontWeight: 500 }}>Đồ án</div>
-                        <div style={{ fontSize: "24px", fontWeight: 700, color: "var(--foreground)" }}>{enrollment.project_score ?? "-"}</div>
+                      <div className="score-item">
+                        <div className="score-label">Đồ án</div>
+                        <div className="score-value">{enrollment.project_score ?? "-"}</div>
                       </div>
-                      <div style={{ textAlign: "center", padding: "16px", background: "rgba(16, 185, 129, 0.05)", borderRadius: "12px", border: "1px solid rgba(16, 185, 129, 0.2)" }}>
-                        <div style={{ fontSize: "12px", color: "#10B981", marginBottom: "8px", textTransform: "uppercase", fontWeight: 600 }}>Tổng kết</div>
-                        <div style={{ fontSize: "28px", fontWeight: 800, color: "#10B981" }}>{enrollment.final_score ?? "-"}</div>
+                      <div className="score-item score-final">
+                        <div className="score-label">Tổng kết</div>
+                        <div className="score-value">{enrollment.final_score ?? "-"}</div>
                       </div>
                     </div>
 
                     {enrollment.status === "active" && enrollment.classes?.class_sessions && enrollment.classes.class_sessions.length > 0 && (
-                      <div style={{ padding: "20px", borderTop: "1px solid var(--border)" }}>
-                        <h5 style={{ fontSize: "16px", fontWeight: 600, marginBottom: "16px" }}>Lịch học & Tài nguyên</h5>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                      <div className="sessions-section">
+                        <h5 className="sessions-title">Lịch học & Tài nguyên</h5>
+                        <div className="sessions-list">
                           {enrollment.classes.class_sessions
                             .sort((a, b) => a.session_number - b.session_number)
                             .map((session) => (
-                            <div key={session.session_number} style={{ padding: "16px", background: "var(--background)", borderRadius: "12px", border: "1px solid var(--border)" }}>
-                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
-                                <div>
-                                  <div style={{ fontWeight: 600, fontSize: "15px", marginBottom: "4px" }}>Buổi {session.session_number}: {session.session_title}</div>
-                                  <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
-                                    {session.session_date ? new Intl.DateTimeFormat("vi-VN").format(new Date(session.session_date)) : "Chưa có ngày"} • {session.start_time ?? "-"} đến {session.end_time ?? "-"}
-                                  </div>
+                            <div key={session.session_number} className="session-item">
+                              <div className="session-info">
+                                <div className="session-name">Buổi {session.session_number}: {session.session_title}</div>
+                                <div className="session-time">
+                                  {session.session_date ? new Intl.DateTimeFormat("vi-VN").format(new Date(session.session_date)) : "Chưa có ngày"} • {session.start_time ? session.start_time.slice(0,5) : "-"} đến {session.end_time ? session.end_time.slice(0,5) : "-"}
                                 </div>
                               </div>
-                              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                              <div className="session-links">
                                 {session.meeting_url && (
-                                  <a href={session.meeting_url} target="_blank" rel="noreferrer" style={{ fontSize: "12px", padding: "6px 12px", background: "rgba(59, 130, 246, 0.1)", color: "#3B82F6", borderRadius: "6px", textDecoration: "none", fontWeight: 500 }}>
+                                  <a href={session.meeting_url} target="_blank" rel="noreferrer" className="link-btn link-meeting">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
                                     Link học
                                   </a>
                                 )}
                                 {session.slide_url && (
-                                  <a href={session.slide_url} target="_blank" rel="noreferrer" style={{ fontSize: "12px", padding: "6px 12px", background: "var(--surface)", border: "1px solid var(--border)", color: "var(--foreground)", borderRadius: "6px", textDecoration: "none", fontWeight: 500 }}>
+                                  <a href={session.slide_url} target="_blank" rel="noreferrer" className="link-btn link-slide">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
                                     Slide
                                   </a>
                                 )}
                                 {session.reference_url && (
-                                  <a href={session.reference_url} target="_blank" rel="noreferrer" style={{ fontSize: "12px", padding: "6px 12px", background: "var(--surface)", border: "1px solid var(--border)", color: "var(--foreground)", borderRadius: "6px", textDecoration: "none", fontWeight: 500 }}>
+                                  <a href={session.reference_url} target="_blank" rel="noreferrer" className="link-btn link-doc">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                                     Tài liệu
                                   </a>
                                 )}
                                 {session.assignment_url && (
-                                  <a href={session.assignment_url} target="_blank" rel="noreferrer" style={{ fontSize: "12px", padding: "6px 12px", background: "rgba(245, 158, 11, 0.1)", color: "#D97706", borderRadius: "6px", textDecoration: "none", fontWeight: 500 }}>
+                                  <a href={session.assignment_url} target="_blank" rel="noreferrer" className="link-btn link-assignment">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                                     Bài tập
                                   </a>
                                 )}
                                 {session.recording_url && (
-                                  <a href={session.recording_url} target="_blank" rel="noreferrer" style={{ fontSize: "12px", padding: "6px 12px", background: "rgba(239, 68, 68, 0.1)", color: "#DC2626", borderRadius: "6px", textDecoration: "none", fontWeight: 500 }}>
+                                  <a href={session.recording_url} target="_blank" rel="noreferrer" className="link-btn link-record">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
                                     Record
                                   </a>
                                 )}
@@ -271,8 +284,9 @@ export default function TraCuuPage() {
                 ))}
               </div>
             ) : (
-              <div style={{ textAlign: "center", padding: "40px", background: "var(--surface)", borderRadius: "16px", border: "1px solid var(--border)" }}>
-                <p style={{ color: "var(--text-secondary)" }}>Học viên này chưa ghi danh vào lớp nào.</p>
+              <div className="empty-state">
+                <svg className="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                <p>Học viên này chưa ghi danh vào lớp nào.</p>
               </div>
             )}
           </div>
@@ -280,20 +294,515 @@ export default function TraCuuPage() {
       </main>
 
       <style dangerouslySetInnerHTML={{__html: `
+        .tracuu-container {
+          min-height: 100vh;
+          background: #0f172a;
+          font-family: var(--font-geist-sans);
+          color: #f8fafc;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .bg-shape {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(120px);
+          z-index: 0;
+          opacity: 0.5;
+        }
+
+        .bg-shape-1 {
+          top: -10%;
+          left: -10%;
+          width: 50vw;
+          height: 50vw;
+          background: rgba(99, 102, 241, 0.3);
+        }
+
+        .bg-shape-2 {
+          bottom: -20%;
+          right: -10%;
+          width: 60vw;
+          height: 60vw;
+          background: rgba(16, 185, 129, 0.2);
+        }
+
+        .tracuu-header {
+          position: relative;
+          z-index: 10;
+          background: rgba(15, 23, 42, 0.7);
+          backdrop-filter: blur(12px);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          padding: 16px 24px;
+          position: sticky;
+          top: 0;
+        }
+
+        .header-content {
+          max-width: 1000px;
+          margin: 0 auto;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .logo-section {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .logo-img {
+          height: 36px;
+          border-radius: 8px;
+        }
+
+        .logo-text {
+          font-size: 20px;
+          font-weight: 700;
+          margin: 0;
+          background: linear-gradient(to right, #fff, #94a3b8);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .login-link {
+          color: #94a3b8;
+          font-size: 14px;
+          text-decoration: none;
+          font-weight: 500;
+          padding: 8px 16px;
+          border-radius: 8px;
+          transition: all 0.2s;
+        }
+
+        .login-link:hover {
+          color: #fff;
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .tracuu-main {
+          position: relative;
+          z-index: 10;
+          max-width: 900px;
+          margin: 0 auto;
+          padding: 60px 24px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .search-card {
+          width: 100%;
+          max-width: 600px;
+          background: rgba(30, 41, 59, 0.7);
+          backdrop-filter: blur(16px);
+          border-radius: 24px;
+          padding: 48px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .search-card-compact {
+          padding: 32px;
+          margin-bottom: 40px;
+        }
+
+        .search-title {
+          font-size: 32px;
+          font-weight: 800;
+          margin-bottom: 12px;
+          text-align: center;
+          background: linear-gradient(to right, #818cf8, #34d399);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .search-card-compact .search-title {
+          font-size: 24px;
+        }
+
+        .search-subtitle {
+          color: #94a3b8;
+          text-align: center;
+          margin-bottom: 32px;
+          font-size: 16px;
+        }
+
+        .search-form {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .input-group {
+          position: relative;
+          width: 100%;
+        }
+
+        .input-icon {
+          position: absolute;
+          left: 16px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 20px;
+          height: 20px;
+          color: #64748b;
+        }
+
+        .search-input {
+          width: 100%;
+          padding: 16px 16px 16px 48px;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(15, 23, 42, 0.6);
+          color: #fff;
+          font-size: 16px;
+          outline: none;
+          transition: all 0.2s;
+          box-sizing: border-box;
+        }
+
+        .search-input:focus {
+          border-color: #6366f1;
+          box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+          background: rgba(15, 23, 42, 0.8);
+        }
+
+        .search-btn {
+          width: 100%;
+          padding: 16px;
+          border-radius: 12px;
+          border: none;
+          background: linear-gradient(135deg, #6366f1, #4f46e5);
+          color: white;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .search-btn:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+        }
+
+        .search-btn:active:not(:disabled) {
+          transform: translateY(0);
+        }
+
+        .search-btn.loading {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
+        .error-message {
+          color: #fca5a5;
+          text-align: center;
+          margin-top: 16px;
+          font-size: 14px;
+          padding: 12px;
+          background: rgba(239, 68, 68, 0.1);
+          border: 1px solid rgba(239, 68, 68, 0.2);
+          border-radius: 8px;
+        }
+
+        .results-container {
+          width: 100%;
+          animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        .student-profile {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          margin-bottom: 32px;
+          padding: 24px;
+          background: rgba(30, 41, 59, 0.4);
+          border-radius: 20px;
+          border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .profile-avatar {
+          width: 64px;
+          height: 64px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #34d399, #10b981);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 28px;
+          font-weight: 700;
+          color: #fff;
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .profile-name {
+          font-size: 24px;
+          font-weight: 700;
+          margin: 0 0 4px 0;
+          color: #f8fafc;
+        }
+
+        .profile-email {
+          color: #94a3b8;
+          margin: 0;
+          font-size: 15px;
+        }
+
+        .classes-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+
+        .class-card {
+          background: rgba(30, 41, 59, 0.7);
+          backdrop-filter: blur(16px);
+          border-radius: 20px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          overflow: hidden;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .class-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .class-card-header {
+          padding: 24px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          flex-wrap: wrap;
+          gap: 16px;
+        }
+
+        .course-name {
+          font-size: 12px;
+          color: #818cf8;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 6px;
+        }
+
+        .class-name {
+          font-size: 20px;
+          font-weight: 700;
+          margin: 0;
+          color: #f8fafc;
+        }
+
+        .class-code {
+          font-size: 14px;
+          color: #94a3b8;
+          margin-top: 6px;
+        }
+
+        .scores-grid {
+          padding: 24px;
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+          gap: 16px;
+          background: rgba(15, 23, 42, 0.3);
+        }
+
+        .score-item {
+          text-align: center;
+          padding: 20px;
+          background: rgba(30, 41, 59, 0.8);
+          border-radius: 16px;
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          transition: transform 0.2s;
+        }
+
+        .score-item:hover {
+          transform: translateY(-2px);
+          background: rgba(30, 41, 59, 1);
+        }
+
+        .score-label {
+          font-size: 12px;
+          color: #94a3b8;
+          margin-bottom: 10px;
+          text-transform: uppercase;
+          font-weight: 600;
+          letter-spacing: 0.5px;
+        }
+
+        .score-value {
+          font-size: 28px;
+          font-weight: 800;
+          color: #f8fafc;
+        }
+
+        .score-final {
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1));
+          border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .score-final .score-label {
+          color: #34d399;
+        }
+
+        .score-final .score-value {
+          color: #10b981;
+          text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .sessions-section {
+          padding: 24px;
+          border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .sessions-title {
+          font-size: 16px;
+          font-weight: 700;
+          margin: 0 0 20px 0;
+          color: #e2e8f0;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .sessions-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .session-item {
+          padding: 20px;
+          background: rgba(15, 23, 42, 0.4);
+          border-radius: 16px;
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          transition: background 0.2s;
+        }
+
+        .session-item:hover {
+          background: rgba(15, 23, 42, 0.6);
+          border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .session-info {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .session-name {
+          font-weight: 600;
+          font-size: 16px;
+          color: #f8fafc;
+        }
+
+        .session-time {
+          font-size: 14px;
+          color: #94a3b8;
+        }
+
+        .session-links {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .link-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          padding: 8px 14px;
+          border-radius: 8px;
+          text-decoration: none;
+          font-weight: 600;
+          transition: all 0.2s;
+        }
+
+        .link-btn svg {
+          width: 14px;
+          height: 14px;
+        }
+
+        .link-meeting {
+          background: rgba(59, 130, 246, 0.15);
+          color: #60a5fa;
+        }
+        .link-meeting:hover { background: rgba(59, 130, 246, 0.25); color: #93c5fd; }
+
+        .link-slide {
+          background: rgba(255, 255, 255, 0.05);
+          color: #cbd5e1;
+        }
+        .link-slide:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+
+        .link-doc {
+          background: rgba(255, 255, 255, 0.05);
+          color: #cbd5e1;
+        }
+        .link-doc:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+
+        .link-assignment {
+          background: rgba(245, 158, 11, 0.15);
+          color: #fbbf24;
+        }
+        .link-assignment:hover { background: rgba(245, 158, 11, 0.25); color: #fcd34d; }
+
+        .link-record {
+          background: rgba(239, 68, 68, 0.15);
+          color: #f87171;
+        }
+        .link-record:hover { background: rgba(239, 68, 68, 0.25); color: #fca5a5; }
+
         .status-badge {
-          display: inline-block;
-          padding: 6px 12px;
+          display: inline-flex;
+          align-items: center;
+          padding: 6px 14px;
           border-radius: 999px;
           font-size: 13px;
-          font-weight: 600;
+          font-weight: 700;
+          letter-spacing: 0.5px;
         }
-        input:focus {
-          border-color: var(--primary) !important;
-          box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+
+        .active-badge { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2); }
+        .completed-badge { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2); }
+        .dropped-badge { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .reserved-badge { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.2); }
+        .cancelled-badge { background: rgba(100, 116, 139, 0.15); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.2); }
+        .default-badge { background: rgba(255, 255, 255, 0.1); color: #cbd5e1; border: 1px solid rgba(255, 255, 255, 0.1); }
+
+        .empty-state {
+          text-align: center;
+          padding: 60px 20px;
+          background: rgba(30, 41, 59, 0.4);
+          border-radius: 20px;
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          color: #94a3b8;
         }
-        button:hover:not(:disabled) {
-          background: var(--primary-hover) !important;
-          transform: translateY(-1px);
+
+        .empty-icon {
+          width: 48px;
+          height: 48px;
+          margin-bottom: 16px;
+          color: #475569;
+        }
+
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade-in {
+          animation: slideUp 0.5s ease forwards;
         }
       `}} />
     </div>
