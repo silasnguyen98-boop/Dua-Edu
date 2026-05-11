@@ -159,6 +159,7 @@ export default function TraCuuPage() {
           
           <form onSubmit={handleSearch} className="search-form">
             <div className="input-group">
+              <svg className="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
               <input 
                 type="email" 
                 value={email}
@@ -433,6 +434,14 @@ export default function TraCuuPage() {
           display: flex;
           flex-direction: column;
           gap: 16px;
+          max-width: 500px;
+          margin: 0 auto;
+        }
+
+        @media (min-width: 600px) {
+          .search-form {
+            flex-direction: row;
+          }
         }
 
         .input-group {
@@ -452,13 +461,13 @@ export default function TraCuuPage() {
 
         .search-input {
           width: 100%;
-          padding: 16px;
+          padding: 16px 16px 16px 48px;
           border-radius: 12px;
           border: 1px solid #e2e8f0;
           background: #fff;
           color: #0f172a;
           font-size: 16px;
-          text-align: center;
+          text-align: left;
           outline: none;
           transition: all 0.2s;
           box-sizing: border-box;
@@ -472,7 +481,7 @@ export default function TraCuuPage() {
 
         .search-btn {
           width: 100%;
-          padding: 16px;
+          padding: 16px 32px;
           border-radius: 12px;
           border: none;
           background: linear-gradient(135deg, #6366f1, #4f46e5);
@@ -491,6 +500,13 @@ export default function TraCuuPage() {
 
         .search-btn:active:not(:disabled) {
           transform: translateY(0);
+        }
+
+        @media (min-width: 600px) {
+          .search-btn {
+            width: auto;
+            white-space: nowrap;
+          }
         }
 
         .search-btn.loading {
