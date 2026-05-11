@@ -488,11 +488,11 @@ export default function Home() {
   const isProjectScoreView = activeView === "projectScore";
   const isAdminsView = activeView === "admins";
   const isDataView = isTableName(activeView);
-  const isAssistantUser = currentUserRole === "assistant";
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [adminForm, setAdminForm] = useState({ email: "", password: "", username: "", role: "admin" as UserRole, id: "" });
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const isAssistantUser = currentUserRole === "assistant";
   const [assignedClassIds, setAssignedClassIds] = useState<string[]>([]);
   const [classAssistants, setClassAssistants] = useState<ClassAssistant[]>([]);
   const [showAssignModal, setShowAssignModal] = useState<string | null>(null); // classId
