@@ -6,7 +6,12 @@ import * as XLSX from "xlsx";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { getUsersSafe, createUser, updateUser, deleteUser, type UserRole } from "@/app/actions/users";
-import { getClassAssistants, assignAssistant, removeAssistant, getMyAssignedClassIds } from "@/app/actions/assistants";
+import {
+  assignAssistantSafe,
+  getClassAssistantsSafe,
+  getMyAssignedClassIds,
+  removeAssistantSafe,
+} from "@/app/actions/assistants";
 
 type FieldType = "text" | "email" | "number" | "date" | "time" | "datetime-local" | "textarea" | "select";
 
@@ -1767,11 +1772,14 @@ export default function Home() {
         return;
       }
 
-      const [assistants, usersResult] = await Promise.all([
-        getClassAssistants(session.access_token, classId),
+      const [assistantsResult, usersResult] = await Promise.all([
+        getClassAssistantsSafe(session.access_token, classId),
         getUsersSafe(session.access_token),
       ]);
-      setClassAssistants(assistants);
+      setClassAssistants(assistantsResult.assistants);
+      if (!assistantsResult.ok) {
+        setError(assistantsResult.error);
+      }
       setAdminUsers(usersResult.users);
       if (!usersResult.ok) {
         setError(usersResult.error);
@@ -3660,9 +3668,16 @@ export default function Home() {
                             try {
                               const { data: { session } } = await supabase.auth.getSession();
                               if (!session) return;
-                              await removeAssistant(session.access_token, showAssignModal, a.assistant_id);
-                              const list = await getClassAssistants(session.access_token, showAssignModal);
-                              setClassAssistants(list);
+                              const removeResult = await removeAssistantSafe(session.access_token, showAssignModal, a.assistant_id);
+                              if (!removeResult.ok) {
+                                setError(removeResult.error);
+                                return;
+                              }
+                              const listResult = await getClassAssistantsSafe(session.access_token, showAssignModal);
+                              setClassAssistants(listResult.assistants);
+                              if (!listResult.ok) {
+                                setError(listResult.error);
+                              }
                             } catch (err: any) { setError(err.message); }
                           }}
                         >Xoá</button>
@@ -3689,9 +3704,16 @@ export default function Home() {
                           try {
                             const { data: { session } } = await supabase.auth.getSession();
                             if (!session) return;
-                            await assignAssistant(session.access_token, showAssignModal, u.id);
-                            const list = await getClassAssistants(session.access_token, showAssignModal);
-                            setClassAssistants(list);
+                            const assignResult = await assignAssistantSafe(session.access_token, showAssignModal, u.id);
+                            if (!assignResult.ok) {
+                              setError(assignResult.error);
+                              return;
+                            }
+                            const listResult = await getClassAssistantsSafe(session.access_token, showAssignModal);
+                            setClassAssistants(listResult.assistants);
+                            if (!listResult.ok) {
+                              setError(listResult.error);
+                            }
                           } catch (err: any) { setError(err.message); }
                         }}
                       >Phân công</button>

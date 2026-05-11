@@ -2,6 +2,14 @@
 
 import { createClient } from "@supabase/supabase-js";
 
+type AssistantAssignment = Record<string, unknown>;
+type ActionResult<T> =
+  | ({ ok: true; error?: never } & T)
+  | ({ ok: false; error: string } & T);
+
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Không thực hiện được thao tác phân công trợ giảng.";
+
 const getSupabaseUserClient = (token: string) => {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
@@ -42,6 +50,17 @@ export async function getClassAssistants(token: string, classId: string) {
   return data ?? [];
 }
 
+export async function getClassAssistantsSafe(
+  token: string,
+  classId: string,
+): Promise<ActionResult<{ assistants: AssistantAssignment[] }>> {
+  try {
+    return { ok: true, assistants: await getClassAssistants(token, classId) };
+  } catch (error) {
+    return { ok: false, assistants: [], error: getErrorMessage(error) };
+  }
+}
+
 /** List all class assignments for a specific user */
 export async function getAssistantClasses(token: string, userId: string) {
   const { userClient } = await verifyUser(token);
@@ -78,6 +97,19 @@ export async function assignAssistant(
   return true;
 }
 
+export async function assignAssistantSafe(
+  token: string,
+  classId: string,
+  userId: string,
+): Promise<ActionResult<Record<string, never>>> {
+  try {
+    await assignAssistant(token, classId, userId);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: getErrorMessage(error) };
+  }
+}
+
 /** Remove an assistant from a class */
 export async function removeAssistant(token: string, classId: string, userId: string) {
   const { userClient } = await verifyUser(token);
@@ -90,14 +122,31 @@ export async function removeAssistant(token: string, classId: string, userId: st
   return true;
 }
 
+export async function removeAssistantSafe(
+  token: string,
+  classId: string,
+  userId: string,
+): Promise<ActionResult<Record<string, never>>> {
+  try {
+    await removeAssistant(token, classId, userId);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: getErrorMessage(error) };
+  }
+}
+
 /** Get all class IDs assigned to the currently logged-in user */
 export async function getMyAssignedClassIds(token: string) {
-  const { user, userClient } = await verifyUser(token);
-  const { data, error } = await userClient
-    .from("class_assistants")
-    .select("class_id")
-    .eq("assistant_id", user.id)
-    .eq("status", "active");
-  if (error) return [];
-  return (data ?? []).map((r: { class_id: string }) => r.class_id);
+  try {
+    const { user, userClient } = await verifyUser(token);
+    const { data, error } = await userClient
+      .from("class_assistants")
+      .select("class_id")
+      .eq("assistant_id", user.id)
+      .eq("status", "active");
+    if (error) return [];
+    return (data ?? []).map((r: { class_id: string }) => r.class_id);
+  } catch {
+    return [];
+  }
 }
