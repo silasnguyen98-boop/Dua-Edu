@@ -3645,11 +3645,14 @@ export default function Home() {
                   <p style={{ margin: 0, fontSize: "14px", color: "var(--muted)" }}>Chưa có trợ giảng nào được phân công.</p>
                 ) : (
                   <div style={{ display: "grid", gap: "8px" }}>
-                    {classAssistants.map((a: any) => (
+                    {classAssistants.map((a: any) => {
+                      const assistantUser = adminUsers.find((user) => user.id === a.assistant_id);
+
+                      return (
                       <div key={a.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: "10px", background: "var(--surface-soft)", border: "1px solid var(--border)" }}>
                         <div>
-                          <span style={{ fontWeight: 600, fontSize: "14px" }}>{a.user_name || "—"}</span>
-                          <span style={{ marginLeft: "8px", fontSize: "13px", color: "var(--text-secondary)" }}>{a.user_email}</span>
+                          <span style={{ fontWeight: 600, fontSize: "14px" }}>{assistantUser?.username || "—"}</span>
+                          <span style={{ marginLeft: "8px", fontSize: "13px", color: "var(--text-secondary)" }}>{assistantUser?.email || a.assistant_id}</span>
                         </div>
                         <button
                           style={{ padding: "4px 12px", borderRadius: "8px", border: "1px solid #fecaca", background: "transparent", color: "#dc2626", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
@@ -3657,14 +3660,15 @@ export default function Home() {
                             try {
                               const { data: { session } } = await supabase.auth.getSession();
                               if (!session) return;
-                              await removeAssistant(session.access_token, showAssignModal, a.user_id);
+                              await removeAssistant(session.access_token, showAssignModal, a.assistant_id);
                               const list = await getClassAssistants(session.access_token, showAssignModal);
                               setClassAssistants(list);
                             } catch (err: any) { setError(err.message); }
                           }}
                         >Xoá</button>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -3673,7 +3677,7 @@ export default function Home() {
               <div style={{ padding: "16px 24px 20px" }}>
                 <p style={{ margin: "0 0 10px", fontSize: "12px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-secondary)" }}>Thêm trợ giảng</p>
                 <div style={{ display: "grid", gap: "8px" }}>
-                  {adminUsers.filter(u => u.role === "assistant" && !classAssistants.some((a: any) => a.user_id === u.id)).map(u => (
+                  {adminUsers.filter(u => u.role === "assistant" && !classAssistants.some((a: any) => a.assistant_id === u.id)).map(u => (
                     <div key={u.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: "10px", border: "1px solid var(--border)" }}>
                       <div>
                         <span style={{ fontWeight: 600, fontSize: "14px" }}>{u.username || "—"}</span>
@@ -3685,7 +3689,7 @@ export default function Home() {
                           try {
                             const { data: { session } } = await supabase.auth.getSession();
                             if (!session) return;
-                            await assignAssistant(session.access_token, showAssignModal, u.id, u.email ?? "", u.username ?? "");
+                            await assignAssistant(session.access_token, showAssignModal, u.id);
                             const list = await getClassAssistants(session.access_token, showAssignModal);
                             setClassAssistants(list);
                           } catch (err: any) { setError(err.message); }
@@ -3695,7 +3699,7 @@ export default function Home() {
                   ))}
                   {adminUsers.filter(u => u.role === "assistant").length === 0 ? (
                     <p style={{ margin: 0, fontSize: "13px", color: "var(--muted)" }}>Chưa có tài khoản nào có vai trò Assistant. Tạo tài khoản trong mục Hệ thống → Quản trị viên.</p>
-                  ) : adminUsers.filter(u => u.role === "assistant" && !classAssistants.some((a: any) => a.user_id === u.id)).length === 0 && (
+                  ) : adminUsers.filter(u => u.role === "assistant" && !classAssistants.some((a: any) => a.assistant_id === u.id)).length === 0 && (
                     <p style={{ margin: 0, fontSize: "13px", color: "var(--muted)" }}>Tất cả assistant hiện có đã được phân công vào lớp này.</p>
                   )}
                 </div>

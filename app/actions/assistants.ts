@@ -36,6 +36,7 @@ export async function getClassAssistants(token: string, classId: string) {
     .from("class_assistants")
     .select("*")
     .eq("class_id", classId)
+    .eq("status", "active")
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
   return data ?? [];
@@ -47,7 +48,8 @@ export async function getAssistantClasses(token: string, userId: string) {
   const { data, error } = await userClient
     .from("class_assistants")
     .select("class_id")
-    .eq("user_id", userId);
+    .eq("assistant_id", userId)
+    .eq("status", "active");
   if (error) throw new Error(error.message);
   return (data ?? []).map((r: { class_id: string }) => r.class_id);
 }
@@ -57,13 +59,21 @@ export async function assignAssistant(
   token: string,
   classId: string,
   userId: string,
-  userEmail: string,
-  userName: string,
 ) {
-  const { userClient } = await verifyUser(token);
+  const { user, userClient } = await verifyUser(token);
   const { error } = await userClient
     .from("class_assistants")
-    .upsert({ class_id: classId, user_id: userId, user_email: userEmail, user_name: userName }, { onConflict: "class_id,user_id" });
+    .upsert(
+      {
+        assistant_id: userId,
+        assigned_at: new Date().toISOString(),
+        assigned_by: user.id,
+        class_id: classId,
+        status: "active",
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "class_id,assistant_id" },
+    );
   if (error) throw new Error(error.message);
   return true;
 }
@@ -73,9 +83,9 @@ export async function removeAssistant(token: string, classId: string, userId: st
   const { userClient } = await verifyUser(token);
   const { error } = await userClient
     .from("class_assistants")
-    .delete()
+    .update({ status: "inactive", updated_at: new Date().toISOString() })
     .eq("class_id", classId)
-    .eq("user_id", userId);
+    .eq("assistant_id", userId);
   if (error) throw new Error(error.message);
   return true;
 }
@@ -86,7 +96,8 @@ export async function getMyAssignedClassIds(token: string) {
   const { data, error } = await userClient
     .from("class_assistants")
     .select("class_id")
-    .eq("user_id", user.id);
+    .eq("assistant_id", user.id)
+    .eq("status", "active");
   if (error) return [];
   return (data ?? []).map((r: { class_id: string }) => r.class_id);
 }
