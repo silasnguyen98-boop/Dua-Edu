@@ -1691,10 +1691,10 @@ export default function Home() {
       worksheetData.push([
         String(enrollment.name ?? ""),
         String(enrollment.email ?? ""),
-        String(enrollment.attendance_score ?? ""),
-        String(enrollment.assignment_score ?? ""),
-        String(enrollment.project_score ?? ""),
-        String(enrollment.final_score ?? ""),
+        String(enrollment.attendanceScore ?? ""),
+        String(enrollment.assignmentScore ?? ""),
+        String(enrollment.projectScore ?? ""),
+        String(enrollment.finalScore ?? ""),
         String(enrollment.status ?? "Chưa có")
       ]);
     });

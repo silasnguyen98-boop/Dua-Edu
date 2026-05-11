@@ -80,8 +80,12 @@ export default function TraCuuPage() {
       } else {
         setStudentData(data as unknown as StudentData);
       }
-    } catch (err: any) {
-      setError("Đã xảy ra sự cố: " + err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError("Đã xảy ra sự cố: " + err.message);
+      } else {
+        setError("Đã xảy ra sự cố không xác định.");
+      }
     } finally {
       setLoading(false);
     }
