@@ -143,7 +143,7 @@ export default function TraCuuPage() {
         <div className="header-content">
           <div className="logo-section">
             <img alt="Dua-Edu" src="https://i.ibb.co/3yKrstMS/Thie-t-ke-chu-a-co-te-n-20.png" className="logo-img" />
-            <h1 className="logo-text">Cổng Sinh Viên</h1>
+            <h1 className="logo-text">Cổng Học Viên</h1>
           </div>
           <Link href="/login" className="login-link">
             Đăng nhập Quản trị
