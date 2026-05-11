@@ -159,7 +159,6 @@ export default function TraCuuPage() {
           
           <form onSubmit={handleSearch} className="search-form">
             <div className="input-group">
-              <svg className="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
               <input 
                 type="email" 
                 value={email}
@@ -296,9 +295,9 @@ export default function TraCuuPage() {
       <style dangerouslySetInnerHTML={{__html: `
         .tracuu-container {
           min-height: 100vh;
-          background: #0f172a;
+          background: #f8fafc;
           font-family: var(--font-geist-sans);
-          color: #f8fafc;
+          color: #0f172a;
           position: relative;
           overflow: hidden;
         }
@@ -308,7 +307,7 @@ export default function TraCuuPage() {
           border-radius: 50%;
           filter: blur(120px);
           z-index: 0;
-          opacity: 0.5;
+          opacity: 0.4;
         }
 
         .bg-shape-1 {
@@ -316,7 +315,7 @@ export default function TraCuuPage() {
           left: -10%;
           width: 50vw;
           height: 50vw;
-          background: rgba(99, 102, 241, 0.3);
+          background: rgba(99, 102, 241, 0.4);
         }
 
         .bg-shape-2 {
@@ -324,15 +323,15 @@ export default function TraCuuPage() {
           right: -10%;
           width: 60vw;
           height: 60vw;
-          background: rgba(16, 185, 129, 0.2);
+          background: rgba(16, 185, 129, 0.3);
         }
 
         .tracuu-header {
           position: relative;
           z-index: 10;
-          background: rgba(15, 23, 42, 0.7);
+          background: rgba(255, 255, 255, 0.7);
           backdrop-filter: blur(12px);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
           padding: 16px 24px;
           position: sticky;
           top: 0;
@@ -361,13 +360,13 @@ export default function TraCuuPage() {
           font-size: 20px;
           font-weight: 700;
           margin: 0;
-          background: linear-gradient(to right, #fff, #94a3b8);
+          background: linear-gradient(to right, #0f172a, #475569);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
 
         .login-link {
-          color: #94a3b8;
+          color: #64748b;
           font-size: 14px;
           text-decoration: none;
           font-weight: 500;
@@ -377,8 +376,8 @@ export default function TraCuuPage() {
         }
 
         .login-link:hover {
-          color: #fff;
-          background: rgba(255, 255, 255, 0.1);
+          color: #0f172a;
+          background: rgba(0, 0, 0, 0.05);
         }
 
         .tracuu-main {
@@ -395,12 +394,12 @@ export default function TraCuuPage() {
         .search-card {
           width: 100%;
           max-width: 600px;
-          background: rgba(30, 41, 59, 0.7);
+          background: rgba(255, 255, 255, 0.8);
           backdrop-filter: blur(16px);
           border-radius: 24px;
           padding: 48px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 1);
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06);
           transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
@@ -414,7 +413,7 @@ export default function TraCuuPage() {
           font-weight: 800;
           margin-bottom: 12px;
           text-align: center;
-          background: linear-gradient(to right, #818cf8, #34d399);
+          background: linear-gradient(to right, #4f46e5, #059669);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
@@ -424,7 +423,7 @@ export default function TraCuuPage() {
         }
 
         .search-subtitle {
-          color: #94a3b8;
+          color: #475569;
           text-align: center;
           margin-bottom: 32px;
           font-size: 16px;
@@ -448,26 +447,27 @@ export default function TraCuuPage() {
           transform: translateY(-50%);
           width: 20px;
           height: 20px;
-          color: #64748b;
+          color: #94a3b8;
         }
 
         .search-input {
           width: 100%;
-          padding: 16px 16px 16px 48px;
+          padding: 16px;
           border-radius: 12px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(15, 23, 42, 0.6);
-          color: #fff;
+          border: 1px solid #e2e8f0;
+          background: #fff;
+          color: #0f172a;
           font-size: 16px;
+          text-align: center;
           outline: none;
           transition: all 0.2s;
           box-sizing: border-box;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
 
         .search-input:focus {
           border-color: #6366f1;
-          box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
-          background: rgba(15, 23, 42, 0.8);
+          box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
         }
 
         .search-btn {
@@ -499,7 +499,7 @@ export default function TraCuuPage() {
         }
 
         .error-message {
-          color: #fca5a5;
+          color: #ef4444;
           text-align: center;
           margin-top: 16px;
           font-size: 14px;
@@ -520,9 +520,11 @@ export default function TraCuuPage() {
           gap: 20px;
           margin-bottom: 32px;
           padding: 24px;
-          background: rgba(30, 41, 59, 0.4);
+          background: rgba(255, 255, 255, 0.8);
+          backdrop-filter: blur(16px);
           border-radius: 20px;
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 1);
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
         }
 
         .profile-avatar {
@@ -543,11 +545,11 @@ export default function TraCuuPage() {
           font-size: 24px;
           font-weight: 700;
           margin: 0 0 4px 0;
-          color: #f8fafc;
+          color: #0f172a;
         }
 
         .profile-email {
-          color: #94a3b8;
+          color: #475569;
           margin: 0;
           font-size: 15px;
         }
@@ -559,23 +561,23 @@ export default function TraCuuPage() {
         }
 
         .class-card {
-          background: rgba(30, 41, 59, 0.7);
+          background: rgba(255, 255, 255, 0.9);
           backdrop-filter: blur(16px);
           border-radius: 20px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 1);
           overflow: hidden;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
           transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
         .class-card:hover {
           transform: translateY(-4px);
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
         }
 
         .class-card-header {
           padding: 24px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
@@ -585,7 +587,7 @@ export default function TraCuuPage() {
 
         .course-name {
           font-size: 12px;
-          color: #818cf8;
+          color: #4f46e5;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 1px;
@@ -596,12 +598,12 @@ export default function TraCuuPage() {
           font-size: 20px;
           font-weight: 700;
           margin: 0;
-          color: #f8fafc;
+          color: #0f172a;
         }
 
         .class-code {
           font-size: 14px;
-          color: #94a3b8;
+          color: #64748b;
           margin-top: 6px;
         }
 
@@ -610,26 +612,27 @@ export default function TraCuuPage() {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
           gap: 16px;
-          background: rgba(15, 23, 42, 0.3);
+          background: #f8fafc;
         }
 
         .score-item {
           text-align: center;
           padding: 20px;
-          background: rgba(30, 41, 59, 0.8);
+          background: #fff;
           border-radius: 16px;
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(0, 0, 0, 0.05);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.02);
           transition: transform 0.2s;
         }
 
         .score-item:hover {
           transform: translateY(-2px);
-          background: rgba(30, 41, 59, 1);
+          box-shadow: 0 6px 16px rgba(0,0,0,0.04);
         }
 
         .score-label {
           font-size: 12px;
-          color: #94a3b8;
+          color: #64748b;
           margin-bottom: 10px;
           text-transform: uppercase;
           font-weight: 600;
@@ -639,33 +642,33 @@ export default function TraCuuPage() {
         .score-value {
           font-size: 28px;
           font-weight: 800;
-          color: #f8fafc;
+          color: #0f172a;
         }
 
         .score-final {
-          background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1));
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(5, 150, 105, 0.05));
           border: 1px solid rgba(16, 185, 129, 0.2);
         }
 
         .score-final .score-label {
-          color: #34d399;
+          color: #059669;
         }
 
         .score-final .score-value {
           color: #10b981;
-          text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+          text-shadow: none;
         }
 
         .sessions-section {
           padding: 24px;
-          border-top: 1px solid rgba(255, 255, 255, 0.05);
+          border-top: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         .sessions-title {
           font-size: 16px;
           font-weight: 700;
           margin: 0 0 20px 0;
-          color: #e2e8f0;
+          color: #0f172a;
           display: flex;
           align-items: center;
           gap: 8px;
@@ -679,18 +682,18 @@ export default function TraCuuPage() {
 
         .session-item {
           padding: 20px;
-          background: rgba(15, 23, 42, 0.4);
+          background: #fff;
           border-radius: 16px;
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(0, 0, 0, 0.05);
           display: flex;
           flex-direction: column;
           gap: 16px;
-          transition: background 0.2s;
+          transition: background 0.2s, border-color 0.2s;
         }
 
         .session-item:hover {
-          background: rgba(15, 23, 42, 0.6);
-          border-color: rgba(255, 255, 255, 0.1);
+          background: #f8fafc;
+          border-color: rgba(0, 0, 0, 0.1);
         }
 
         .session-info {
@@ -702,12 +705,12 @@ export default function TraCuuPage() {
         .session-name {
           font-weight: 600;
           font-size: 16px;
-          color: #f8fafc;
+          color: #0f172a;
         }
 
         .session-time {
           font-size: 14px;
-          color: #94a3b8;
+          color: #64748b;
         }
 
         .session-links {
@@ -734,34 +737,36 @@ export default function TraCuuPage() {
         }
 
         .link-meeting {
-          background: rgba(59, 130, 246, 0.15);
-          color: #60a5fa;
+          background: rgba(59, 130, 246, 0.1);
+          color: #2563eb;
         }
-        .link-meeting:hover { background: rgba(59, 130, 246, 0.25); color: #93c5fd; }
+        .link-meeting:hover { background: rgba(59, 130, 246, 0.2); color: #1d4ed8; }
 
         .link-slide {
-          background: rgba(255, 255, 255, 0.05);
-          color: #cbd5e1;
+          background: #f1f5f9;
+          color: #475569;
+          border: 1px solid #e2e8f0;
         }
-        .link-slide:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+        .link-slide:hover { background: #e2e8f0; color: #0f172a; }
 
         .link-doc {
-          background: rgba(255, 255, 255, 0.05);
-          color: #cbd5e1;
+          background: #f1f5f9;
+          color: #475569;
+          border: 1px solid #e2e8f0;
         }
-        .link-doc:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+        .link-doc:hover { background: #e2e8f0; color: #0f172a; }
 
         .link-assignment {
-          background: rgba(245, 158, 11, 0.15);
-          color: #fbbf24;
+          background: rgba(245, 158, 11, 0.1);
+          color: #d97706;
         }
-        .link-assignment:hover { background: rgba(245, 158, 11, 0.25); color: #fcd34d; }
+        .link-assignment:hover { background: rgba(245, 158, 11, 0.2); color: #b45309; }
 
         .link-record {
-          background: rgba(239, 68, 68, 0.15);
-          color: #f87171;
+          background: rgba(239, 68, 68, 0.1);
+          color: #dc2626;
         }
-        .link-record:hover { background: rgba(239, 68, 68, 0.25); color: #fca5a5; }
+        .link-record:hover { background: rgba(239, 68, 68, 0.2); color: #b91c1c; }
 
         .status-badge {
           display: inline-flex;
@@ -773,27 +778,27 @@ export default function TraCuuPage() {
           letter-spacing: 0.5px;
         }
 
-        .active-badge { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2); }
-        .completed-badge { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2); }
-        .dropped-badge { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
-        .reserved-badge { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.2); }
-        .cancelled-badge { background: rgba(100, 116, 139, 0.15); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.2); }
-        .default-badge { background: rgba(255, 255, 255, 0.1); color: #cbd5e1; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .active-badge { background: rgba(16, 185, 129, 0.1); color: #059669; border: 1px solid rgba(16, 185, 129, 0.2); }
+        .completed-badge { background: rgba(59, 130, 246, 0.1); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.2); }
+        .dropped-badge { background: rgba(239, 68, 68, 0.1); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .reserved-badge { background: rgba(245, 158, 11, 0.1); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.2); }
+        .cancelled-badge { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+        .default-badge { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
 
         .empty-state {
           text-align: center;
           padding: 60px 20px;
-          background: rgba(30, 41, 59, 0.4);
+          background: rgba(255, 255, 255, 0.8);
           border-radius: 20px;
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          color: #94a3b8;
+          border: 1px solid rgba(0, 0, 0, 0.05);
+          color: #64748b;
         }
 
         .empty-icon {
           width: 48px;
           height: 48px;
           margin-bottom: 16px;
-          color: #475569;
+          color: #94a3b8;
         }
 
         @keyframes slideUp {
