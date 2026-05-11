@@ -3701,7 +3701,7 @@ export default function Home() {
                 ) : (
                   <div style={{ display: "grid", gap: "8px" }}>
                     {classAssistants.map((a: any) => {
-                      const assistantUser = adminUsers.find((user) => user.id === a.assistant_id);
+                      const assistantUser = adminUsers.find((user) => (user.profile_id ?? user.id) === a.assistant_id);
 
                       return (
                       <div key={a.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: "10px", background: "var(--surface-soft)", border: "1px solid var(--border)" }}>
@@ -3730,7 +3730,7 @@ export default function Home() {
               <div style={{ padding: "16px 24px 20px" }}>
                 <p style={{ margin: "0 0 10px", fontSize: "12px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-secondary)" }}>Thêm trợ giảng</p>
                 <div style={{ display: "grid", gap: "8px" }}>
-                  {adminUsers.filter(u => u.role === "assistant" && !classAssistants.some((a: any) => a.assistant_id === u.id)).map(u => (
+                  {adminUsers.filter(u => u.role === "assistant" && !classAssistants.some((a: any) => a.assistant_id === (u.profile_id ?? u.id))).map(u => (
                     <div key={u.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: "10px", border: "1px solid var(--border)" }}>
                       <div>
                         <span style={{ fontWeight: 600, fontSize: "14px" }}>{u.username || "—"}</span>
@@ -3740,7 +3740,7 @@ export default function Home() {
                         style={{ padding: "4px 14px", borderRadius: "8px", border: "none", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
                         onClick={async () => {
                           try {
-                            await assignAssistantToClass(showAssignModal, u.id);
+                            await assignAssistantToClass(showAssignModal, u.profile_id ?? u.id);
                             const list = await loadClassAssistants(showAssignModal);
                             setClassAssistants(list);
                           } catch (err: any) { setError(err.message); }
@@ -3750,7 +3750,7 @@ export default function Home() {
                   ))}
                   {adminUsers.filter(u => u.role === "assistant").length === 0 ? (
                     <p style={{ margin: 0, fontSize: "13px", color: "var(--muted)" }}>Chưa có tài khoản nào có vai trò Assistant. Tạo tài khoản trong mục Hệ thống → Quản trị viên.</p>
-                  ) : adminUsers.filter(u => u.role === "assistant" && !classAssistants.some((a: any) => a.assistant_id === u.id)).length === 0 && (
+                  ) : adminUsers.filter(u => u.role === "assistant" && !classAssistants.some((a: any) => a.assistant_id === (u.profile_id ?? u.id))).length === 0 && (
                     <p style={{ margin: 0, fontSize: "13px", color: "var(--muted)" }}>Tất cả assistant hiện có đã được phân công vào lớp này.</p>
                   )}
                 </div>

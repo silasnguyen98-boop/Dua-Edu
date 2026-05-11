@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 export type UserRole = "admin" | "operation" | "assistant" | "teacher" | "student";
 type AdminUser = {
   id: string;
+  profile_id?: string;
   email?: string;
   username: string;
   role: string;
@@ -52,18 +53,76 @@ const verifyAdmin = async (token: string) => {
   return adminClient;
 };
 
+const ensurePublicUserProfile = async (adminClient: ReturnType<typeof getSupabaseAdmin>, authUser: any) => {
+  const email = authUser.email ?? "";
+  const username = authUser.user_metadata?.username ?? email;
+  const role = authUser.user_metadata?.role ?? "student";
+
+  const filters = [`auth_user_id.eq.${authUser.id}`];
+  if (email) filters.push(`email.eq.${email}`);
+
+  const { data: existing, error: selectError } = await adminClient
+    .from("users")
+    .select("id,auth_user_id,email,full_name,role,status")
+    .or(filters.join(","))
+    .limit(1)
+    .maybeSingle();
+
+  if (selectError) {
+    throw new Error(selectError.message);
+  }
+
+  if (existing) {
+    const updates: Record<string, string> = {};
+    if (!existing.auth_user_id) updates.auth_user_id = authUser.id;
+    if (email && existing.email !== email) updates.email = email;
+    if (username && existing.full_name !== username) updates.full_name = username;
+    if (role && existing.role !== role) updates.role = role;
+    if (!existing.status) updates.status = "active";
+
+    if (Object.keys(updates).length > 0) {
+      const { error: updateError } = await adminClient
+        .from("users")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", existing.id);
+      if (updateError) throw new Error(updateError.message);
+    }
+
+    return existing.id as string;
+  }
+
+  const { data: inserted, error: insertError } = await adminClient
+    .from("users")
+    .insert({
+      auth_user_id: authUser.id,
+      email,
+      full_name: username,
+      role,
+      status: "active",
+    })
+    .select("id")
+    .single();
+
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
+
+  return inserted.id as string;
+};
+
 export async function getUsers(token: string) {
   const adminClient = await verifyAdmin(token);
   const { data, error } = await adminClient.auth.admin.listUsers();
   if (error) throw new Error(error.message);
-  return data.users.map(u => ({
+  return Promise.all(data.users.map(async (u) => ({
     id: u.id,
+    profile_id: await ensurePublicUserProfile(adminClient, u),
     email: u.email,
     username: u.user_metadata?.username ?? "",
     role: u.user_metadata?.role ?? "",
     created_at: u.created_at,
     last_sign_in_at: u.last_sign_in_at,
-  }));
+  })));
 }
 
 export async function getUsersSafe(token: string): Promise<

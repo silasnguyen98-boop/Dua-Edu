@@ -51,6 +51,78 @@ const verifyUser = async (token: string) => {
   return { user, adminClient: getSupabaseAdmin() };
 };
 
+const ensurePublicUserProfile = async (adminClient: ReturnType<typeof getSupabaseAdmin>, authUser: any) => {
+  const email = authUser.email ?? "";
+  const username = authUser.user_metadata?.username ?? email;
+  const role = authUser.user_metadata?.role ?? "student";
+  const filters = [`auth_user_id.eq.${authUser.id}`];
+  if (email) filters.push(`email.eq.${email}`);
+
+  const { data: existing, error: selectError } = await adminClient
+    .from("users")
+    .select("id,auth_user_id,email,full_name,role,status")
+    .or(filters.join(","))
+    .limit(1)
+    .maybeSingle();
+
+  if (selectError) throw new Error(selectError.message);
+
+  if (existing) {
+    const updates: Record<string, string> = {};
+    if (!existing.auth_user_id) updates.auth_user_id = authUser.id;
+    if (email && existing.email !== email) updates.email = email;
+    if (username && existing.full_name !== username) updates.full_name = username;
+    if (role && existing.role !== role) updates.role = role;
+    if (!existing.status) updates.status = "active";
+
+    if (Object.keys(updates).length > 0) {
+      const { error: updateError } = await adminClient
+        .from("users")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("id", existing.id);
+      if (updateError) throw new Error(updateError.message);
+    }
+
+    return existing.id as string;
+  }
+
+  const { data: inserted, error: insertError } = await adminClient
+    .from("users")
+    .insert({
+      auth_user_id: authUser.id,
+      email,
+      full_name: username,
+      role,
+      status: "active",
+    })
+    .select("id")
+    .single();
+
+  if (insertError) throw new Error(insertError.message);
+  return inserted.id as string;
+};
+
+const resolvePublicUserId = async (
+  adminClient: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+) => {
+  const { data: publicUser, error: publicUserError } = await adminClient
+    .from("users")
+    .select("id")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (publicUserError) throw new Error(publicUserError.message);
+  if (publicUser?.id) return publicUser.id as string;
+
+  const { data, error } = await adminClient.auth.admin.getUserById(userId);
+  if (error || !data.user) {
+    throw new Error("Không tìm thấy người dùng tương ứng trong bảng users.");
+  }
+
+  return ensurePublicUserProfile(adminClient, data.user);
+};
+
 /** List all assistants assigned to a class */
 export async function getClassAssistants(token: string, classId: string) {
   const { adminClient } = await verifyUser(token);
@@ -94,13 +166,15 @@ export async function assignAssistant(
   userId: string,
 ) {
   const { user, adminClient } = await verifyUser(token);
+  const assistantProfileId = await resolvePublicUserId(adminClient, userId);
+  const assignedByProfileId = await ensurePublicUserProfile(adminClient, user);
   const { error } = await adminClient
     .from("class_assistants")
     .upsert(
       {
-        assistant_id: userId,
+        assistant_id: assistantProfileId,
         assigned_at: new Date().toISOString(),
-        assigned_by: user.id,
+        assigned_by: assignedByProfileId,
         class_id: classId,
         status: "active",
         updated_at: new Date().toISOString(),
@@ -153,10 +227,11 @@ export async function removeAssistantSafe(
 export async function getMyAssignedClassIds(token: string) {
   try {
     const { user, adminClient } = await verifyUser(token);
+    const profileId = await ensurePublicUserProfile(adminClient, user);
     const { data, error } = await adminClient
       .from("class_assistants")
       .select("class_id")
-      .eq("assistant_id", user.id)
+      .eq("assistant_id", profileId)
       .eq("status", "active");
     if (error) return [];
     return (data ?? []).map((r: { class_id: string }) => r.class_id);
