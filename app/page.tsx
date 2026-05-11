@@ -244,9 +244,9 @@ const tableConfigs: TableConfig[] = [
   {
     name: "class_sessions",
     label: "Quản lý buổi học",
-    description: "Quản lý các buổi học, lịch học, link video và trạng thái của từng buổi.",
-    columns: ["class_id", "session_number", "session_title", "session_date", "start_time", "end_time", "status"],
-    searchFields: ["session_title", "meeting_url", "recording_url", "status", "note"],
+    description: "Quản lý các buổi học, lịch học, link video của từng buổi.",
+    columns: ["class_id", "session_number", "session_title", "session_date", "start_time", "end_time"],
+    searchFields: ["session_title", "meeting_url", "recording_url", "note"],
     fields: [
       {
         name: "class_id",
@@ -268,7 +268,6 @@ const tableConfigs: TableConfig[] = [
       { name: "slide_url", label: "Link slide bài giảng", type: "text" },
       { name: "reference_url", label: "Link tài liệu tham khảo", type: "text" },
       { name: "assignment_url", label: "Link bài tập", type: "text" },
-      { name: "status", label: "Trạng thái", type: "text" },
       { name: "note", label: "Ghi chú", type: "textarea" },
     ],
   },
