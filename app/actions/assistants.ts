@@ -22,8 +22,10 @@ const getSupabaseUserClient = (token: string) => {
 
 const verifyUser = async (token: string) => {
   const userClient = getSupabaseUserClient(token);
-  const { data: { user }, error } = await userClient.auth.getUser(token);
-  if (error || !user) throw new Error("Phiên đăng nhập không hợp lệ.");
+  const { data: { user }, error } = await userClient.auth.getUser();
+  if (error || !user) {
+    throw new Error("Phiên đăng nhập không hợp lệ. Vui lòng đăng xuất rồi đăng nhập lại.");
+  }
   return { user, userClient };
 };
 

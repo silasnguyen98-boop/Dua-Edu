@@ -23,10 +23,32 @@ const getSupabaseAdmin = () => {
   return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
 };
 
+const getSupabaseUserClient = (token: string) => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!url || !key) {
+    throw new Error("Thiếu cấu hình Supabase public URL hoặc publishable key.");
+  }
+
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  });
+};
+
 const verifyAdmin = async (token: string) => {
+  const userClient = getSupabaseUserClient(token);
+  const { data: { user }, error } = await userClient.auth.getUser();
+  if (error || !user) {
+    throw new Error("Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng xuất rồi đăng nhập lại.");
+  }
+
   const adminClient = getSupabaseAdmin();
-  const { data: { user }, error } = await adminClient.auth.getUser(token);
-  if (error || !user) throw new Error("Phiên đăng nhập không hợp lệ hoặc đã hết hạn.");
   return adminClient;
 };
 
