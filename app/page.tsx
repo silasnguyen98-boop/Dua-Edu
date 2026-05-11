@@ -245,7 +245,7 @@ const tableConfigs: TableConfig[] = [
     name: "class_sessions",
     label: "Quản lý buổi học",
     description: "Quản lý các buổi học, lịch học, link video của từng buổi.",
-    columns: ["class_id", "session_number", "session_title", "session_date", "start_time", "end_time"],
+    columns: ["session_number", "session_title", "session_date", "time_range"],
     searchFields: ["session_title", "meeting_url", "recording_url", "note"],
     fields: [
       {
@@ -258,6 +258,7 @@ const tableConfigs: TableConfig[] = [
         optionsKey: "classes",
         optionLabel: "class_name",
       },
+      { name: "time_range", label: "Thời gian", type: "text" },
       { name: "session_number", label: "Buổi số", type: "number", required: true },
       { name: "session_title", label: "Tiêu đề buổi học", type: "text", required: true },
       { name: "session_date", label: "Ngày học", type: "date" },
@@ -415,6 +416,7 @@ export default function Home() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [selectedSessionDetail, setSelectedSessionDetail] = useState<Row | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const activeTable: TableName = isTableName(activeView) ? activeView : "students";
   const isDashboardView = activeView === "dashboard";
@@ -1016,6 +1018,7 @@ export default function Home() {
   }
 
   function startEdit(row: Row) {
+    setSelectedSessionDetail(null);
     const nextForm = activeConfig.fields.reduce<FormState>((formState, field) => {
       formState[field.name] = toInputValue(field, row[field.name]);
       return formState;
@@ -2962,9 +2965,33 @@ export default function Home() {
                   ) : filteredRows.length ? (
                     filteredRows.map((row) => (
                       <tr key={String(row.id)}>
-                        {activeConfig.columns.map((column) => (
-                          <td key={column}>{resolveReference(column, row[column])}</td>
-                        ))}
+                        {activeConfig.columns.map((column) => {
+                          if (column === "time_range") {
+                            const formatTime = (timeStr: unknown) => {
+                              if (typeof timeStr !== "string" || !timeStr) return "";
+                              const parts = timeStr.split(":");
+                              if (parts.length < 2) return timeStr;
+                              let hour = parseInt(parts[0], 10);
+                              const ampm = hour >= 12 ? "PM" : "AM";
+                              hour = hour % 12;
+                              hour = hour ? hour : 12;
+                              return `${hour.toString().padStart(2, "0")}:${parts[1]} ${ampm}`;
+                            };
+                            const s = formatTime(row.start_time);
+                            const e = formatTime(row.end_time);
+                            return <td key={column}>{s && e ? `${s} - ${e}` : s || e || "-"}</td>;
+                          }
+                          if (column === "session_title") {
+                            return (
+                              <td key={column}>
+                                <button className="text-button" onClick={() => setSelectedSessionDetail(row)} style={{ padding: 0, fontWeight: 500, textAlign: "left", whiteSpace: "normal" }}>
+                                  {resolveReference(column, row[column])}
+                                </button>
+                              </td>
+                            );
+                          }
+                          return <td key={column}>{resolveReference(column, row[column])}</td>;
+                        })}
                         <td>
                           <div className="row-actions">
                             <button onClick={() => startEdit(row)} type="button">
@@ -2989,6 +3016,79 @@ export default function Home() {
             </div>
           </section>
         </section>
+        )}
+
+        {selectedSessionDetail && (
+          <div className="modal-overlay" onClick={() => setSelectedSessionDetail(null)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "600px", padding: "24px" }}>
+              <div className="modal-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <h2 style={{ fontSize: "20px", fontWeight: 600, margin: 0 }}>{String(selectedSessionDetail.session_title)}</h2>
+                <button className="icon-button" onClick={() => setSelectedSessionDetail(null)} style={{ border: "none", background: "none", fontSize: "24px", cursor: "pointer", padding: "4px" }}>×</button>
+              </div>
+              <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div>
+                    <label style={{ fontSize: "12px", color: "var(--color-text-secondary)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px" }}>Buổi số</label>
+                    <p style={{ marginTop: 4, fontWeight: 500, fontSize: "16px" }}>{String(selectedSessionDetail.session_number || "-")}</p>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "12px", color: "var(--color-text-secondary)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px" }}>Ngày học</label>
+                    <p style={{ marginTop: 4, fontWeight: 500, fontSize: "16px" }}>{selectedSessionDetail.session_date ? new Intl.DateTimeFormat("vi-VN").format(new Date(String(selectedSessionDetail.session_date))) : "-"}</p>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "12px", color: "var(--color-text-secondary)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px" }}>Giờ bắt đầu</label>
+                    <p style={{ marginTop: 4, fontWeight: 500, fontSize: "16px" }}>{String(selectedSessionDetail.start_time || "-")}</p>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "12px", color: "var(--color-text-secondary)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px" }}>Giờ kết thúc</label>
+                    <p style={{ marginTop: 4, fontWeight: 500, fontSize: "16px" }}>{String(selectedSessionDetail.end_time || "-")}</p>
+                  </div>
+                </div>
+
+                <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                  {selectedSessionDetail.meeting_url && (
+                    <div>
+                      <label style={{ fontSize: "12px", color: "var(--color-text-secondary)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px" }}>Link học online</label>
+                      <p style={{ marginTop: 4 }}><a href={String(selectedSessionDetail.meeting_url)} target="_blank" rel="noreferrer" style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 500 }}>{String(selectedSessionDetail.meeting_url)}</a></p>
+                    </div>
+                  )}
+                  {selectedSessionDetail.recording_url && (
+                    <div>
+                      <label style={{ fontSize: "12px", color: "var(--color-text-secondary)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px" }}>Link video xem lại</label>
+                      <p style={{ marginTop: 4 }}><a href={String(selectedSessionDetail.recording_url)} target="_blank" rel="noreferrer" style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 500 }}>{String(selectedSessionDetail.recording_url)}</a></p>
+                    </div>
+                  )}
+                  {selectedSessionDetail.slide_url && (
+                    <div>
+                      <label style={{ fontSize: "12px", color: "var(--color-text-secondary)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px" }}>Link slide</label>
+                      <p style={{ marginTop: 4 }}><a href={String(selectedSessionDetail.slide_url)} target="_blank" rel="noreferrer" style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 500 }}>{String(selectedSessionDetail.slide_url)}</a></p>
+                    </div>
+                  )}
+                  {selectedSessionDetail.reference_url && (
+                    <div>
+                      <label style={{ fontSize: "12px", color: "var(--color-text-secondary)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px" }}>Tài liệu tham khảo</label>
+                      <p style={{ marginTop: 4 }}><a href={String(selectedSessionDetail.reference_url)} target="_blank" rel="noreferrer" style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 500 }}>{String(selectedSessionDetail.reference_url)}</a></p>
+                    </div>
+                  )}
+                  {selectedSessionDetail.assignment_url && (
+                    <div>
+                      <label style={{ fontSize: "12px", color: "var(--color-text-secondary)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px" }}>Link bài tập</label>
+                      <p style={{ marginTop: 4 }}><a href={String(selectedSessionDetail.assignment_url)} target="_blank" rel="noreferrer" style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 500 }}>{String(selectedSessionDetail.assignment_url)}</a></p>
+                    </div>
+                  )}
+                  {selectedSessionDetail.note && (
+                    <div>
+                      <label style={{ fontSize: "12px", color: "var(--color-text-secondary)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px" }}>Ghi chú</label>
+                      <p style={{ marginTop: 4, whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{String(selectedSessionDetail.note)}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="modal-footer" style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px solid var(--color-border)", display: "flex", justifyContent: "flex-end" }}>
+                <button className="primary-button" onClick={() => startEdit(selectedSessionDetail)}>Chỉnh sửa</button>
+              </div>
+            </div>
+          </div>
         )}
       </section>
     </main>
