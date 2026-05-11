@@ -750,6 +750,12 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (activeTable === "class_sessions" && !classSessionsFilterId && data.classes.length > 0) {
+      setClassSessionsFilterId(String(data.classes[0].id));
+    }
+  }, [activeTable, classSessionsFilterId, data.classes]);
+
+  useEffect(() => {
     setEditingRow(null);
     const newForm = buildEmptyForm(activeConfig.fields);
     if (activeConfig.name === "class_sessions" && classSessionsFilterId) {
@@ -2921,7 +2927,6 @@ export default function Home() {
                     onChange={(e) => setClassSessionsFilterId(e.target.value)}
                     value={classSessionsFilterId ?? ""}
                   >
-                    <option value="">Tất cả lớp học</option>
                     {data.classes.map((c) => (
                       <option key={String(c.id)} value={String(c.id)}>
                         {String(c.class_name)} ({String(c.class_code)})
