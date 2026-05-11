@@ -81,6 +81,7 @@ const attendanceStatusOptions = [
   { label: "Có phép", value: "excused" },
 ];
 const chartColors = ["#059669", "#22c55e", "#14b8a6", "#84cc16", "#0f766e", "#65a30d"];
+const pageSizeOptions = [20, 50, 100];
 
 const tableConfigs: TableConfig[] = [
   {
@@ -412,6 +413,8 @@ export default function Home() {
   const [classSessionsFilterId, setClassSessionsFilterId] = useState<string | null>(getInitialClassId);
   const [classManagementSearch, setClassManagementSearch] = useState("");
   const [search, setSearch] = useState(getInitialSearch);
+  const [pageSize, setPageSize] = useState(20);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -749,6 +752,14 @@ export default function Home() {
     );
   }, [activeConfig.searchFields, activeTable, data, search, classSessionsFilterId]);
 
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const paginatedRows = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredRows.slice(startIndex, startIndex + pageSize);
+  }, [currentPage, filteredRows, pageSize]);
+  const paginationStart = filteredRows.length ? (currentPage - 1) * pageSize + 1 : 0;
+  const paginationEnd = Math.min(currentPage * pageSize, filteredRows.length);
+
   useEffect(() => {
     if (!isDataView) {
       return;
@@ -760,6 +771,16 @@ export default function Home() {
 
     previousDataTableRef.current = activeTable;
   }, [activeTable, isDataView]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTable, classSessionsFilterId, pageSize, search]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -3013,7 +3034,7 @@ export default function Home() {
                 <p className="eyebrow">Dữ liệu</p>
                 <h3>Danh sách {activeConfig.label.toLowerCase()}</h3>
               </div>
-              <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+              <div className="table-controls">
                 {activeTable === "class_sessions" && (
                   <select
                     className="search-input"
@@ -3035,7 +3056,29 @@ export default function Home() {
                   type="search"
                   value={search}
                 />
+                <label className="page-size-control">
+                  <span>Hiển thị</span>
+                  <select
+                    aria-label="Số dòng mỗi trang"
+                    onChange={(event) => setPageSize(Number(event.target.value))}
+                    value={pageSize}
+                  >
+                    {pageSizeOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </div>
+            </div>
+
+            <div className="pagination-summary">
+              <span>
+                {filteredRows.length
+                  ? `Hiển thị ${paginationStart}-${paginationEnd} trên ${filteredRows.length} ${activeConfig.label.toLowerCase()}`
+                  : `0 ${activeConfig.label.toLowerCase()}`}
+              </span>
             </div>
 
             <div className="table-wrap">
@@ -3053,8 +3096,8 @@ export default function Home() {
                     <tr>
                       <td colSpan={activeConfig.columns.length + 1}>Đang tải dữ liệu...</td>
                     </tr>
-                  ) : filteredRows.length ? (
-                    filteredRows.map((row) => (
+                  ) : paginatedRows.length ? (
+                    paginatedRows.map((row) => (
                       <tr key={String(row.id)}>
                         {activeConfig.columns.map((column) => {
                           if (column === "time_range") {
@@ -3106,6 +3149,60 @@ export default function Home() {
                   )}
                 </tbody>
               </table>
+            </div>
+            <div className="pagination-bar" aria-label="Phân trang" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", color: "var(--text-secondary)" }}>
+                <span>Hiển thị:</span>
+                <select 
+                  value={pageSize} 
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  style={{ padding: "4px 8px", borderRadius: "6px", border: "1px solid var(--border)", background: "var(--background)", color: "var(--foreground)", outline: "none", cursor: "pointer", fontSize: "14px" }}
+                >
+                  <option value={20}>20 dòng</option>
+                  <option value={50}>50 dòng</option>
+                  <option value={100}>100 dòng</option>
+                </select>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <button
+                className="secondary-button compact-button"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(1)}
+                type="button"
+              >
+                Đầu
+              </button>
+              <button
+                className="secondary-button compact-button"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                type="button"
+              >
+                Trước
+              </button>
+              <span>
+                Trang {currentPage}/{totalPages}
+              </span>
+              <button
+                className="secondary-button compact-button"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                type="button"
+              >
+                Sau
+              </button>
+              <button
+                className="secondary-button compact-button"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(totalPages)}
+                type="button"
+              >
+                Cuối
+              </button>
+              </div>
             </div>
           </section>
         </section>
