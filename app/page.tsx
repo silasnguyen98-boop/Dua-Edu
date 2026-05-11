@@ -6,6 +6,12 @@ import * as XLSX from "xlsx";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { getUsersSafe, createUser, updateUser, deleteUser, type UserRole } from "@/app/actions/users";
+import {
+  assignAssistantSafe,
+  getClassAssistantsSafe,
+  getMyAssignedClassIds,
+  removeAssistantSafe,
+} from "@/app/actions/assistants";
 
 type FieldType = "text" | "email" | "number" | "date" | "time" | "datetime-local" | "textarea" | "select";
 
@@ -876,15 +882,8 @@ export default function Home() {
         setCurrentUserRole(role);
         // If assistant, fetch their assigned class IDs to filter data
         if (role === "assistant") {
-          try {
-            const { data: rows } = await supabase
-              .from("class_assistants")
-              .select("class_id")
-              .eq("assistant_id", session.user.id)
-              .eq("status", "active");
-            const ids = (rows ?? []).map((row) => String(row.class_id));
-            setAssignedClassIds(ids);
-          } catch {}
+          const ids = await getMyAssignedClassIds(session.access_token);
+          setAssignedClassIds(ids);
         }
       }
     });
@@ -1797,56 +1796,43 @@ export default function Home() {
   }
 
   async function loadClassAssistants(classId: string) {
-    const { data: rows, error: assistantsError } = await supabase
-      .from("class_assistants")
-      .select("*")
-      .eq("class_id", classId)
-      .eq("status", "active")
-      .order("created_at", { ascending: true });
+    const { data: { session } } = await supabase.auth.getSession();
 
-    if (assistantsError) {
-      throw new Error(assistantsError.message);
-    }
-
-    return (rows ?? []) as ClassAssistant[];
-  }
-
-  async function assignAssistantToClass(classId: string, assistantId: string) {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
+    if (!session) {
       throw new Error("Phiên đăng nhập không hợp lệ. Vui lòng đăng xuất rồi đăng nhập lại.");
     }
 
-    const now = new Date().toISOString();
-    const { error: assignError } = await supabase
-      .from("class_assistants")
-      .upsert(
-        {
-          assistant_id: assistantId,
-          assigned_at: now,
-          assigned_by: user.id,
-          class_id: classId,
-          status: "active",
-          updated_at: now,
-        },
-        { onConflict: "class_id,assistant_id" },
-      );
+    const result = await getClassAssistantsSafe(session.access_token, classId);
+    if (!result.ok) {
+      throw new Error(result.error);
+    }
 
-    if (assignError) {
-      throw new Error(assignError.message);
+    return result.assistants as ClassAssistant[];
+  }
+
+  async function assignAssistantToClass(classId: string, assistantId: string) {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      throw new Error("Phiên đăng nhập không hợp lệ. Vui lòng đăng xuất rồi đăng nhập lại.");
+    }
+
+    const result = await assignAssistantSafe(session.access_token, classId, assistantId);
+    if (!result.ok) {
+      throw new Error(result.error);
     }
   }
 
   async function removeAssistantFromClass(classId: string, assistantId: string) {
-    const { error: removeError } = await supabase
-      .from("class_assistants")
-      .update({ status: "inactive", updated_at: new Date().toISOString() })
-      .eq("class_id", classId)
-      .eq("assistant_id", assistantId);
+    const { data: { session } } = await supabase.auth.getSession();
 
-    if (removeError) {
-      throw new Error(removeError.message);
+    if (!session) {
+      throw new Error("Phiên đăng nhập không hợp lệ. Vui lòng đăng xuất rồi đăng nhập lại.");
+    }
+
+    const result = await removeAssistantSafe(session.access_token, classId, assistantId);
+    if (!result.ok) {
+      throw new Error(result.error);
     }
   }
 

@@ -29,19 +29,32 @@ const getSupabaseUserClient = (token: string) => {
   });
 };
 
+const getSupabaseAdmin = () => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
+    throw new Error(
+      "Thiếu SUPABASE_SERVICE_ROLE_KEY. Hãy thêm biến này trong Vercel Project Settings > Environment Variables.",
+    );
+  }
+
+  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
+};
+
 const verifyUser = async (token: string) => {
   const userClient = getSupabaseUserClient(token);
   const { data: { user }, error } = await userClient.auth.getUser();
   if (error || !user) {
     throw new Error("Phiên đăng nhập không hợp lệ. Vui lòng đăng xuất rồi đăng nhập lại.");
   }
-  return { user, userClient };
+  return { user, adminClient: getSupabaseAdmin() };
 };
 
 /** List all assistants assigned to a class */
 export async function getClassAssistants(token: string, classId: string) {
-  const { userClient } = await verifyUser(token);
-  const { data, error } = await userClient
+  const { adminClient } = await verifyUser(token);
+  const { data, error } = await adminClient
     .from("class_assistants")
     .select("*")
     .eq("class_id", classId)
@@ -64,8 +77,8 @@ export async function getClassAssistantsSafe(
 
 /** List all class assignments for a specific user */
 export async function getAssistantClasses(token: string, userId: string) {
-  const { userClient } = await verifyUser(token);
-  const { data, error } = await userClient
+  const { adminClient } = await verifyUser(token);
+  const { data, error } = await adminClient
     .from("class_assistants")
     .select("class_id")
     .eq("assistant_id", userId)
@@ -80,8 +93,8 @@ export async function assignAssistant(
   classId: string,
   userId: string,
 ) {
-  const { user, userClient } = await verifyUser(token);
-  const { error } = await userClient
+  const { user, adminClient } = await verifyUser(token);
+  const { error } = await adminClient
     .from("class_assistants")
     .upsert(
       {
@@ -113,8 +126,8 @@ export async function assignAssistantSafe(
 
 /** Remove an assistant from a class */
 export async function removeAssistant(token: string, classId: string, userId: string) {
-  const { userClient } = await verifyUser(token);
-  const { error } = await userClient
+  const { adminClient } = await verifyUser(token);
+  const { error } = await adminClient
     .from("class_assistants")
     .update({ status: "inactive", updated_at: new Date().toISOString() })
     .eq("class_id", classId)
@@ -139,8 +152,8 @@ export async function removeAssistantSafe(
 /** Get all class IDs assigned to the currently logged-in user */
 export async function getMyAssignedClassIds(token: string) {
   try {
-    const { user, userClient } = await verifyUser(token);
-    const { data, error } = await userClient
+    const { user, adminClient } = await verifyUser(token);
+    const { data, error } = await adminClient
       .from("class_assistants")
       .select("class_id")
       .eq("assistant_id", user.id)
