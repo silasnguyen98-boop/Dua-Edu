@@ -4,6 +4,7 @@ import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "re
 import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 import { supabase } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 type FieldType = "text" | "email" | "number" | "date" | "time" | "datetime-local" | "textarea" | "select";
 
@@ -415,6 +416,8 @@ export default function Home() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const router = useRouter();
   const [selectedSessionDetail, setSelectedSessionDetail] = useState<Row | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const activeTable: TableName = isTableName(activeView) ? activeView : "students";
@@ -746,8 +749,31 @@ export default function Home() {
   }, [activeConfig.searchFields, activeTable, data, search, classSessionsFilterId]);
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        router.push("/login");
+      } else {
+        setIsAuthenticated(true);
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        router.push("/login");
+      } else {
+        setIsAuthenticated(true);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [router]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
     void loadAllTables();
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (activeTable === "class_sessions" && !classSessionsFilterId && data.classes.length > 0) {
@@ -1976,6 +2002,14 @@ export default function Home() {
               ? "Nhập điểm đồ án cho từng học viên trong lớp."
               : activeConfig.description;
 
+  if (isAuthenticated === null || !isAuthenticated) {
+    return (
+      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--background)", color: "var(--text-secondary)", fontFamily: "var(--font-geist-sans)" }}>
+        Đang kiểm tra đăng nhập...
+      </div>
+    );
+  }
+
   return (
     <main className="admin-shell">
       <aside className="sidebar">
@@ -1983,6 +2017,12 @@ export default function Home() {
           <img alt="Dua-Edu" className="brand-logo" src={logoUrl} />
           <div>
             <h1>Quản trị đào tạo</h1>
+            <button 
+              onClick={() => supabase.auth.signOut()} 
+              style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--text-secondary)", fontSize: "12px", padding: 0, marginTop: "4px" }}
+            >
+              Đăng xuất
+            </button>
           </div>
         </div>
 
