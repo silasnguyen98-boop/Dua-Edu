@@ -128,6 +128,7 @@ export default function Home() {
   const [accountTab, setAccountTab] = useState<"staff" | "student">("staff");
   const [classDashboardMode, setClassDashboardMode] = useState<"session" | "overall">("session");
   const [sessionDetailStatus, setSessionDetailStatus] = useState<string | null>(null);
+  const [segmentCriteria, setSegmentCriteria] = useState<"attendance" | "assignment" | "project" | "overall">("attendance");
 
   useEffect(() => {
     setIsAssistantView(currentUserRole === "assistant");
@@ -588,22 +589,50 @@ export default function Home() {
       })(),
       attendanceSegments: (() => {
         const markedCount = sessionRows.filter(r => r.isMarked).length;
-        if (markedCount === 0) return { excellent: 0, good: 0, average: 0, risky: 0 };
         
-        let excellent = 0, good = 0, average = 0, risky = 0;
+        const results = {
+          attendance: { excellent: 0, good: 0, average: 0, risky: 0 },
+          assignment: { excellent: 0, good: 0, average: 0, risky: 0 },
+          project: { excellent: 0, good: 0, average: 0, risky: 0 },
+          overall: { excellent: 0, good: 0, average: 0, risky: 0 },
+        };
         
         selectedAttendanceClass.enrollments.forEach(en => {
-          const records = recordsForClass.filter(r => String(r.enrollment_id) === en.id);
-          const attended = records.filter(r => r.status === "present" || r.status === "late").length;
-          const rate = Math.round((attended / markedCount) * 100);
+          // Attendance
+          const attendRecords = recordsForClass.filter(r => String(r.enrollment_id) === en.id);
+          const attended = attendRecords.filter(r => r.status === "present" || r.status === "late").length;
+          const attendRate = markedCount ? Math.round((attended / markedCount) * 100) : 0;
           
-          if (rate >= 90) excellent++;
-          else if (rate >= 70) good++;
-          else if (rate >= 50) average++;
-          else risky++;
+          // Assignment
+          const assignRecords = assignmentRecords.filter(r => String(r.enrollment_id) === en.id);
+          const submittedAssign = assignRecords.filter(r => r.status === "submitted").length;
+          // We don't have total assignments count in metrics directly, let's assume it's based on all assignments seen in records for this class
+          const totalAssigns = Array.from(new Set(assignmentRecords.map(r => r.assignment_id))).length || 1;
+          const assignRate = Math.round((submittedAssign / totalAssigns) * 100);
+
+          // Project
+          const projRecords = assignmentRecords.filter(r => String(r.enrollment_id) === en.id && r.project_id);
+          const submittedProj = projRecords.filter(r => r.status === "submitted").length;
+          const totalProjs = Array.from(new Set(assignmentRecords.filter(r => r.project_id).map(r => r.project_id))).length || 1;
+          const projRate = Math.round((submittedProj / totalProjs) * 100);
+
+          // Overall
+          const overallRate = Math.round((attendRate + assignRate + projRate) / 3);
+
+          const categorize = (rate: number, type: keyof typeof results) => {
+            if (rate >= 90) results[type].excellent++;
+            else if (rate >= 70) results[type].good++;
+            else if (rate >= 50) results[type].average++;
+            else results[type].risky++;
+          };
+
+          categorize(attendRate, "attendance");
+          categorize(assignRate, "assignment");
+          categorize(projRate, "project");
+          categorize(overallRate, "overall");
         });
         
-        return { excellent, good, average, risky };
+        return results;
       })(),
       chronicAbsenteesInSession: selectedAttendanceClass.enrollments.filter(en => {
         const todayRecord = attendanceRecords.find(r => String(r.enrollment_id) === en.id && r.session_number === selectedAttendanceSession);
@@ -3362,31 +3391,48 @@ export default function Home() {
 
                       <article className="class-dashboard-panel">
                         <div className="section-heading compact">
-                          <div>
+                          <div style={{ flex: 1 }}>
                             <p className="eyebrow">Phân tích</p>
                             <h3>Phân loại học viên</h3>
                           </div>
+                          <select 
+                            value={segmentCriteria} 
+                            onChange={(e) => setSegmentCriteria(e.target.value as any)}
+                            style={{ 
+                              padding: "6px 12px", borderRadius: "8px", border: "1px solid var(--border)", 
+                              fontSize: "12px", fontWeight: 600, background: "var(--surface)", cursor: "pointer",
+                              outline: "none"
+                            }}
+                          >
+                            <option value="attendance">Theo chuyên cần</option>
+                            <option value="assignment">Theo bài tập</option>
+                            <option value="project">Theo đồ án</option>
+                            <option value="overall">Theo tổng thể</option>
+                          </select>
                         </div>
                         <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                          {[
-                            { label: "Xuất sắc (90-100%)", count: classDashboardMetrics.attendanceSegments.excellent, color: "#059669" },
-                            { label: "Tốt (70-90%)", count: classDashboardMetrics.attendanceSegments.good, color: "#10b981" },
-                            { label: "Trung bình (50-70%)", count: classDashboardMetrics.attendanceSegments.average, color: "#f59e0b" },
-                            { label: "Nguy cơ cao (<50%)", count: classDashboardMetrics.attendanceSegments.risky, color: "#dc2626" },
-                          ].map(seg => {
-                            const percent = classDashboardMetrics.totalStudents ? Math.round((seg.count / classDashboardMetrics.totalStudents) * 100) : 0;
-                            return (
-                              <div key={seg.label}>
-                                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "4px" }}>
-                                  <span style={{ fontWeight: 600, color: "var(--text-secondary)" }}>{seg.label}</span>
-                                  <span style={{ fontWeight: 700 }}>{seg.count} học viên ({percent}%)</span>
+                          {(() => {
+                            const data = classDashboardMetrics.attendanceSegments[segmentCriteria];
+                            return [
+                              { label: "Xuất sắc (90-100%)", count: data.excellent, color: "#059669" },
+                              { label: "Tốt (70-90%)", count: data.good, color: "#10b981" },
+                              { label: "Trung bình (50-70%)", count: data.average, color: "#f59e0b" },
+                              { label: "Nguy cơ cao (<50%)", count: data.risky, color: "#dc2626" },
+                            ].map(seg => {
+                              const percent = classDashboardMetrics.totalStudents ? Math.round((seg.count / classDashboardMetrics.totalStudents) * 100) : 0;
+                              return (
+                                <div key={seg.label}>
+                                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "4px" }}>
+                                    <span style={{ fontWeight: 600, color: "var(--text-secondary)" }}>{seg.label}</span>
+                                    <span style={{ fontWeight: 700 }}>{seg.count} học viên ({percent}%)</span>
+                                  </div>
+                                  <div style={{ height: "8px", background: "#f1f5f9", borderRadius: "4px", overflow: "hidden" }}>
+                                    <div style={{ height: "100%", width: `${percent}%`, background: seg.color, borderRadius: "4px", transition: "width 0.5s ease" }} />
+                                  </div>
                                 </div>
-                                <div style={{ height: "8px", background: "#f1f5f9", borderRadius: "4px", overflow: "hidden" }}>
-                                  <div style={{ height: "100%", width: `${percent}%`, background: seg.color, borderRadius: "4px", transition: "width 0.5s ease" }} />
-                                </div>
-                              </div>
-                            );
-                          })}
+                              );
+                            });
+                          })()}
                         </div>
                       </article>
 
