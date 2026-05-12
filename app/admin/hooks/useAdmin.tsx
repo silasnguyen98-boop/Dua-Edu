@@ -868,9 +868,37 @@ export function useAdmin(): UseAdminReturn {
 
   async function updateAssignmentScore(enrollmentId: string, assignmentNumber: number, score: string) {
     setIsSaving(true);
-    const { error: saveError } = await supabase.from("assignment_records").upsert({ enrollment_id: enrollmentId, assignment_number: assignmentNumber, score: Number(score) || 0 }, { onConflict: "enrollment_id,assignment_number" });
-    if (saveError) setError(saveError.message);
-    else await loadAssignmentRecords(new Set(visibleClassItems.flatMap(c => c.enrollments.map(e => e.id))));
+    // 1. Lưu điểm chi tiết
+    const { error: saveError } = await supabase
+      .from("assignment_records")
+      .upsert(
+        { enrollment_id: enrollmentId, assignment_number: assignmentNumber, score: Number(score) || 0 },
+        { onConflict: "enrollment_id,assignment_number" }
+      );
+
+    if (saveError) {
+      setError(saveError.message);
+    } else {
+      // 2. Tính toán lại điểm trung bình
+      const { data: allAssignments } = await supabase
+        .from("assignment_records")
+        .select("score")
+        .eq("enrollment_id", enrollmentId);
+      
+      if (allAssignments && allAssignments.length > 0) {
+        const avg = allAssignments.reduce((acc, curr) => acc + (Number(curr.score) || 0), 0) / allAssignments.length;
+        
+        // 3. Cập nhật vào bảng enrollments
+        await supabase
+          .from("enrollments")
+          .update({ assignment_score: avg })
+          .eq("id", enrollmentId);
+      }
+
+      // 4. Refresh dữ liệu
+      await loadAssignmentRecords(new Set(visibleClassItems.flatMap(c => c.enrollments.map(e => e.id))));
+      await loadAllTables(); // Tải lại cả bảng enrollments để thấy điểm trung bình mới
+    }
     setIsSaving(false);
   }
 
