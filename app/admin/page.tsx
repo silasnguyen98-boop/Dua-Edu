@@ -2064,9 +2064,12 @@ export default function Home() {
     }
   }
 
-  async function syncCertificates(targetEnrollmentId?: string) {
-    if (!targetEnrollmentId) {
+  async function syncCertificates(targetId?: string, mode: "enrollment" | "class" = "enrollment") {
+    if (!targetId) {
       const confirmed = window.confirm("Hệ thống sẽ quét toàn bộ danh sách ghi danh và tự động tạo chứng chỉ cho những học viên đủ điều kiện. Tiếp tục?");
+      if (!confirmed) return;
+    } else if (mode === "class") {
+      const confirmed = window.confirm("Hệ thống sẽ quét và cập nhật chứng chỉ cho toàn bộ học viên trong lớp này. Tiếp tục?");
       if (!confirmed) return;
     }
 
@@ -3101,6 +3104,15 @@ export default function Home() {
                         ))}
                       </select>
                     </label>
+                    <button 
+                      className="primary-button" 
+                      onClick={() => void syncCertificates(selectedClass.id, "class")} 
+                      disabled={isSaving}
+                      style={{ background: "#059669" }}
+                      type="button"
+                    >
+                      {isSaving ? "Đang đồng bộ..." : "Đồng bộ chứng chỉ"}
+                    </button>
                     <button className="primary-button" onClick={exportClassDetailExcel} type="button">
                       Xuất Excel
                     </button>
