@@ -654,6 +654,7 @@ export default function StudentDashboard() {
         .hero h1 {
           margin: 0;
           max-width: 700px;
+          color: #ffffff;
           font-size: clamp(36px, 5vw, 68px);
           line-height: 0.98;
           letter-spacing: 0;
