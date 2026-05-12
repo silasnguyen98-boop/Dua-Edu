@@ -128,7 +128,7 @@ export default function Home() {
   const [accountTab, setAccountTab] = useState<"staff" | "student">("staff");
   const [classDashboardMode, setClassDashboardMode] = useState<"session" | "overall">("session");
   const [sessionDetailStatus, setSessionDetailStatus] = useState<string | null>(null);
-  const [segmentCriteria, setSegmentCriteria] = useState<"attendance" | "assignment" | "project" | "overall">("attendance");
+  const [segmentCriteria, setSegmentCriteria] = useState<"attendance" | "assignment" | "project">("attendance");
 
   useEffect(() => {
     setIsAssistantView(currentUserRole === "assistant");
@@ -594,7 +594,6 @@ export default function Home() {
           attendance: { excellent: 0, good: 0, average: 0, risky: 0 },
           assignment: { excellent: 0, good: 0, average: 0, risky: 0 },
           project: { excellent: 0, good: 0, average: 0, risky: 0 },
-          overall: { excellent: 0, good: 0, average: 0, risky: 0 },
         };
         
         selectedAttendanceClass.enrollments.forEach(en => {
@@ -606,7 +605,6 @@ export default function Home() {
           // Assignment
           const assignRecords = assignmentRecords.filter(r => String(r.enrollment_id) === en.id);
           const submittedAssign = assignRecords.filter(r => r.status === "submitted").length;
-          // We don't have total assignments count in metrics directly, let's assume it's based on all assignments seen in records for this class
           const totalAssigns = Array.from(new Set(assignmentRecords.map(r => r.assignment_id))).length || 1;
           const assignRate = Math.round((submittedAssign / totalAssigns) * 100);
 
@@ -615,9 +613,6 @@ export default function Home() {
           const submittedProj = projRecords.filter(r => r.status === "submitted").length;
           const totalProjs = Array.from(new Set(assignmentRecords.filter(r => r.project_id).map(r => r.project_id))).length || 1;
           const projRate = Math.round((submittedProj / totalProjs) * 100);
-
-          // Overall
-          const overallRate = Math.round((attendRate + assignRate + projRate) / 3);
 
           const categorize = (rate: number, type: keyof typeof results) => {
             if (rate >= 90) results[type].excellent++;
@@ -629,7 +624,6 @@ export default function Home() {
           categorize(attendRate, "attendance");
           categorize(assignRate, "assignment");
           categorize(projRate, "project");
-          categorize(overallRate, "overall");
         });
         
         return results;
@@ -3407,7 +3401,6 @@ export default function Home() {
                             <option value="attendance">Theo chuyên cần</option>
                             <option value="assignment">Theo bài tập</option>
                             <option value="project">Theo đồ án</option>
-                            <option value="overall">Theo tổng thể</option>
                           </select>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
