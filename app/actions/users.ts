@@ -255,7 +255,10 @@ export async function createStudentAccount(
   token: string,
   input: { email: string; full_name: string; student_id?: string },
 ): Promise<StudentAccountResult> {
-  const { adminClient, user: actor } = await verifyStudentAccountManager(token);
+  const adminClient = await verifyAdmin(token);
+  const userClient = getSupabaseUserClient(token);
+  const { data: { user: actor } } = await userClient.auth.getUser();
+  if (!actor) throw new Error("Phiên đăng nhập không hợp lệ.");
   const email = input.email.trim().toLowerCase();
   const fullName = input.full_name.trim();
 
@@ -339,7 +342,10 @@ export async function resetStudentPassword(
   token: string,
   authUserId: string,
 ): Promise<StudentAccountResult> {
-  const { adminClient, user: actor } = await verifyStudentAccountManager(token);
+  const adminClient = await verifyAdmin(token);
+  const userClient = getSupabaseUserClient(token);
+  const { data: { user: actor } } = await userClient.auth.getUser();
+  if (!actor) throw new Error("Phiên đăng nhập không hợp lệ.");
   const { data: existing, error: getError } = await adminClient.auth.admin.getUserById(authUserId);
   if (getError || !existing.user) {
     throw new Error(getError?.message || "Không tìm thấy tài khoản học viên.");

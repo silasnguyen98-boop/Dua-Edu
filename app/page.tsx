@@ -1910,6 +1910,11 @@ export default function Home() {
     setError("");
     setMessage("");
 
+    if (isAssistantUser && activeTable === "students") {
+      setError("Bạn không có quyền thực hiện thao tác này trên dữ liệu học viên.");
+      return;
+    }
+
     const missingField = activeConfig.fields.find(
       (field) => field.required && !form[field.name]?.trim(),
     );
@@ -1997,6 +2002,11 @@ export default function Home() {
   }
 
   async function deleteRow(row: Row) {
+    if (isAssistantUser && activeTable === "students") {
+      setError("Bạn không có quyền xóa học viên.");
+      return;
+    }
+
     const label = String(row.full_name ?? row.name ?? row.class_name ?? row.certificate_code ?? row.id);
     const confirmed = window.confirm(`Xoá "${label}" khỏi ${activeConfig.label}?`);
 
@@ -3917,7 +3927,7 @@ export default function Home() {
         )}
 
         {isDataView && (
-        <section className={`management-grid ${isAssistantUser && activeTable === "students" ? "full-width" : ""}`}>
+        <section className={isAssistantUser && activeTable === "students" ? "full-width-panel" : "management-grid"}>
           {!(isAssistantUser && activeTable === "students") && (
           <form className="editor" onSubmit={(event) => void saveRow(event)}>
             <div className="section-heading">

@@ -361,7 +361,7 @@ tbody tr:last-child td { border-bottom: none; }
 .account-badge.pending { background: #fef3c7; color: #b45309; }
 
 .management-grid { display: grid; grid-template-columns: 400px 1fr; gap: 24px; align-items: start; }
-.management-grid.full-width { grid-template-columns: 1fr; }
+.full-width-panel { display: block; width: 100%; }
 .editor, .table-panel { padding: 24px; }
 .section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
