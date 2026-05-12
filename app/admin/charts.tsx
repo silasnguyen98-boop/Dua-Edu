@@ -33,6 +33,8 @@ export function BarChart({ emptyText, items }: { emptyText: string; items: Chart
 export function PieChart({ emptyText, items, centerLabel, centerValue }: { emptyText: string; items: ChartItem[]; centerLabel?: string; centerValue?: string | number }) {
   let cursor = 0;
   const total = items.reduce((sum, item) => sum + item.value, 0);
+  const resolvedCenterValue = centerValue ?? total;
+  const resolvedCenterLabel = centerLabel ?? "tổng";
   
   // Filter out zero-value items for segments to avoid potential gradient artifacts, but keep for legend
   const activeItems = items.filter(item => item.value > 0);
@@ -55,9 +57,9 @@ export function PieChart({ emptyText, items, centerLabel, centerValue }: { empty
         role="img"
         style={{ background: total > 0 ? `conic-gradient(${segments.join(", ")})` : "#f1f5f9" }}
       >
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1 }}>
-          <strong style={{ fontSize: "24px" }}>{centerValue}</strong>
-          {centerLabel && <small style={{ fontSize: "10px", color: "var(--text-secondary)", marginTop: "4px" }}>{centerLabel}</small>}
+        <div className="pie-center">
+          <strong>{resolvedCenterValue}</strong>
+          <small>{resolvedCenterLabel}</small>
         </div>
       </div>
       <div className="pie-legend">
@@ -112,14 +114,14 @@ export function LineChart({ items }: { items: { label: string; value: number }[]
           );
         })}
         {/* Line */}
-        <path d={d} fill="none" stroke="#6366f1" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
+        <path d={d} fill="none" stroke="#0f9d58" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
         {/* Points */}
         {points.map((p, i) => {
           const isMax = items[i].value === maxVal && maxVal !== minVal;
           const isMin = items[i].value === minVal && maxVal !== minVal;
           const isLast = i === items.length - 1;
           
-          const pointColor = isMax ? "#10b981" : isMin ? "#ef4444" : isLast ? "#6366f1" : "#cbd5e1";
+          const pointColor = isMax ? "#10b981" : isMin ? "#ef4444" : isLast ? "#0b8043" : "#cbd5e1";
           const strokeWidth = isLast || isMax || isMin ? 3 : 2;
           const radius = isLast ? 7 : 5;
 
@@ -170,8 +172,8 @@ export function LineChart({ items }: { items: { label: string; value: number }[]
         <span style={{ display: "flex", alignItems: "center", gap: "4px", color: "#ef4444" }}>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ef4444" }} /> Thấp nhất
         </span>
-        <span style={{ display: "flex", alignItems: "center", gap: "4px", color: "#6366f1" }}>
-          <span style={{ width: 8, height: 8, border: "2px solid #6366f1", borderRadius: "50%", background: "white" }} /> Buổi mới nhất
+        <span style={{ display: "flex", alignItems: "center", gap: "4px", color: "#0b8043" }}>
+          <span style={{ width: 8, height: 8, border: "2px solid #0b8043", borderRadius: "50%", background: "white" }} /> Buổi mới nhất
         </span>
       </div>
     </div>

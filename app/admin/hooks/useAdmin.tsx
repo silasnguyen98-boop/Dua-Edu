@@ -415,13 +415,7 @@ export function useAdmin(): UseAdminReturn {
       return;
     }
     
-    let group = getSidebarGroupForView(view);
-    // Nếu là trợ giảng và nhấn vào học viên, giữ menu Academic mở
-    if (isAssistantUser && view === "students") {
-      group = "academic";
-    }
-    
-    setOpenSidebarGroup(group);
+    setOpenSidebarGroup(getSidebarGroupForView(view));
     setActiveView(view);
   };
 
@@ -1071,7 +1065,7 @@ export function useAdmin(): UseAdminReturn {
     if (activeTable === "certificates" && column.key === "status") {
       return (
         <select
-          className="status-select"
+          className="status-select certificate-status-select"
           value={val || "draft"}
           onChange={(e) => updateCertificateStatus(String(row.enrollment_id), e.target.value)}
           disabled={updatingCertificateEnrollmentId === row.enrollment_id}

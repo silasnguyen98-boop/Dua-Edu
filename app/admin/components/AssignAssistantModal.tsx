@@ -32,26 +32,34 @@ export function AssignAssistantModal({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "500px" }}>
-        <div className="modal-header">
-          <h3>Phân công trợ giảng</h3>
-          <button className="close-button" onClick={onClose}>&times;</button>
+      <div className="modal-content assign-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="assign-modal-header">
+          <div>
+            <p className="eyebrow">Lớp học</p>
+            <h3>Phân công trợ giảng</h3>
+          </div>
+          <button className="assign-modal-close" onClick={onClose} type="button" aria-label="Đóng modal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
-        <div className="modal-body">
-          <div style={{ marginBottom: "20px" }}>
-            <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "12px" }}>Danh sách trợ giảng đang phụ trách:</p>
+        <div className="assign-modal-body">
+          <section className="assign-section">
+            <p>Danh sách trợ giảng đang phụ trách</p>
             {classAssistants.length ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div className="assign-list">
                 {classAssistants.map((assignment) => {
                   const assistant = adminUsers.find(u => String(u.profile_id ?? u.id) === String(assignment.assistant_id));
                   return (
-                    <div key={assignment.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                      <span style={{ fontSize: "14px", fontWeight: 600 }}>{assistant?.username || assistant?.email || assignment.assistant_id}</span>
+                    <div className="assign-row" key={assignment.id}>
+                      <span>{assistant?.username || assistant?.email || assignment.assistant_id}</span>
                       <button 
                         className="text-button" 
-                        style={{ color: "#ef4444", fontSize: "12px" }}
                         onClick={() => onRemove(assignment.id)}
                         disabled={isSaving}
+                        type="button"
                       >
                         Gỡ bỏ
                       </button>
@@ -60,30 +68,31 @@ export function AssignAssistantModal({
                 })}
               </div>
             ) : (
-              <p style={{ fontSize: "13px", color: "var(--muted)", fontStyle: "italic" }}>Chưa có trợ giảng nào được phân công.</p>
+              <div className="assign-empty">Chưa có trợ giảng nào được phân công.</div>
             )}
-          </div>
+          </section>
 
-          <div style={{ borderTop: "1px solid var(--border)", paddingTop: "20px" }}>
-            <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "12px" }}>Thêm trợ giảng mới:</p>
+          <section className="assign-section">
+            <p>Thêm trợ giảng mới</p>
             {availableAssistants.length ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div className="assign-list">
                 {availableAssistants.map((assistant) => (
                   <button 
                     key={assistant.id}
-                    className="secondary-button"
-                    style={{ justifyContent: "flex-start", textAlign: "left", padding: "12px" }}
+                    className="assign-option"
                     onClick={() => onAssign(String(assistant.profile_id ?? assistant.id))}
                     disabled={isSaving}
+                    type="button"
                   >
-                    + {assistant.username || assistant.email}
+                    <span>+</span>
+                    <strong>{assistant.username || assistant.email}</strong>
                   </button>
                 ))}
               </div>
             ) : (
-              <p style={{ fontSize: "13px", color: "var(--muted)", fontStyle: "italic" }}>Không còn trợ giảng nào khả dụng để thêm.</p>
+              <div className="assign-empty">Không còn trợ giảng nào khả dụng để thêm.</div>
             )}
-          </div>
+          </section>
         </div>
       </div>
     </div>

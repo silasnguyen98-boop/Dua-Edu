@@ -83,7 +83,6 @@ export default function Home() {
             <GeneralDashboard
               stats={admin.stats}
               analytics={admin.analytics}
-              students={admin.data.students}
             />
           )}
 

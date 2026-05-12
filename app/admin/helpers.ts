@@ -141,15 +141,22 @@ export const getSidebarGroupForView = (view: ViewName): SidebarGroup => {
     view === "classManagement" ||
     view === "classDetail" ||
     view === "assistantAssignments" ||
-    view === "attendance" ||
-    view === "assignmentScore" ||
-    view === "projectScore" ||
+    view === "classes" ||
     view === "class_sessions"
   ) {
     return "academic";
   }
-  if (view === "courses" || view === "classes" || view === "teachers" || view === "students") return "coreData";
-  if (view === "enrollments" || view === "certificates") return "extendedData";
+  if (
+    view === "students" ||
+    view === "enrollments" ||
+    view === "attendance" ||
+    view === "assignmentScore" ||
+    view === "projectScore" ||
+    view === "certificates"
+  ) {
+    return "extendedData";
+  }
+  if (view === "courses" || view === "teachers") return "coreData";
   return "system";
 };
 

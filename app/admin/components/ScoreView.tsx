@@ -56,21 +56,10 @@ export function ScoreView({
               <span>ℹ️ Hướng dẫn</span>
             </button>
             {showGuide && (
-              <div style={{ 
-                position: "absolute", 
-                top: "100%", 
-                right: 0, 
-                width: "300px", 
-                backgroundColor: "var(--background)", 
-                border: "1px solid var(--border)", 
-                borderRadius: "12px", 
-                padding: "16px", 
-                boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-                zIndex: 100,
-                marginTop: "8px"
-              }}>
-                <h4 style={{ margin: "0 0 8px", fontSize: "1rem" }}>Cách tính điểm:</h4>
-                <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "0.85rem", lineHeight: "1.6", color: "var(--foreground-muted)" }}>
+              <div className="guide-popover">
+                <p className="guide-kicker">Hướng dẫn</p>
+                <h4>Cách tính điểm</h4>
+                <ul className="guide-list">
                   <li>Nhập điểm trực tiếp vào từng ô BT (0-10).</li>
                   <li>Hệ thống <strong>tự động lưu</strong> khi bạn chuyển ô.</li>
                   <li>Điểm trung bình (Assignment Score) sẽ được <strong>tự động tính toán</strong> lại ngay sau khi lưu.</li>

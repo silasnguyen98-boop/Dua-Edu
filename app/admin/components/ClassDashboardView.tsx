@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { PieChart, LineChart } from "../charts";
 import { AttendanceModal } from "./AttendanceModal";
 import { enrollmentStatusOptions } from "../constants";
@@ -41,6 +41,8 @@ export function ClassDashboardView({
   const [sessionDetailStatus, setSessionDetailStatus] = useState<string | null>(null);
   const [submissionChartType, setSubmissionChartType] = useState<"assignment" | "project">("assignment");
   const [certificateDetailType, setCertificateDetailType] = useState<"participation" | "completion" | null>(null);
+  const [studentStatusPageSize, setStudentStatusPageSize] = useState(20);
+  const [studentStatusPage, setStudentStatusPage] = useState(1);
   const segmentLabels = {
     excellent: "Xuất sắc",
     good: "Tốt",
@@ -107,6 +109,20 @@ export function ClassDashboardView({
   const certificateDetailRows = certificateDetailType
     ? classDashboardMetrics.eligibleCertificateStudents?.[certificateDetailType] ?? []
     : [];
+  const studentStatusRows = classDashboardMetrics.studentRows ?? [];
+  const studentStatusTotalPages = Math.max(Math.ceil(studentStatusRows.length / studentStatusPageSize), 1);
+  const paginatedStudentStatusRows = studentStatusRows.slice(
+    (studentStatusPage - 1) * studentStatusPageSize,
+    studentStatusPage * studentStatusPageSize,
+  );
+
+  useEffect(() => {
+    setStudentStatusPage(1);
+  }, [selectedAttendanceClassId, studentStatusPageSize]);
+
+  useEffect(() => {
+    setStudentStatusPage((page) => Math.min(page, studentStatusTotalPages));
+  }, [studentStatusTotalPages]);
 
   return (
     <section className="analytics-grid" aria-label="Dashboard lớp học">
@@ -521,6 +537,17 @@ export function ClassDashboardView({
                       <p className="eyebrow">Theo dõi</p>
                       <h3>Tình trạng học viên</h3>
                     </div>
+                    <label className="page-size-control">
+                      <span>Hiển thị</span>
+                      <select
+                        value={studentStatusPageSize}
+                        onChange={(event) => setStudentStatusPageSize(Number(event.target.value))}
+                      >
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
+                    </label>
                   </div>
                   <div className="class-table" style={{ marginTop: "16px" }}>
                     <table>
@@ -534,8 +561,8 @@ export function ClassDashboardView({
                         </tr>
                       </thead>
                       <tbody>
-                        {classDashboardMetrics.studentRows.length ? (
-                          classDashboardMetrics.studentRows.map((student: any) => (
+                        {studentStatusRows.length ? (
+                          paginatedStudentStatusRows.map((student: any) => (
                             <tr key={student.id}>
                               <td>{student.name}</td>
                               <td>{student.email}</td>
@@ -559,6 +586,46 @@ export function ClassDashboardView({
                         )}
                       </tbody>
                     </table>
+                  </div>
+                  <div className="pagination-bar">
+                    <span>
+                      {studentStatusRows.length
+                        ? `${(studentStatusPage - 1) * studentStatusPageSize + 1}-${Math.min(studentStatusPage * studentStatusPageSize, studentStatusRows.length)} / ${studentStatusRows.length} học viên`
+                        : "0 học viên"}
+                    </span>
+                    <button
+                      className="secondary-button compact-button"
+                      disabled={studentStatusPage === 1}
+                      onClick={() => setStudentStatusPage(1)}
+                      type="button"
+                    >
+                      Đầu
+                    </button>
+                    <button
+                      className="secondary-button compact-button"
+                      disabled={studentStatusPage === 1}
+                      onClick={() => setStudentStatusPage((page) => Math.max(1, page - 1))}
+                      type="button"
+                    >
+                      Trước
+                    </button>
+                    <span>Trang {studentStatusPage}/{studentStatusTotalPages}</span>
+                    <button
+                      className="secondary-button compact-button"
+                      disabled={studentStatusPage === studentStatusTotalPages}
+                      onClick={() => setStudentStatusPage((page) => Math.min(studentStatusTotalPages, page + 1))}
+                      type="button"
+                    >
+                      Sau
+                    </button>
+                    <button
+                      className="secondary-button compact-button"
+                      disabled={studentStatusPage === studentStatusTotalPages}
+                      onClick={() => setStudentStatusPage(studentStatusTotalPages)}
+                      type="button"
+                    >
+                      Cuối
+                    </button>
                   </div>
                 </article>
 

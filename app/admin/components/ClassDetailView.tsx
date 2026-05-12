@@ -106,9 +106,9 @@ export function ClassDetailView({
       <article className="analytics-card detail-card wide" style={{ paddingTop: "24px" }}>
         <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "24px", alignItems: "flex-end", justifyContent: "space-between" }}>
           <div className="class-detail-actions">
-            <label style={{ display: "flex", alignItems: "center", gap: "8px", whiteSpace: "nowrap" }}>
-              <span style={{ fontWeight: 500, fontSize: "0.875rem" }}>Lọc trạng thái</span>
-              <select onChange={(e) => setClassStatusFilter(e.target.value)} value={classStatusFilter} style={{ margin: 0 }}>
+            <label className="class-status-filter">
+              <span>Lọc trạng thái</span>
+              <select onChange={(e) => setClassStatusFilter(e.target.value)} value={classStatusFilter}>
                 <option value="all">Tất cả trạng thái</option>
                 {enrollmentStatusOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
               </select>
@@ -170,8 +170,8 @@ export function ClassDetailView({
                         <span style={{ color: "#94a3b8", fontSize: "12px" }}>Chưa có chứng chỉ</span>
                       )}
                     </td>
-                    <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>
-                      <select className={`status-select ${getEnrollmentStatusClass(enrollment.status)}`} disabled={updatingEnrollmentId === enrollment.id} onChange={(e) => onUpdateStatus(enrollment.id, e.target.value)} value={enrollment.status}>
+                    <td className="class-detail-status-cell" style={{ borderLeft: "1px solid var(--border)" }}>
+                      <select className={`status-select class-detail-status-select ${getEnrollmentStatusClass(enrollment.status)}`} disabled={updatingEnrollmentId === enrollment.id} onChange={(e) => onUpdateStatus(enrollment.id, e.target.value)} value={enrollment.status}>
                         <option value="">Chưa có</option>
                         {enrollmentStatusOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                       </select>

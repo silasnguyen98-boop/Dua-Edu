@@ -1,0 +1,219 @@
+/* Google-style Premium Certificate System */
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap');
+
+:root {
+  --google-gray: #5f6368;
+  --google-blue: #1a73e8;
+  --google-green: #0f9d58; /* Brand DUA Edu */
+  --google-border: #dfe1e5;
+  --google-shadow: 0 1px 6px rgba(32,33,36,0.28);
+}
+
+.cert-system-body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  background: #ffffff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 1. Trang Search - Google Style */
+.google-search-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  margin-top: -10vh; /* Đẩy lên trên một chút giống Google */
+}
+
+.google-logo-area {
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.google-brand-name {
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  margin-bottom: 8px;
+}
+
+.google-brand-name span:nth-child(1) { color: #4285F4; } /* Blue */
+.google-brand-name span:nth-child(2) { color: #EA4335; } /* Red */
+.google-brand-name span:nth-child(3) { color: #FBBC05; } /* Yellow */
+.google-brand-name span:nth-child(4) { color: var(--google-green); } /* DUA Green */
+.google-brand-name span:nth-child(5) { color: #34A853; } /* Green */
+
+.google-search-box-wrap {
+  width: 100%;
+  max-width: 584px;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.google-search-box {
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  height: 48px;
+  background: #fff;
+  border: 1px solid var(--google-border);
+  border-radius: 24px;
+  transition: box-shadow 0.2s;
+}
+
+.google-search-box:hover, 
+.google-search-box:focus-within {
+  box-shadow: var(--google-shadow);
+  border-color: rgba(223,225,229,0);
+}
+
+.google-search-icon {
+  color: #9aa0a6;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.google-search-input {
+  flex: 1;
+  border: none !important;
+  outline: none !important;
+  font-size: 16px;
+  color: #202124;
+  height: 100%;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+}
+
+.google-button-row {
+  margin-top: 30px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.google-btn {
+  background-color: #f8f9fa;
+  border: 1px solid #f8f9fa;
+  border-radius: 4px;
+  color: #3c4043;
+  font-family: inherit;
+  font-size: 14px;
+  margin: 11px 4px;
+  padding: 0 16px;
+  line-height: 27px;
+  height: 36px;
+  min-width: 54px;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.1s;
+}
+
+.google-btn:hover {
+  box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+  background-image: -webkit-linear-gradient(top,#f8f9fa,#f8f9fa);
+  background-color: #f8f9fa;
+  border: 1px solid #dadce0;
+  color: #202124;
+}
+
+.google-btn-primary {
+  background-color: var(--google-green);
+  color: white;
+  border-color: var(--google-green);
+}
+
+.google-btn-primary:hover {
+  background-color: #ffffff !important;
+  border-color: var(--google-green) !important;
+  color: var(--google-green) !important;
+  box-shadow: 0 4px 12px rgba(15, 157, 88, 0.2);
+}
+
+/* 2. Detail Page - Professional Style */
+.pro-nav {
+  height: 64px;
+  border-bottom: 1px solid var(--google-border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  background: white;
+}
+
+.pro-nav-logo {
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--google-green);
+  text-decoration: none;
+  margin-right: 40px;
+}
+
+.pro-grid {
+  max-width: 1100px;
+  margin: 40px auto;
+  padding: 0 20px;
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 40px;
+}
+
+.pro-cert-card {
+  background: white;
+  border: 1px solid var(--google-border);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.pro-info-card {
+  border: 1px solid var(--google-border);
+  border-radius: 8px;
+  padding: 32px;
+}
+
+.pro-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: #e6f4ea;
+  color: #137333;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+
+.pro-info-title {
+  font-size: 22px;
+  font-weight: 500;
+  margin-bottom: 24px;
+  color: #202124;
+}
+
+.pro-info-row {
+  margin-bottom: 20px;
+}
+
+.pro-info-label {
+  font-size: 12px;
+  color: #70757a;
+  margin-bottom: 4px;
+}
+
+.pro-info-value {
+  font-size: 16px;
+  color: #202124;
+  font-weight: 500;
+}
+
+@media (max-width: 800px) {
+  .pro-grid { grid-template-columns: 1fr; }
+}

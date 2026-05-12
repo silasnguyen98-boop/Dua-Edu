@@ -25,14 +25,6 @@ export function Sidebar({
   data,
   visibleClassItems,
 }: SidebarProps) {
-  const groups: { id: SidebarGroup; label: string; icon: string }[] = [
-    { id: "overview", label: "Tổng quan", icon: "📊" },
-    { id: "academic", label: "Học tập", icon: "🎓" },
-    { id: "coreData", label: "Dữ liệu chính", icon: "📂" },
-    { id: "extendedData", label: "Dữ liệu mở rộng", icon: "➕" },
-    { id: "system", label: "Hệ thống", icon: "⚙️" },
-  ];
-
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
@@ -45,28 +37,12 @@ export function Sidebar({
         {!isAssistantUser && (
           <div className="nav-group">
             <button
-              className="sidebar-group-trigger"
-              onClick={() => toggleSidebarGroup("overview")}
+              className={`sidebar-group-trigger sidebar-direct-link ${activeView === "dashboard" ? "active" : ""}`}
+              onClick={() => changeView("dashboard")}
               type="button"
             >
               <span>Tổng quan</span>
-              <strong>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openSidebarGroup === "overview" ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
-                  <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-              </strong>
             </button>
-            {openSidebarGroup === "overview" && (
-              <nav className="nav-tabs" aria-label="Nghiệp vụ tổng quan">
-                <button
-                  className={activeView === "dashboard" ? "active" : ""}
-                  onClick={() => changeView("dashboard")}
-                  type="button"
-                >
-                  <span>Dashboard chung</span>
-                </button>
-              </nav>
-            )}
           </div>
         )}
 
@@ -76,7 +52,7 @@ export function Sidebar({
             onClick={() => toggleSidebarGroup("academic")}
             type="button"
           >
-            <span>Học vụ</span>
+            <span>Lớp học</span>
             <strong>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openSidebarGroup === "academic" ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
                 <polyline points="6 9 12 15 18 9"></polyline>
@@ -84,7 +60,7 @@ export function Sidebar({
             </strong>
           </button>
           {openSidebarGroup === "academic" && (
-            <nav className="nav-tabs" aria-label="Nghiệp vụ học vụ">
+            <nav className="nav-tabs" aria-label="Quản lý lớp học">
               <button
                 className={activeView === "classDashboard" ? "active" : ""}
                 onClick={() => changeView("classDashboard")}
@@ -106,22 +82,48 @@ export function Sidebar({
               >
                 <span>Quản lý buổi học</span>
               </button>
-              {isAssistantUser && (
-                <button
-                  className={activeView === "students" ? "active" : ""}
-                  onClick={() => changeView("students")}
-                  type="button"
-                >
-                  <span>Học viên</span>
-                </button>
-              )}
               {!isAssistantUser && (
                 <button
                   className={activeView === "assistantAssignments" ? "active" : ""}
                   onClick={() => changeView("assistantAssignments")}
                   type="button"
+              >
+                <span>Phân công trợ giảng</span>
+              </button>
+              )}
+            </nav>
+          )}
+        </div>
+
+        <div className="nav-group">
+          <button
+            className="sidebar-group-trigger"
+            onClick={() => toggleSidebarGroup("extendedData")}
+            type="button"
+          >
+            <span>Học viên</span>
+            <strong>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openSidebarGroup === "extendedData" ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </strong>
+          </button>
+          {openSidebarGroup === "extendedData" && (
+            <nav className="nav-tabs" aria-label="Theo dõi học viên">
+              <button
+                className={activeView === "students" ? "active" : ""}
+                onClick={() => changeView("students")}
+                type="button"
+              >
+                <span>Học viên</span>
+              </button>
+              {!isAssistantUser && (
+                <button
+                  className={activeView === "enrollments" ? "active" : ""}
+                  onClick={() => changeView("enrollments")}
+                  type="button"
                 >
-                  <span>Phân công trợ giảng</span>
+                  <span>Ghi danh</span>
                 </button>
               )}
               <button
@@ -145,6 +147,15 @@ export function Sidebar({
               >
                 <span>Điểm đồ án</span>
               </button>
+              {!isAssistantUser && (
+                <button
+                  className={activeView === "certificates" ? "active" : ""}
+                  onClick={() => changeView("certificates")}
+                  type="button"
+                >
+                  <span>Chứng chỉ</span>
+                </button>
+              )}
             </nav>
           )}
         </div>
@@ -157,7 +168,7 @@ export function Sidebar({
                 onClick={() => toggleSidebarGroup("coreData")}
                 type="button"
               >
-                <span>Dữ liệu lõi</span>
+                <span>Danh mục</span>
                 <strong>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openSidebarGroup === "coreData" ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
                     <polyline points="6 9 12 15 18 9"></polyline>
@@ -165,37 +176,8 @@ export function Sidebar({
                 </strong>
               </button>
               {openSidebarGroup === "coreData" && (
-                <nav className="nav-tabs" aria-label="Dữ liệu hệ thống">
-                  {tableConfigs.filter(c => ["courses", "classes", "teachers", "students"].includes(c.name)).map((config) => (
-                    <button
-                      className={config.name === activeView ? "active" : ""}
-                      key={config.name}
-                      onClick={() => changeView(config.name)}
-                      type="button"
-                    >
-                      <span>{config.label}</span>
-                    </button>
-                  ))}
-                </nav>
-              )}
-            </div>
-
-            <div className="nav-group">
-              <button
-                className="sidebar-group-trigger"
-                onClick={() => toggleSidebarGroup("extendedData")}
-                type="button"
-              >
-                <span>Mở rộng</span>
-                <strong>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openSidebarGroup === "extendedData" ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </strong>
-              </button>
-              {openSidebarGroup === "extendedData" && (
-                <nav className="nav-tabs" aria-label="Dữ liệu mở rộng">
-                  {tableConfigs.filter(c => ["enrollments", "certificates"].includes(c.name)).map((config) => (
+                <nav className="nav-tabs" aria-label="Danh mục hệ thống">
+                  {tableConfigs.filter(c => ["courses", "teachers"].includes(c.name)).map((config) => (
                     <button
                       className={config.name === activeView ? "active" : ""}
                       key={config.name}
