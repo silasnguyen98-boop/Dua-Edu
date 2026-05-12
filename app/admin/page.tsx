@@ -506,6 +506,17 @@ export default function Home() {
       };
     }).filter(row => (row.present + row.absent + row.late + row.excused) > 0);
 
+    const last2Sessions = [...sessionRows].sort((a, b) => b.sessionNumber - a.sessionNumber).slice(0, 2);
+    const atRiskStudents = selectedAttendanceClass.enrollments.filter((en) => {
+      if (last2Sessions.length < 2) return false;
+      return last2Sessions.every((session) => {
+        const record = recordsForClass.find(
+          (r) => String(r.enrollment_id) === en.id && Number(r.session_number) === session.sessionNumber,
+        );
+        return record?.status === "absent";
+      });
+    });
+
     return {
       statusCounts: sessionRows.reduce(
         (totals, row) => ({
@@ -520,6 +531,7 @@ export default function Home() {
       sessionRows,
       selectedSession: countSession(selectedAttendanceSession),
       totalStudents,
+      atRiskStudents,
     };
   }, [attendanceRecords, attendanceSessionCount, selectedAttendanceClass, selectedAttendanceSession]);
 
@@ -3082,6 +3094,33 @@ export default function Home() {
                             </div>
                           );
                         })}
+                        {classDashboardMetrics.atRiskStudents.length > 0 && (
+                          <article className="class-dashboard-panel" style={{ gridColumn: "1 / -1", borderLeft: "4px solid #dc2626", background: "#fffafb" }}>
+                            <div className="section-heading compact">
+                              <div>
+                                <p className="eyebrow" style={{ color: "#dc2626" }}>Cảnh báo</p>
+                                <h3>Vắng 2 buổi liên tiếp gần nhất</h3>
+                              </div>
+                              <span style={{ background: "#fee2e2", color: "#dc2626", padding: "4px 12px", borderRadius: "99px", fontSize: "12px", fontWeight: 700 }}>
+                                {classDashboardMetrics.atRiskStudents.length} học viên
+                              </span>
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "12px", marginTop: "16px" }}>
+                              {classDashboardMetrics.atRiskStudents.map(student => (
+                                <div key={student.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px", borderRadius: "8px", background: "white", border: "1px solid #fecaca" }}>
+                                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#fee2e2", color: "#dc2626", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "14px" }}>
+                                    {student.name.slice(0, 1).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <p style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "var(--foreground)" }}>{student.name}</p>
+                                    <p style={{ margin: 0, fontSize: "12px", color: "var(--text-secondary)" }}>{student.email}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </article>
+                        )}
+
                         <article className="class-dashboard-panel" style={{ gridColumn: "1 / -1" }}>
                       <div className="section-heading compact">
                         <div>
