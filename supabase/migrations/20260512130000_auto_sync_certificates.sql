@@ -41,7 +41,7 @@ BEGIN
                 NEW.id,
                 cert_type,
                 cert_code,
-                'Issued',
+                'issued',
                 NOW()
             );
         ELSIF existing_type != cert_type THEN

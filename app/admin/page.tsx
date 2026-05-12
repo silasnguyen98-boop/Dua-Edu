@@ -2109,7 +2109,7 @@ export default function Home() {
             enrollment_id: enrollment.id,
             certificate_type: type,
             certificate_code: code,
-            status: "Issued",
+            status: "issued",
             issued_at: new Date().toISOString(),
           });
         } 
