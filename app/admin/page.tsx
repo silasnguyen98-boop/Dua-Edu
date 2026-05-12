@@ -231,8 +231,6 @@ export default function Home() {
               setSelectedStudentForDetail={admin.setSelectedStudentForDetail}
               getFieldValue={admin.getFieldValue}
               getScoreClass={admin.getScoreClass}
-              studentAccountForm={admin.studentAccountForm}
-              setStudentAccountForm={admin.setStudentAccountForm}
               createStudentLoginAccount={admin.createStudentLoginAccount}
               relationQueries={admin.relationQueries}
               setRelationQueries={admin.setRelationQueries}

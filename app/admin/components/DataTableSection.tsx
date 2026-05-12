@@ -39,8 +39,6 @@ interface DataTableSectionProps {
 }
 
 export const DataTableSection: React.FC<DataTableSectionProps & { 
-  studentAccountForm: any;
-  setStudentAccountForm: (val: any) => void;
   createStudentLoginAccount: (form: any) => Promise<void>;
 }> = ({
   activeTable,
@@ -68,8 +66,6 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
   setSelectedStudentForDetail,
   getFieldValue,
   getScoreClass,
-  studentAccountForm,
-  setStudentAccountForm,
   createStudentLoginAccount,
   relationQueries,
   setRelationQueries,

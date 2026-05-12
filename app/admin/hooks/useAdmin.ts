@@ -100,7 +100,6 @@ export function useAdmin() {
   
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [adminForm, setAdminForm] = useState({ email: "", password: "", username: "", role: "admin" as UserRole, id: "" });
-  const [studentAccountForm, setStudentAccountForm] = useState({ email: "", full_name: "" });
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [currentAccount, setCurrentAccount] = useState<{ email: string; name: string; role: string } | null>(null);
   const [accountTab, setAccountTab] = useState<"staff" | "student">("staff");
@@ -833,7 +832,6 @@ export function useAdmin() {
       const result = await createStudentAccount(session.access_token, input);
       if (!result.ok) throw new Error(result.error);
       setMessage(`✓ Đã cấp tài khoản. Mật khẩu: ${result.initial_password}`);
-      setStudentAccountForm({ email: "", full_name: "" });
       await Promise.all([loadAllTables(), loadAdmins()]);
     } catch (err: any) { setError(err.message); } finally { setIsSaving(false); }
   }
@@ -1096,7 +1094,6 @@ export function useAdmin() {
     activeTable,
     adminUsers, setAdminUsers,
     adminForm, setAdminForm,
-    studentAccountForm, setStudentAccountForm,
     currentUserRole, setCurrentUserRole,
     currentAccount, setCurrentAccount,
     accountTab, setAccountTab,
