@@ -698,7 +698,7 @@ export function useAdmin(): UseAdminReturn {
       return p;
     }, {});
     if (activeTable === "classes" || activeTable === "class_sessions") {
-      delete payload.status;
+      delete (payload as any).status;
     }
     return payload;
   }
