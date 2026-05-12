@@ -50,10 +50,10 @@ export async function bulkImportAction(
     }
 
     const role = user.user_metadata?.role;
-    const allowedRoles = ["admin", "operation", "assistant"];
+    const allowedRoles = ["admin", "operation", "assistant", "teacher"];
     
     if (!allowedRoles.includes(role)) {
-      throw new Error("Bạn không có quyền thực hiện hành động này.");
+      throw new Error(`Bạn không có quyền thực hiện hành động này. Vai trò: ${role || "không có"}. Vui lòng đăng xuất và đăng nhập lại.`);
     }
 
     // 2. Perform import using admin client (service role)
