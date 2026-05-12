@@ -3262,7 +3262,7 @@ export default function Home() {
                         }} onClick={() => setSessionDetailStatus(null)}>
                           <article 
                             className="class-dashboard-panel" 
-                            style={{ width: "100%", maxWidth: "500px", maxHeight: "80vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
+                            style={{ width: "100%", maxWidth: "800px", maxHeight: "85vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
                             onClick={e => e.stopPropagation()}
                           >
                             <div className="section-heading compact">
