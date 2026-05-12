@@ -220,7 +220,7 @@ export async function bulkImportAction(
     const { data, error: importError } = await adminClient
       .from(tableName)
       .insert(cleanPayload)
-      .select();
+      .select(tableName === "class_sessions" ? "id" : "*");
       
     if (importError) {
       if (importError.message.includes("duplicate key") || importError.message.includes("unique constraint")) {

@@ -589,9 +589,13 @@ export function useAdmin(): UseAdminReturn {
 
     const results = await Promise.all(
       tableConfigs.map(async (config) => {
+        const selectQuery = config.name === "class_sessions"
+          ? "id, class_id, session_number, session_title, session_date, start_time, end_time, meeting_url, recording_url, slide_url, reference_url, assignment_url, note, created_at"
+          : "*";
+
         const { data: rows, error: tableError } = await supabase
           .from(config.name)
-          .select("*")
+          .select(selectQuery)
           .order("created_at", { ascending: false });
 
         return {
