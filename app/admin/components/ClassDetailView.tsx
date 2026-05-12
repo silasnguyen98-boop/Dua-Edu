@@ -106,9 +106,9 @@ export function ClassDetailView({
       <article className="analytics-card detail-card wide" style={{ paddingTop: "24px" }}>
         <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "24px", alignItems: "flex-end", justifyContent: "space-between" }}>
           <div className="class-detail-actions">
-            <label>
-              <span>Lọc trạng thái</span>
-              <select onChange={(e) => setClassStatusFilter(e.target.value)} value={classStatusFilter}>
+            <label style={{ display: "flex", alignItems: "center", gap: "8px", whiteSpace: "nowrap" }}>
+              <span style={{ fontWeight: 500, fontSize: "0.875rem" }}>Lọc trạng thái</span>
+              <select onChange={(e) => setClassStatusFilter(e.target.value)} value={classStatusFilter} style={{ margin: 0 }}>
                 <option value="all">Tất cả trạng thái</option>
                 {enrollmentStatusOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
               </select>
