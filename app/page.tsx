@@ -502,8 +502,16 @@ export default function Home() {
   const [studentAccountForm, setStudentAccountForm] = useState({ email: "", full_name: "" });
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
-  const isAssistantUser = currentUserRole === "assistant";
-  const isFullAdmin = currentUserRole === "admin" || currentUserRole === "operation";
+  const [isAssistantView, setIsAssistantView] = useState(false);
+  const [isAdminView, setIsAdminView] = useState(false);
+
+  useEffect(() => {
+    setIsAssistantView(currentUserRole === "assistant");
+    setIsAdminView(currentUserRole === "admin" || currentUserRole === "operation");
+  }, [currentUserRole]);
+
+  const isAssistantUser = isAssistantView;
+  const isFullAdmin = isAdminView;
   const [assignedClassIds, setAssignedClassIds] = useState<string[]>([]);
   const [classAssistants, setClassAssistants] = useState<ClassAssistant[]>([]);
   const [showAssignModal, setShowAssignModal] = useState<string | null>(null); // classId
@@ -1963,11 +1971,14 @@ export default function Home() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Vui lòng đăng nhập lại.");
 
-      const result = await createStudentAccount(session.access_token, {
+      const resultRaw = await createStudentAccount(session.access_token, {
         email,
         full_name: fullName,
         student_id: input.student_id,
       });
+
+      // Handle potential string return if serialization failed
+      const result = typeof resultRaw === "string" ? JSON.parse(resultRaw) : resultRaw;
 
       if (!result.ok) {
         throw new Error(result.error || "Không cấp được tài khoản học viên.");
