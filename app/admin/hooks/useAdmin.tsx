@@ -409,7 +409,14 @@ export function useAdmin() {
       setActiveView("classManagement");
       return;
     }
-    setOpenSidebarGroup(getSidebarGroupForView(view));
+    
+    let group = getSidebarGroupForView(view);
+    // Nếu là trợ giảng và nhấn vào học viên, giữ menu Academic mở
+    if (isAssistantUser && view === "students") {
+      group = "academic";
+    }
+    
+    setOpenSidebarGroup(group);
     setActiveView(view);
   };
 
