@@ -166,7 +166,7 @@ export function ClassDashboardView({
                       <button 
                         onClick={() => setSessionDetailStatus(sessionDetailStatus === item.status ? null : item.status)}
                         style={{ 
-                          background: "none", border: "none", color: "#6366f1", fontSize: "11px", fontWeight: 700, 
+                          border: "none", color: "#6366f1", fontSize: "11px", fontWeight: 700, 
                           cursor: "pointer", padding: "2px 6px", borderRadius: "4px", background: "#f5f3ff" 
                         }}
                       >

@@ -14,7 +14,8 @@ interface ClassDetailViewProps {
   onBack: () => void;
   onUpdateStatus: (id: string, status: string) => void;
   formatValue: (val: any) => string;
-  getEnrollmentStatusClass: (status: string) => string;
+  classStatusFilter: string;
+  setClassStatusFilter: (status: string) => void;
 }
 
 export function ClassDetailView({
@@ -28,17 +29,24 @@ export function ClassDetailView({
   onBack,
   onUpdateStatus,
   formatValue,
-  getEnrollmentStatusClass,
+  classStatusFilter,
+  setClassStatusFilter,
 }: ClassDetailViewProps) {
-  const [statusFilter, setStatusFilter] = useState("all");
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
 
-  const filteredAndSortedEnrollments = useMemo(() => {
-    let items = [...selectedClassEnrollments];
-    
-    if (statusFilter !== "all") {
-      items = items.filter(e => e.status === statusFilter);
+  const getEnrollmentStatusClass = (status: string) => {
+    switch (status) {
+      case "active": return "status-active";
+      case "completed": return "status-completed";
+      case "dropped": return "status-dropped";
+      case "reserved": return "status-reserved";
+      case "cancelled": return "status-cancelled";
+      default: return "";
     }
+  };
+
+  const sortedEnrollments = useMemo(() => {
+    let items = [...selectedClassEnrollments];
     
     if (sortConfig) {
       items.sort((a, b) => {
@@ -51,7 +59,7 @@ export function ClassDetailView({
     }
     
     return items;
-  }, [selectedClassEnrollments, statusFilter, sortConfig]);
+  }, [selectedClassEnrollments, sortConfig]);
 
   const handleSort = (key: string) => {
     setSortConfig(current => {
@@ -96,7 +104,7 @@ export function ClassDetailView({
           <div className="class-detail-actions">
             <label>
               <span>Lọc trạng thái</span>
-              <select onChange={(e) => setStatusFilter(e.target.value)} value={statusFilter}>
+              <select onChange={(e) => setClassStatusFilter(e.target.value)} value={classStatusFilter}>
                 <option value="all">Tất cả trạng thái</option>
                 {enrollmentStatusOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
               </select>
@@ -109,7 +117,7 @@ export function ClassDetailView({
           </div>
         </div>
         <p className="filter-summary">
-          {selectedClass.courseName} · {selectedClass.teacherName} · Lịch học {selectedClass.schedule} · Thời gian {selectedClass.studyTime} · Đang hiển thị {filteredAndSortedEnrollments.length}/{selectedClass.enrollmentCount} ghi danh
+          {selectedClass.courseName} · {selectedClass.teacherName} · Lịch học {selectedClass.schedule} · Thời gian {selectedClass.studyTime} · Đang hiển thị {sortedEnrollments.length}/{selectedClass.enrollmentCount} ghi danh
         </p>
         <div className="class-table">
           <table>
@@ -126,8 +134,8 @@ export function ClassDetailView({
               </tr>
             </thead>
             <tbody>
-              {filteredAndSortedEnrollments.length ? (
-                filteredAndSortedEnrollments.map((enrollment) => (
+              {sortedEnrollments.length ? (
+                sortedEnrollments.map((enrollment) => (
                   <tr key={enrollment.id}>
                     <td>{enrollment.name}</td>
                     <td>{enrollment.email}</td>

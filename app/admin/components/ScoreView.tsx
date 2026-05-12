@@ -12,6 +12,9 @@ interface ScoreViewProps {
   onUpdateScore: (enrollmentId: string, score: number) => void;
   onRefresh: () => void;
   error: string | null;
+  selectedSession: number;
+  setSelectedSession: (num: number) => void;
+  sessionCount: number;
 }
 
 export function ScoreView({
@@ -24,6 +27,9 @@ export function ScoreView({
   onUpdateScore,
   onRefresh,
   error,
+  selectedSession,
+  setSelectedSession,
+  sessionCount,
 }: ScoreViewProps) {
   const label = type === "assignment" ? "bài tập" : "đồ án";
 
@@ -31,13 +37,23 @@ export function ScoreView({
     <section className="analytics-grid" aria-label={`Giao diện chấm điểm ${label}`}>
       <article className="analytics-card wide" style={{ paddingTop: "24px" }}>
         <div className="attendance-toolbar" style={{ alignItems: "flex-end", marginBottom: "24px", gap: "16px", display: "flex", justifyContent: "space-between" }}>
-          <label style={{ flex: "1 1 300px", maxWidth: "400px" }}>
-            <span>Lớp học</span>
-            <select onChange={(e) => onClassChange(e.target.value || null)} value={selectedClassId ?? ""}>
-              <option value="">Chọn lớp học</option>
-              {visibleClassItems.map(item => <option key={item.id} value={item.id}>{item.classCode} - {item.className}</option>)}
-            </select>
-          </label>
+          <div style={{ display: "flex", gap: "16px", flex: 1, alignItems: "flex-end" }}>
+            <label style={{ flex: "1 1 300px", maxWidth: "400px" }}>
+              <span>Lớp học</span>
+              <select onChange={(e) => onClassChange(e.target.value || null)} value={selectedClassId ?? ""}>
+                <option value="">Chọn lớp học</option>
+                {visibleClassItems.map(item => <option key={item.id} value={item.id}>{item.classCode} - {item.className}</option>)}
+              </select>
+            </label>
+            {type === "assignment" && (
+              <label style={{ width: "180px" }}>
+                <span>Buổi bài tập</span>
+                <select onChange={(e) => setSelectedSession(Number(e.target.value))} value={selectedSession}>
+                  {Array.from({ length: sessionCount }, (_, i) => i + 1).map(n => <option key={n} value={n}>Buổi {n}</option>)}
+                </select>
+              </label>
+            )}
+          </div>
           <button className="secondary-button" onClick={onRefresh} type="button">Làm mới</button>
         </div>
 

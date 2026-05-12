@@ -15,14 +15,14 @@ interface TopbarProps {
   isAssistantAssignmentsView: boolean;
   currentAccount: any;
   roleLabels: Record<string, string>;
-  onShowCertGuide: () => void;
-  onSyncCertificates: () => void;
-  onRefresh: () => void;
-  onBackToClasses: () => void;
-  onDownloadTemplate: () => void;
-  onExportData: () => void;
-  onImportClick: () => void;
-  onLogout: () => void;
+  onShowCertGuide: () => void | Promise<void>;
+  onSyncCertificates: () => void | Promise<void>;
+  onRefresh: () => void | Promise<void>;
+  onBackToClasses: () => void | Promise<void>;
+  onDownloadTemplate: () => void | Promise<void>;
+  onExportData: () => void | Promise<void>;
+  onImportClick: () => void | Promise<void>;
+  onLogout: () => void | Promise<void>;
 }
 
 export function Topbar({

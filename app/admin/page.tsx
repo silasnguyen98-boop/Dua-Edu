@@ -14,7 +14,6 @@ import { AttendanceView } from "./components/AttendanceView";
 import { ScoreView } from "./components/ScoreView";
 import { CertGuideModal } from "./components/CertGuideModal";
 import { StudentDetailModal } from "./components/StudentDetailModal";
-import { AttendanceModal } from "./components/AttendanceModal";
 import { SessionDetailModal } from "./components/SessionDetailModal";
 import { AssignAssistantModal } from "./components/AssignAssistantModal";
 
@@ -51,17 +50,17 @@ export default function Home() {
           currentAccount={admin.currentAccount}
           roleLabels={admin.roleLabels}
           onShowCertGuide={() => admin.setShowCertGuide(true)}
-          onSyncCertificates={admin.syncCertificates}
-          onRefresh={admin.loadAllTables}
+          onSyncCertificates={() => void admin.syncCertificates()}
+          onRefresh={() => void admin.loadAllTables()}
           onBackToClasses={() => admin.setActiveView("classManagement")}
-          onDownloadTemplate={admin.downloadTemplate}
-          onExportData={admin.exportData}
+          onDownloadTemplate={() => void admin.downloadTemplate()}
+          onExportData={() => admin.exportData()}
           onImportClick={() => admin.fileInputRef.current?.click()}
-          onLogout={admin.onLogout}
+          onLogout={() => void admin.onLogout()}
         />
 
         <input
-          onChange={admin.importExcel}
+          onChange={(e) => void admin.importExcel(e)}
           ref={admin.fileInputRef}
           style={{ display: "none" }}
           type="file"
@@ -91,11 +90,16 @@ export default function Home() {
             <ClassDetailView
               selectedClass={admin.selectedClass}
               selectedClassEnrollments={admin.selectedClassEnrollments}
-              onSyncCertificates={() => void admin.syncCertificates(admin.selectedClass?.id)}
+              onSyncCertificates={(id, type) => void admin.syncCertificates(id)}
               onUpdateStatus={admin.updateEnrollmentStatus}
               updatingEnrollmentId={admin.updatingEnrollmentId}
               classStatusFilter={admin.classStatusFilter}
               setClassStatusFilter={admin.setClassStatusFilter}
+              isLoading={admin.isLoading}
+              isSaving={admin.isSaving}
+              onExportExcel={admin.exportData}
+              onBack={() => admin.setActiveView("classManagement")}
+              formatValue={admin.formatValue}
             />
           )}
 
@@ -164,6 +168,9 @@ export default function Home() {
               }}
               onRefresh={admin.loadAllTables}
               error={admin.error}
+              selectedSession={admin.selectedAttendanceSession}
+              setSelectedSession={admin.setSelectedAttendanceSession}
+              sessionCount={admin.attendanceSessionCount}
             />
           )}
 
@@ -253,7 +260,24 @@ export default function Home() {
         <StudentDetailModal
           student={admin.selectedStudentForDetail}
           onClose={() => admin.setSelectedStudentForDetail(null)}
-          analytics={admin.analytics}
+          data={admin.data}
+          onEdit={(s) => {
+            admin.setSelectedStudentForDetail(null);
+            admin.setActiveView("students");
+            admin.startEdit(s);
+          }}
+        />
+      )}
+
+      {admin.selectedSessionDetail && (
+        <SessionDetailModal
+          session={admin.selectedSessionDetail}
+          onClose={() => admin.setSelectedSessionDetail(null)}
+          onEdit={(s) => {
+            admin.setSelectedSessionDetail(null);
+            admin.setActiveView("class_sessions");
+            admin.startEdit(s);
+          }}
         />
       )}
 

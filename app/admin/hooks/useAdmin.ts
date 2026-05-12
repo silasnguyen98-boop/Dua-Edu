@@ -8,10 +8,10 @@ import { useRouter } from "next/navigation";
 import {
   getUsersSafe,
   createStudentAccount,
-  createUser,
-  deleteUser,
+  createUser as createUserSafe,
+  deleteUser as deleteUserSafe,
   resetStudentPassword,
-  updateUser,
+  updateUser as updateUserSafe,
   type UserRole,
 } from "@/app/actions/users";
 import {
@@ -359,7 +359,7 @@ export function useAdmin() {
     if (activeView === "dashboard") return "Dashboard tổng quan";
     if (activeView === "classDashboard") return "Tiến độ & Chuyên cần";
     if (activeView === "classManagement") return "Danh sách lớp học";
-    if (activeView === "classDetail") return selectedClass ? `${selectedClass.class_name} (${selectedClass.class_code})` : "Chi tiết lớp học";
+    if (activeView === "classDetail") return selectedClass ? `${selectedClass.className} (${selectedClass.classCode})` : "Chi tiết lớp học";
     if (activeView === "assistantAssignments") return "Phân công Trợ giảng";
     if (activeView === "attendance") return "Điểm danh học viên";
     if (activeView === "assignmentScore") return "Chấm điểm bài tập";
@@ -453,7 +453,8 @@ export function useAdmin() {
   async function loadClassAssistants(classId: string) {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return [];
-    return getClassAssistantsSafe(session.access_token, classId);
+    const result = await getClassAssistantsSafe(session.access_token, classId);
+    return result.ok ? (result.assistants as ClassAssistant[]) : [];
   }
 
   async function loadAssistantAssignmentOverview() {
@@ -1037,6 +1038,20 @@ export function useAdmin() {
   useEffect(() => {
     if (selectedAttendanceSession > attendanceSessionCount) setSelectedAttendanceSession(attendanceSessionCount);
   }, [attendanceSessionCount, selectedAttendanceSession]);
+  async function createUserWrap(token: string, email: string, pass: string, username: string, role: string) {
+    const res = await createUserSafe(token, email, pass, username, role as UserRole);
+    if (!res.ok) throw new Error(res.error);
+  }
+
+  async function updateUserWrap(token: string, id: string, data: any) {
+    const res = await updateUserSafe(token, id, data);
+    if (!res.ok) throw new Error(res.error);
+  }
+
+  async function deleteUserWrap(token: string, id: string) {
+    const res = await deleteUserSafe(token, id);
+    if (!res.ok) throw new Error(res.error);
+  }
 
   return {
     activeView, setActiveView: changeView,
@@ -1129,9 +1144,9 @@ export function useAdmin() {
     getScoreClass,
     getRelationLabel,
     genPassword,
-    createUser,
-    updateUser,
-    deleteUser,
+    createUser: createUserWrap,
+    updateUser: updateUserWrap,
+    deleteUser: deleteUserWrap,
     supabase,
     isDataView,
     isClassDetailView,

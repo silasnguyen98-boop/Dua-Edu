@@ -14,7 +14,7 @@ interface DataTableSectionProps {
   updateFormValue: (key: string, val: any) => void;
   data: any;
   getOptionLabel: (field: any, option: any) => string;
-  saveRow: (e: React.FormEvent) => void;
+  saveRow: (e: React.FormEvent<HTMLFormElement>) => void | Promise<void>;
   classSessionsFilterId: string | null;
   setClassSessionsFilterId: (id: string | null) => void;
   search: string;

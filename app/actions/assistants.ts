@@ -212,11 +212,15 @@ export async function removeAssistant(token: string, classId: string, userId: st
 
 export async function removeAssistantSafe(
   token: string,
-  classId: string,
-  userId: string,
+  assignmentId: string,
 ): Promise<EmptyActionResult> {
   try {
-    await removeAssistant(token, classId, userId);
+    const { adminClient } = await verifyUser(token);
+    const { error } = await adminClient
+      .from("class_assistants")
+      .update({ status: "inactive", updated_at: new Date().toISOString() })
+      .eq("id", assignmentId);
+    if (error) throw new Error(error.message);
     return { ok: true };
   } catch (error) {
     return { ok: false, error: getErrorMessage(error) };
