@@ -177,11 +177,11 @@ export default function Home() {
               onClassChange={admin.setSelectedAttendanceClassId}
               selectedEnrollments={admin.selectedClassEnrollments}
               isSaving={admin.isSaving}
-              onUpdateScore={(eid, score) => {
+              onUpdateScore={(eid, sessionOrAssignment, score) => {
                 if (admin.activeView === "assignmentScore") {
-                  admin.updateAssignmentScore(eid, admin.selectedAttendanceSession, String(score));
+                  admin.updateAssignmentScore(eid, sessionOrAssignment, String(score));
                 } else {
-                  admin.updateProjectScore(eid, admin.selectedAttendanceSession, String(score));
+                  admin.updateProjectScore(eid, sessionOrAssignment, String(score));
                 }
               }}
               onRefresh={admin.loadAllTables}
@@ -189,6 +189,7 @@ export default function Home() {
               selectedSession={admin.selectedAttendanceSession}
               setSelectedSession={admin.setSelectedAttendanceSession}
               sessionCount={admin.attendanceSessionCount}
+              assignmentRecordsByEnrollment={admin.assignmentRecordsByEnrollment}
             />
           )}
 

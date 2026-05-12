@@ -535,14 +535,14 @@ export function useAdmin(): UseAdminReturn {
   }
 
   const assignmentRecordsByEnrollment = useMemo(() => {
-    const map = new Map<string, any>();
+    const map = new Map<string, Record<number, any>>();
     assignmentRecords.forEach(r => {
-      if (Number(r.assignment_number) === selectedAttendanceSession) {
-        map.set(String(r.enrollment_id), r);
-      }
+      const eid = String(r.enrollment_id);
+      if (!map.has(eid)) map.set(eid, {});
+      map.get(eid)![Number(r.assignment_number)] = r;
     });
     return map;
-  }, [assignmentRecords, selectedAttendanceSession]);
+  }, [assignmentRecords]);
 
   async function loadAttendanceRecords(allowedEnrollmentIds?: Set<string> | null) {
     setAttendanceError("");

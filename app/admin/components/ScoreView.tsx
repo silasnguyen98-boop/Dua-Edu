@@ -9,12 +9,13 @@ interface ScoreViewProps {
   onClassChange: (id: string | null) => void;
   selectedEnrollments: any[];
   isSaving: boolean;
-  onUpdateScore: (enrollmentId: string, score: number) => void;
+  onUpdateScore: (enrollmentId: string, assignmentNumber: number, score: number) => void;
   onRefresh: () => void;
   error: string | null;
   selectedSession: number;
   setSelectedSession: (num: number) => void;
   sessionCount: number;
+  assignmentRecordsByEnrollment?: Map<string, Record<number, any>>;
 }
 
 export function ScoreView({
@@ -30,8 +31,10 @@ export function ScoreView({
   selectedSession,
   setSelectedSession,
   sessionCount,
+  assignmentRecordsByEnrollment,
 }: ScoreViewProps) {
-  const label = type === "assignment" ? "bài tập" : "đồ án";
+  const isAssignment = type === "assignment";
+  const label = isAssignment ? "bài tập" : "đồ án";
 
   return (
     <section className="analytics-grid" aria-label={`Giao diện chấm điểm ${label}`}>
@@ -45,11 +48,11 @@ export function ScoreView({
                 {visibleClassItems.map(item => <option key={item.id} value={item.id}>{item.classCode} - {item.className}</option>)}
               </select>
             </label>
-            {type === "assignment" && (
+            {!isAssignment && (
               <label style={{ width: "180px" }}>
-                <span>Số bài tập</span>
+                <span>Đồ án</span>
                 <select onChange={(e) => setSelectedSession(Number(e.target.value))} value={selectedSession}>
-                  {Array.from({ length: sessionCount }, (_, i) => i + 1).map(n => <option key={n} value={n}>Bài tập {n}</option>)}
+                  <option value={1}>Đồ án cuối khóa</option>
                 </select>
               </label>
             )}
@@ -59,42 +62,85 @@ export function ScoreView({
 
         {error && <div className="notice error">{error}</div>}
 
-        <div className="class-table">
-          <table>
+        <div className="class-table" style={{ overflowX: "auto" }}>
+          <table style={{ minWidth: isAssignment ? "800px" : "100%" }}>
             <thead>
               <tr>
-                <th>STT</th>
+                <th style={{ width: "50px" }}>STT</th>
                 <th>Học viên</th>
-                <th>Email</th>
-                <th>Điểm {label} (0-10)</th>
+                <th style={{ width: "200px" }}>Email</th>
+                {isAssignment ? (
+                  Array.from({ length: sessionCount }, (_, i) => i + 1).map(n => (
+                    <th key={n} style={{ width: "80px", textAlign: "center" }}>BT {n}</th>
+                  ))
+                ) : (
+                  <th style={{ width: "120px", textAlign: "center" }}>Điểm đồ án</th>
+                )}
               </tr>
             </thead>
             <tbody>
               {selectedEnrollments.length ? (
-                selectedEnrollments.map((enrollment, index) => (
-                  <tr key={enrollment.id}>
-                    <td>{index + 1}</td>
-                    <td><div style={{ fontWeight: 600 }}>{enrollment.name}</div></td>
-                    <td>{enrollment.email}</td>
-                    <td>
-                      <input 
-                        type="number" 
-                        min="0" 
-                        max="10" 
-                        step="0.1"
-                        defaultValue={type === "assignment" ? enrollment.assignmentScore : enrollment.projectScore}
-                        onBlur={(e) => {
-                          const val = parseFloat(e.target.value);
-                          if (!isNaN(val)) onUpdateScore(enrollment.id, val);
-                        }}
-                        disabled={isSaving}
-                        style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--border)", width: "100px" }}
-                      />
-                    </td>
-                  </tr>
-                ))
+                selectedEnrollments.map((enrollment, index) => {
+                  const scoresMap = assignmentRecordsByEnrollment?.get(String(enrollment.id)) || {};
+                  
+                  return (
+                    <tr key={enrollment.id}>
+                      <td>{index + 1}</td>
+                      <td><div style={{ fontWeight: 600 }}>{enrollment.name}</div></td>
+                      <td>{enrollment.email}</td>
+                      {isAssignment ? (
+                        Array.from({ length: sessionCount }, (_, i) => i + 1).map(n => (
+                          <td key={n} style={{ textAlign: "center" }}>
+                            <input 
+                              type="number" 
+                              min="0" 
+                              max="10" 
+                              step="0.1"
+                              defaultValue={scoresMap[n]?.score ?? ""}
+                              onBlur={(e) => {
+                                const val = parseFloat(e.target.value);
+                                if (!isNaN(val)) onUpdateScore(enrollment.id, n, val);
+                              }}
+                              disabled={isSaving}
+                              style={{ 
+                                padding: "6px 8px", 
+                                borderRadius: "6px", 
+                                border: "1px solid var(--border)", 
+                                width: "60px",
+                                textAlign: "center",
+                                fontSize: "13px"
+                              }}
+                            />
+                          </td>
+                        ))
+                      ) : (
+                        <td style={{ textAlign: "center" }}>
+                          <input 
+                            type="number" 
+                            min="0" 
+                            max="10" 
+                            step="0.1"
+                            defaultValue={enrollment.projectScore ?? ""}
+                            onBlur={(e) => {
+                              const val = parseFloat(e.target.value);
+                              if (!isNaN(val)) onUpdateScore(enrollment.id, 1, val);
+                            }}
+                            disabled={isSaving}
+                            style={{ 
+                              padding: "8px 12px", 
+                              borderRadius: "8px", 
+                              border: "1px solid var(--border)", 
+                              width: "100px",
+                              textAlign: "center"
+                            }}
+                          />
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })
               ) : (
-                <tr><td colSpan={4}>Chọn lớp để thực hiện chấm điểm.</td></tr>
+                <tr><td colSpan={isAssignment ? 3 + sessionCount : 4}>Chọn lớp để thực hiện chấm điểm.</td></tr>
               )}
             </tbody>
           </table>
