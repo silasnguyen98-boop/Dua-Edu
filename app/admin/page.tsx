@@ -2085,9 +2085,14 @@ export default function Home() {
       const certificateBatch: any[] = [];
       const existingEnrollments = new Map(data.certificates.map(c => [String(c.enrollment_id), c]));
       
-      const targetEnrollments = targetEnrollmentId 
-        ? data.enrollments.filter(e => String(e.id) === targetEnrollmentId)
-        : data.enrollments;
+      let targetEnrollments = data.enrollments;
+      if (targetId) {
+        if (mode === "class") {
+          targetEnrollments = data.enrollments.filter(e => String(e.class_id) === targetId);
+        } else {
+          targetEnrollments = data.enrollments.filter(e => String(e.id) === targetId);
+        }
+      }
 
       targetEnrollments.forEach(enrollment => {
         const attScore = enrollment.attendance_score != null ? Number(enrollment.attendance_score) : 0;
@@ -2130,7 +2135,9 @@ export default function Home() {
       });
 
       if (certificateBatch.length === 0) {
-        if (!targetEnrollmentId) setMessage("Không tìm thấy học viên mới đủ điều kiện cấp chứng chỉ.");
+        if (!targetId) setMessage("Không tìm thấy học viên mới đủ điều kiện cấp chứng chỉ.");
+        else setMessage("Đã kiểm tra, không có chứng chỉ mới cần cấp.");
+        setIsSaving(false);
         return;
       }
 
@@ -2150,10 +2157,12 @@ export default function Home() {
         }
       }
 
-      if (!targetEnrollmentId) setMessage(`✓ Đã đồng bộ thành công ${certificateBatch.length} chứng chỉ.`);
+      if (!targetId) setMessage(`✓ Đã đồng bộ thành công ${certificateBatch.length} chứng chỉ.`);
+      else setMessage(`✓ Đã cập nhật ${certificateBatch.length} chứng chỉ cho đối tượng này.`);
+      
       await loadAllTables();
     } catch (err: any) {
-      if (!targetEnrollmentId) setError(err.message || "Lỗi khi đồng bộ chứng chỉ.");
+      setError(err.message || "Lỗi khi đồng bộ chứng chỉ.");
     } finally {
       setIsSaving(false);
     }
