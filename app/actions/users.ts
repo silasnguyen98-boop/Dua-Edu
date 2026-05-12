@@ -329,10 +329,10 @@ export async function createStudentAccount(
     auth_user_id: authUser.id,
     created_by: actor.id,
     initial_password: password,
-    student_id,
+    student_id: studentId,
   });
 
-  return { auth_user_id: authUser.id, email, initial_password: password, student_id };
+  return { auth_user_id: authUser.id, email, initial_password: password, student_id: studentId };
 }
 
 export async function resetStudentPassword(
@@ -369,14 +369,14 @@ export async function resetStudentPassword(
     auth_user_id: data.user.id,
     created_by: actor.id,
     initial_password: password,
-    student_id,
+    student_id: studentId,
   });
 
   return {
     auth_user_id: data.user.id,
     email: data.user.email ?? "",
     initial_password: password,
-    student_id,
+    student_id: studentId,
   };
 }
 
