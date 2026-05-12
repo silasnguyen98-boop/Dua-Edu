@@ -27,9 +27,8 @@ export const enrollmentStatusOptions = [
 ];
 
 export const certificateStatusOptions = [
-  { label: "Chờ cấp", value: "pending" },
+  { label: "Bản nháp", value: "draft" },
   { label: "Đã cấp", value: "issued" },
-  { label: "Đã huỷ", value: "cancelled" },
   { label: "Thu hồi", value: "revoked" },
 ];
 
@@ -199,7 +198,13 @@ export const tableConfigs: TableConfig[] = [
       { name: "certificate_type", label: "Loại chứng chỉ", type: "text", required: true },
       { name: "certificate_code", label: "Mã chứng chỉ", type: "text", required: true },
       { name: "certificate_url", label: "Certificate URL", type: "text" },
-      { name: "status", label: "Trạng thái", type: "text", required: true },
+      {
+        name: "status",
+        label: "Trạng thái",
+        type: "select",
+        required: true,
+        options: certificateStatusOptions,
+      },
       { name: "issued_at", label: "Ngày cấp", type: "datetime-local" },
       { name: "note", label: "Ghi chú", type: "textarea" },
     ],

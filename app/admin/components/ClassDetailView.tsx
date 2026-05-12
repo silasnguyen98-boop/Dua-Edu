@@ -10,7 +10,7 @@ interface ClassDetailViewProps {
   isSaving: boolean;
   updatingEnrollmentId: string | null;
   updatingCertificateEnrollmentId: string | null;
-  onSyncCertificates: (id: string, type: string) => void;
+  onSyncCertificates: (id: string, type: "class" | "student") => void;
   onExportExcel: () => void;
   onBack: () => void;
   onUpdateStatus: (id: string, status: string) => void;

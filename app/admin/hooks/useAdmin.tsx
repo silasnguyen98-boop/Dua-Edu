@@ -687,7 +687,9 @@ export function useAdmin() {
       else p[f.name] = rawValue;
       return p;
     }, {});
-    if (activeTable === "classes" || activeTable === "class_sessions") delete payload.status;
+    if (activeTable === "classes" || activeTable === "class_sessions") {
+      delete payload.status;
+    }
     return payload;
   }
 
@@ -709,7 +711,9 @@ export function useAdmin() {
       }, {})).filter(row => Object.values(row).some(v => v !== null && v !== ""));
       if (!payload.length) throw new Error("Không có dòng dữ liệu hợp lệ.");
       const resolvedPayload = await resolveImportReferences(payload);
-      if (activeTable === "classes" || activeTable === "class_sessions") resolvedPayload.forEach(r => delete r.status);
+      if (activeTable === "classes" || activeTable === "class_sessions") {
+        resolvedPayload.forEach(r => { if ('status' in r) delete r.status; });
+      }
       const importData = await skipDuplicateEmails(resolvedPayload);
       if (!importData.payload.length) { setMessage("Không có dòng mới để import."); return; }
       const { data: { session } } = await supabase.auth.getSession();
@@ -991,6 +995,23 @@ export function useAdmin() {
       const cls = data.classes.find(c => c.id === val);
       return cls ? `${cls.class_name} (${cls.class_code})` : val;
     }
+    if (activeTable === "certificates" && column.key === "status") {
+      return (
+        <select
+          className="status-select"
+          value={val || "draft"}
+          onChange={(e) => updateCertificateStatus(String(row.enrollment_id), e.target.value)}
+          disabled={updatingCertificateEnrollmentId === row.enrollment_id}
+        >
+          {certificateStatusOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
     return formatValue(val);
   }
 

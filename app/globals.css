@@ -553,9 +553,9 @@ tbody tr:last-child td { border-bottom: none; }
   display: inline-flex; align-items: center; justify-content: center;
   padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 700;
 }
-.attendance-present, .status-active, .status-completed { background: #dcfce7; color: #047857; }
-.attendance-absent, .status-cancelled { background: #fee2e2; color: #b91c1c; }
-.attendance-late, .status-pending { background: #fef3c7; color: #b45309; }
+.attendance-present, .status-active, .status-completed, .status-issued { background: #dcfce7; color: #047857; }
+.attendance-absent, .status-cancelled, .status-revoked { background: #fee2e2; color: #b91c1c; }
+.attendance-late, .status-pending, .status-draft { background: #fef3c7; color: #b45309; }
 .attendance-excused, .status-custom { background: #e0f2fe; color: #0369a1; }
 .attendance-empty, .status-empty, .status-paused { background: #f1f5f9; color: #64748b; }
 
