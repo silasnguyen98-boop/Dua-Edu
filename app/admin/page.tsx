@@ -21,7 +21,7 @@ import {
   removeAssistantSafe,
 } from "@/app/actions/assistants";
 import { bulkImportAction } from "@/app/actions/import";
-import { BarChart, PieChart } from "@/app/admin/charts";
+import { BarChart, LineChart, PieChart } from "@/app/admin/charts";
 import {
   attendanceStatusOptions,
   chartColors,
@@ -517,6 +517,20 @@ export default function Home() {
       });
     });
 
+    const totalAssignments = Number(selectedAttendanceClass.totalAssignments || 0);
+    const enrollmentIdsArr = Array.from(enrollmentIds);
+    const totalPossibleAssignments = totalStudents * totalAssignments;
+    const actualAssignmentsCount = assignmentRecords.filter(r => 
+      enrollmentIds.has(String(r.enrollment_id))
+    ).length;
+
+    const assignmentRate = totalPossibleAssignments ? Math.round((actualAssignmentsCount / totalPossibleAssignments) * 100) : 0;
+    
+    const projectsSubmittedCount = selectedAttendanceClass.enrollments.filter(en => 
+      en.projectUrl || en.projectScore != null
+    ).length;
+    const projectRate = totalStudents ? Math.round((projectsSubmittedCount / totalStudents) * 100) : 0;
+
     return {
       statusCounts: sessionRows.reduce(
         (totals, row) => ({
@@ -532,8 +546,10 @@ export default function Home() {
       selectedSession: countSession(selectedAttendanceSession),
       totalStudents,
       atRiskStudents,
+      assignmentRate,
+      projectRate,
     };
-  }, [attendanceRecords, attendanceSessionCount, selectedAttendanceClass, selectedAttendanceSession]);
+  }, [attendanceRecords, assignmentRecords, attendanceSessionCount, selectedAttendanceClass, selectedAttendanceSession]);
 
   const assignmentNumberCount = useMemo(() => {
     const totalAssignments = Number(selectedAttendanceClass?.totalAssignments ?? 0);
@@ -3058,15 +3074,32 @@ export default function Home() {
                         </div>
                       </div>
                       <div className="session-growth-chart">
-                        {classDashboardMetrics.sessionRows.map((row) => (
-                          <div className="session-growth-row" key={row.sessionNumber}>
-                            <span>Buổi {row.sessionNumber}</span>
-                            <div className="session-growth-track">
-                              <i style={{ width: `${Math.max(row.attendanceRate, row.attended ? 5 : 0)}%` }} />
-                            </div>
-                            <strong>{row.attendanceRate}%</strong>
-                          </div>
-                        ))}
+                        <LineChart items={classDashboardMetrics.sessionRows.map(r => ({ label: `B${r.sessionNumber}`, value: r.attendanceRate }))} />
+                      </div>
+                    </article>
+
+                    <article className="class-dashboard-panel">
+                      <div className="section-heading compact">
+                        <div>
+                          <p className="eyebrow">Nộp bài</p>
+                          <h3>Tỉ lệ bài tập & đồ án</h3>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+                        <div style={{ flex: 1, minWidth: "150px" }}>
+                          <p style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "10px", textAlign: "center" }}>Bài tập về nhà</p>
+                          <PieChart emptyText="N/A" items={[
+                            { id: "submitted", label: "Đã nộp", value: classDashboardMetrics.assignmentRate, percent: classDashboardMetrics.assignmentRate, color: "#6366f1" },
+                            { id: "pending", label: "Chưa nộp", value: 100 - classDashboardMetrics.assignmentRate, percent: 100 - classDashboardMetrics.assignmentRate, color: "#e2e8f0" }
+                          ]} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: "150px" }}>
+                          <p style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "10px", textAlign: "center" }}>Đồ án cuối khoá</p>
+                          <PieChart emptyText="N/A" items={[
+                            { id: "submitted", label: "Đã nộp", value: classDashboardMetrics.projectRate, percent: classDashboardMetrics.projectRate, color: "#10b981" },
+                            { id: "pending", label: "Chưa nộp", value: 100 - classDashboardMetrics.projectRate, percent: 100 - classDashboardMetrics.projectRate, color: "#e2e8f0" }
+                          ]} />
+                        </div>
                       </div>
                     </article>
 
