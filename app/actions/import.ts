@@ -43,6 +43,14 @@ const formatDuplicateEmails = (emails: string[]) => {
   return uniqueEmails.length > 10 ? `${preview}, ... (+${uniqueEmails.length - 10} email khác)` : preview;
 };
 
+const extractEmailsFromError = (error: { details?: string | null; message?: string | null }) => {
+  const text = `${error.details ?? ""} ${error.message ?? ""}`;
+  return Array.from(
+    text.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi),
+    (match) => normalizeEmail(match[0]),
+  );
+};
+
 const findExistingEmails = async (
   adminClient: ReturnType<typeof getSupabaseAdmin>,
   tableName: string,
@@ -51,14 +59,29 @@ const findExistingEmails = async (
   const normalizedEmails = Array.from(new Set(emails.map(normalizeEmail).filter(Boolean)));
   if (!normalizedEmails.length) return [];
 
-  const { data, error } = await adminClient
+  const { data: exactRows } = await adminClient
     .from(tableName)
     .select("email")
     .in("email", normalizedEmails);
 
-  if (error) return [];
+  const exactMatches = (exactRows ?? []).map((row) => normalizeEmail(row.email)).filter(Boolean);
+  if (exactMatches.length === normalizedEmails.length) {
+    return exactMatches;
+  }
 
-  return (data ?? []).map((row) => normalizeEmail(row.email)).filter(Boolean);
+  const { data: allRows, error: allRowsError } = await adminClient
+    .from(tableName)
+    .select("email")
+    .not("email", "is", null);
+
+  if (allRowsError) return exactMatches;
+
+  const requestedSet = new Set(normalizedEmails);
+  const normalizedExisting = (allRows ?? [])
+    .map((row) => normalizeEmail(row.email))
+    .filter((email) => requestedSet.has(email));
+
+  return Array.from(new Set([...exactMatches, ...normalizedExisting]));
 };
 
 /**
@@ -160,7 +183,11 @@ export async function bulkImportAction(
           
         if (importError) {
           const existingAfterFailure = await findExistingEmails(adminClient, tableName, emailsInPayload);
-          const duplicateDetails = formatDuplicateEmails([...duplicatedEmails, ...existingAfterFailure]);
+          const duplicateDetails = formatDuplicateEmails([
+            ...duplicatedEmails,
+            ...existingAfterFailure,
+            ...extractEmailsFromError(importError),
+          ]);
           throw new Error(
             `Không import được vì email bị trùng: ${duplicateDetails}. ` +
             `Hãy xoá các dòng này khỏi file hoặc cập nhật học viên đã có. Chi tiết kỹ thuật: ${importError.message}`,
@@ -187,7 +214,7 @@ export async function bulkImportAction(
         const emails = cleanPayload.map((item) => normalizeEmail(item.email)).filter(Boolean);
         const existingAfterFailure = await findExistingEmails(adminClient, tableName, emails);
         throw new Error(
-          `Không import được vì email bị trùng: ${formatDuplicateEmails([...duplicatedEmails, ...existingAfterFailure])}. ` +
+          `Không import được vì email bị trùng: ${formatDuplicateEmails([...duplicatedEmails, ...existingAfterFailure, ...extractEmailsFromError(importError)])}. ` +
           `Hãy xoá các dòng này khỏi file hoặc cập nhật bản ghi đã có. Chi tiết kỹ thuật: ${importError.message}`,
         );
       }
