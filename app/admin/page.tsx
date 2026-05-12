@@ -713,15 +713,15 @@ export default function Home() {
       const projScore = enrollment.projectScore != null ? Number(enrollment.projectScore) : 0;
       const finalScore = enrollment.finalScore != null ? Number(enrollment.finalScore) : 0;
 
-      let certificate = "None";
+      let certificate = "none";
       
       // Completion: attendance_score >= 4, has project, final_score >= 4
       if (attScore >= 4 && projScore > 0 && finalScore >= 4) {
-        certificate = "Completion";
+        certificate = "completion";
       } 
       // Participation: attendance_score >= 2, has at least 1 assignment
       else if (attScore >= 2 && assignScore > 0) {
-        certificate = "Participation";
+        certificate = "participation";
       }
 
       return { ...enrollment, certificate };
@@ -2092,9 +2092,9 @@ export default function Home() {
 
         let type = "";
         if (attScore >= 4 && projScore > 0 && finalScore >= 4) {
-          type = "Completion";
+          type = "completion";
         } else if (attScore >= 2 && assignScore > 0) {
-          type = "Participation";
+          type = "participation";
         }
 
         const existing = existingEnrollments.get(String(enrollment.id));
@@ -2113,11 +2113,11 @@ export default function Home() {
             issued_at: new Date().toISOString(),
           });
         } 
-        // Auto upgrade if Participation -> Completion
-        else if (type === "Completion" && existing && existing.certificate_type === "Participation") {
+        // Auto upgrade if participation -> completion
+        else if (type === "completion" && existing && existing.certificate_type === "participation") {
           certificateBatch.push({
             id: existing.id,
-            certificate_type: "Completion",
+            certificate_type: "completion",
             issued_at: new Date().toISOString(),
             note: ((existing.note as string) || "") + " [Auto-upgraded on sync]"
           });
@@ -3129,9 +3129,9 @@ export default function Home() {
                               <strong>{formatValue(enrollment.finalScore)}</strong>
                             </td>
                             <td style={{ textAlign: "center", borderLeft: "1px solid var(--border)" }}>
-                              {(enrollment as any).certificate === "Completion" ? (
+                              {(enrollment as any).certificate === "completion" ? (
                                 <span style={{ background: "#dcfce7", color: "#166534", padding: "4px 10px", borderRadius: "99px", fontSize: "11px", fontWeight: 700 }}>Hoàn thành</span>
-                              ) : (enrollment as any).certificate === "Participation" ? (
+                              ) : (enrollment as any).certificate === "participation" ? (
                                 <span style={{ background: "#fef9c3", color: "#854d0e", padding: "4px 10px", borderRadius: "99px", fontSize: "11px", fontWeight: 700 }}>Tham gia</span>
                               ) : (
                                 <span style={{ color: "#94a3b8", fontSize: "12px" }}>-</span>
