@@ -15,10 +15,12 @@ type AdminUser = {
   last_sign_in_at?: string;
 };
 type StudentAccountResult = {
-  auth_user_id: string;
-  email: string;
+  auth_user_id?: string;
+  email?: string;
   initial_password?: string;
-  student_id: string;
+  student_id?: string;
+  ok: boolean;
+  error?: string;
 };
 
 const getSupabaseAdmin = () => {
@@ -69,7 +71,7 @@ const verifyUserRole = async (token: string, allowedRoles: UserRole[]) => {
 };
 
 const verifyAdmin = async (token: string) =>
-  (await verifyUserRole(token, ["admin", "operation"])).adminClient;
+  await verifyUserRole(token, ["admin", "operation"]);
 
 const verifyStudentAccountManager = async (token: string) =>
   verifyUserRole(token, ["admin", "operation", "assistant"]);
@@ -255,135 +257,142 @@ export async function createStudentAccount(
   token: string,
   input: { email: string; full_name: string; student_id?: string },
 ): Promise<StudentAccountResult> {
-  const adminClient = await verifyAdmin(token);
-  const userClient = getSupabaseUserClient(token);
-  const { data: { user: actor } } = await userClient.auth.getUser();
-  if (!actor) throw new Error("Phiên đăng nhập không hợp lệ.");
-  const email = input.email.trim().toLowerCase();
-  const fullName = input.full_name.trim();
+  try {
+    const { adminClient, user: actor } = await verifyAdmin(token);
+    if (!actor) throw new Error("Phiên đăng nhập không hợp lệ.");
+    const email = input.email.trim().toLowerCase();
+    const fullName = input.full_name.trim();
 
-  if (!fullName) throw new Error("Vui lòng nhập tên học viên.");
-  if (!email) throw new Error("Vui lòng nhập email học viên.");
+    if (!fullName) throw new Error("Vui lòng nhập tên học viên.");
+    if (!email) throw new Error("Vui lòng nhập email học viên.");
 
-  let studentId = input.student_id;
+    let studentId = input.student_id;
 
-  if (studentId) {
-    const { error } = await adminClient
-      .from("students")
-      .update({ full_name: fullName, email, updated_at: new Date().toISOString() })
-      .eq("id", studentId);
-    if (error) throw new Error(error.message);
-  } else {
-    const { data: existingStudent, error: selectError } = await adminClient
-      .from("students")
-      .select("id")
-      .eq("email", email)
-      .maybeSingle();
-    if (selectError) throw new Error(selectError.message);
-
-    if (existingStudent?.id) {
-      studentId = String(existingStudent.id);
+    if (studentId) {
       const { error } = await adminClient
         .from("students")
-        .update({ full_name: fullName, updated_at: new Date().toISOString() })
+        .update({ full_name: fullName, email, updated_at: new Date().toISOString() })
         .eq("id", studentId);
       if (error) throw new Error(error.message);
     } else {
-      const { data: insertedStudent, error: insertError } = await adminClient
+      const { data: existingStudent, error: selectError } = await adminClient
         .from("students")
-        .insert({ full_name: fullName, email })
         .select("id")
-        .single();
-      if (insertError) throw new Error(insertError.message);
-      studentId = String(insertedStudent.id);
+        .eq("email", email)
+        .maybeSingle();
+      if (selectError) throw new Error(selectError.message);
+
+      if (existingStudent?.id) {
+        studentId = String(existingStudent.id);
+        const { error } = await adminClient
+          .from("students")
+          .update({ full_name: fullName, updated_at: new Date().toISOString() })
+          .eq("id", studentId);
+        if (error) throw new Error(error.message);
+      } else {
+        const { data: insertedStudent, error: insertError } = await adminClient
+          .from("students")
+          .insert({ full_name: fullName, email })
+          .select("id")
+          .single();
+        if (insertError) throw new Error(insertError.message);
+        studentId = String(insertedStudent.id);
+      }
     }
+
+    if (!studentId) {
+      throw new Error("Không xác định được học viên để cấp tài khoản.");
+    }
+
+    const password = generateStudentPassword();
+    const existingAuthUser = await findAuthUserByEmail(adminClient, email);
+    if (existingAuthUser && existingAuthUser.user_metadata?.role !== "student") {
+      throw new Error(`Email ${email} đang thuộc tài khoản hệ thống, không thể chuyển thành tài khoản học viên.`);
+    }
+
+    const metadata = { username: fullName, role: "student", student_id: studentId, initial_password: password };
+    const authUserResult = existingAuthUser
+      ? await adminClient.auth.admin.updateUserById(existingAuthUser.id, {
+          email,
+          password,
+          user_metadata: metadata,
+        })
+      : await adminClient.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: metadata,
+        });
+
+    if (authUserResult.error) throw new Error(authUserResult.error.message);
+    const authUser = authUserResult.data.user;
+    if (!authUser) throw new Error("Không tạo được tài khoản đăng nhập cho học viên.");
+
+    await ensurePublicUserProfile(adminClient, authUser);
+    await upsertStudentInitialPassword(adminClient, {
+      auth_user_id: authUser.id,
+      created_by: actor.id,
+      initial_password: password,
+      student_id: studentId,
+    });
+
+    return { ok: true, auth_user_id: authUser.id, email, initial_password: password, student_id: studentId };
+  } catch (error: any) {
+    console.error("createStudentAccount error:", error);
+    return { ok: false, error: error.message || "Không thể cấp tài khoản học viên." };
   }
-
-  if (!studentId) {
-    throw new Error("Không xác định được học viên để cấp tài khoản.");
-  }
-
-  const password = generateStudentPassword();
-  const existingAuthUser = await findAuthUserByEmail(adminClient, email);
-  if (existingAuthUser && existingAuthUser.user_metadata?.role !== "student") {
-    throw new Error(`Email ${email} đang thuộc tài khoản hệ thống, không thể chuyển thành tài khoản học viên.`);
-  }
-
-  const metadata = { username: fullName, role: "student", student_id: studentId, initial_password: password };
-  const authUserResult = existingAuthUser
-    ? await adminClient.auth.admin.updateUserById(existingAuthUser.id, {
-        email,
-        password,
-        user_metadata: metadata,
-      })
-    : await adminClient.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: metadata,
-      });
-
-  if (authUserResult.error) throw new Error(authUserResult.error.message);
-  const authUser = authUserResult.data.user;
-  if (!authUser) throw new Error("Không tạo được tài khoản đăng nhập cho học viên.");
-
-  await ensurePublicUserProfile(adminClient, authUser);
-  await upsertStudentInitialPassword(adminClient, {
-    auth_user_id: authUser.id,
-    created_by: actor.id,
-    initial_password: password,
-    student_id: studentId,
-  });
-
-  return { auth_user_id: authUser.id, email, initial_password: password, student_id: studentId };
 }
 
 export async function resetStudentPassword(
   token: string,
   authUserId: string,
 ): Promise<StudentAccountResult> {
-  const adminClient = await verifyAdmin(token);
-  const userClient = getSupabaseUserClient(token);
-  const { data: { user: actor } } = await userClient.auth.getUser();
-  if (!actor) throw new Error("Phiên đăng nhập không hợp lệ.");
-  const { data: existing, error: getError } = await adminClient.auth.admin.getUserById(authUserId);
-  if (getError || !existing.user) {
-    throw new Error(getError?.message || "Không tìm thấy tài khoản học viên.");
-  }
+  try {
+    const { adminClient, user: actor } = await verifyAdmin(token);
+    if (!actor) throw new Error("Phiên đăng nhập không hợp lệ.");
+    const { data: existing, error: getError } = await adminClient.auth.admin.getUserById(authUserId);
+    if (getError || !existing.user) {
+      throw new Error(getError?.message || "Không tìm thấy tài khoản học viên.");
+    }
 
-  if (existing.user.user_metadata?.role !== "student") {
-    throw new Error("Chỉ có thể reset mật khẩu cho tài khoản học viên.");
-  }
+    if (existing.user.user_metadata?.role !== "student") {
+      throw new Error("Chỉ có thể reset mật khẩu cho tài khoản học viên.");
+    }
 
-  const password = generateStudentPassword();
-  const studentId = existing.user.user_metadata?.student_id;
-  if (!studentId) {
-    throw new Error("Tài khoản học viên chưa được liên kết với bản ghi học viên.");
-  }
-  const { data, error } = await adminClient.auth.admin.updateUserById(authUserId, {
-    password,
-    user_metadata: {
-      ...existing.user.user_metadata,
+    const password = generateStudentPassword();
+    const studentId = existing.user.user_metadata?.student_id;
+    if (!studentId) {
+      throw new Error("Tài khoản học viên chưa được liên kết với bản ghi học viên.");
+    }
+    const { data, error } = await adminClient.auth.admin.updateUserById(authUserId, {
+      password,
+      user_metadata: {
+        ...existing.user.user_metadata,
+        initial_password: password,
+      },
+    });
+
+    if (error) throw new Error(error.message);
+    if (!data.user) throw new Error("Không reset được mật khẩu học viên.");
+
+    await upsertStudentInitialPassword(adminClient, {
+      auth_user_id: data.user.id,
+      created_by: actor.id,
       initial_password: password,
-    },
-  });
+      student_id: studentId,
+    });
 
-  if (error) throw new Error(error.message);
-  if (!data.user) throw new Error("Không reset được mật khẩu học viên.");
-
-  await upsertStudentInitialPassword(adminClient, {
-    auth_user_id: data.user.id,
-    created_by: actor.id,
-    initial_password: password,
-    student_id: studentId,
-  });
-
-  return {
-    auth_user_id: data.user.id,
-    email: data.user.email ?? "",
-    initial_password: password,
-    student_id: studentId,
-  };
+    return {
+      ok: true,
+      auth_user_id: data.user.id,
+      email: data.user.email ?? "",
+      initial_password: password,
+      student_id: studentId,
+    };
+  } catch (error: any) {
+    console.error("resetStudentPassword error:", error);
+    return { ok: false, error: error.message || "Không thể reset mật khẩu học viên." };
+  }
 }
 
 export async function updateUser(

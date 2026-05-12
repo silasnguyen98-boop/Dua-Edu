@@ -1969,6 +1969,10 @@ export default function Home() {
         student_id: input.student_id,
       });
 
+      if (!result.ok) {
+        throw new Error(result.error || "Không cấp được tài khoản học viên.");
+      }
+
       setMessage(`✓ Đã cấp tài khoản học viên ${email}. Mật khẩu: ${result.initial_password}`);
       setStudentAccountForm({ email: "", full_name: "" });
       await Promise.all([loadAllTables(), loadAdmins()]);
@@ -1992,6 +1996,9 @@ export default function Home() {
       if (!session) throw new Error("Vui lòng đăng nhập lại.");
 
       const result = await resetStudentPassword(session.access_token, authUserId);
+      if (!result.ok) {
+        throw new Error(result.error || "Không reset được mật khẩu học viên.");
+      }
       setMessage(`✓ Đã reset mật khẩu cho ${email}. Mật khẩu mới: ${result.initial_password}`);
       await loadAdmins();
     } catch (err: any) {
