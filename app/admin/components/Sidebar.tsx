@@ -42,31 +42,33 @@ export function Sidebar({
       </div>
 
       <div className="sidebar-content">
-        <div className="nav-group">
-          <button
-            className="sidebar-group-trigger"
-            onClick={() => toggleSidebarGroup("overview")}
-            type="button"
-          >
-            <span>Tổng quan</span>
-            <strong>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openSidebarGroup === "overview" ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </strong>
-          </button>
-          {openSidebarGroup === "overview" && (
-            <nav className="nav-tabs" aria-label="Nghiệp vụ tổng quan">
-              <button
-                className={activeView === "dashboard" ? "active" : ""}
-                onClick={() => changeView("dashboard")}
-                type="button"
-              >
-                <span>Dashboard chung</span>
-              </button>
-            </nav>
-          )}
-        </div>
+        {!isAssistantUser && (
+          <div className="nav-group">
+            <button
+              className="sidebar-group-trigger"
+              onClick={() => toggleSidebarGroup("overview")}
+              type="button"
+            >
+              <span>Tổng quan</span>
+              <strong>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openSidebarGroup === "overview" ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </strong>
+            </button>
+            {openSidebarGroup === "overview" && (
+              <nav className="nav-tabs" aria-label="Nghiệp vụ tổng quan">
+                <button
+                  className={activeView === "dashboard" ? "active" : ""}
+                  onClick={() => changeView("dashboard")}
+                  type="button"
+                >
+                  <span>Dashboard chung</span>
+                </button>
+              </nav>
+            )}
+          </div>
+        )}
 
         <div className="nav-group">
           <button

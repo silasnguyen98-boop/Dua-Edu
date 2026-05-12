@@ -141,6 +141,13 @@ export function useAdmin() {
 
   const activeConfig = tableConfigs.find(c => c.name === activeTable) || tableConfigs[0];
 
+  useEffect(() => {
+    if (currentUserRole === "assistant" && activeView === "dashboard") {
+      setOpenSidebarGroup("academic");
+      setActiveView("classManagement");
+    }
+  }, [activeView, currentUserRole]);
+
   const stats = useMemo(
     () => [
       { label: "Học viên", value: data.students.length },
