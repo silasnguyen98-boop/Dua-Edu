@@ -494,6 +494,7 @@ export default function Home() {
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const isAssistantUser = currentUserRole === "assistant";
+  const isFullAdmin = currentUserRole === "admin" || currentUserRole === "operation";
   const [assignedClassIds, setAssignedClassIds] = useState<string[]>([]);
   const [classAssistants, setClassAssistants] = useState<ClassAssistant[]>([]);
   const [showAssignModal, setShowAssignModal] = useState<string | null>(null); // classId
@@ -2510,7 +2511,7 @@ export default function Home() {
             )}
           </div>
 
-          {!isAssistantUser && (
+          {(isFullAdmin || !isAssistantUser) && (
           <div className="nav-group">
             <button
               className="sidebar-group-trigger"
@@ -2542,7 +2543,7 @@ export default function Home() {
           </div>
           )}
 
-          {!isAssistantUser && (
+          {(isFullAdmin || !isAssistantUser) && (
           <div className="nav-group">
             <button
               className="sidebar-group-trigger"
@@ -2574,7 +2575,7 @@ export default function Home() {
           </div>
           )}
 
-          {!isAssistantUser && (
+          {(isFullAdmin || !isAssistantUser) && (
           <div className="nav-group">
             <button
               className="sidebar-group-trigger"

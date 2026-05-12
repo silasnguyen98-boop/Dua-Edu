@@ -49,10 +49,10 @@ export async function bulkImportAction(
       throw new Error("Phiên đăng nhập không hợp lệ hoặc đã hết hạn.");
     }
 
-    const role = user.user_metadata?.role;
+    const role = user.user_metadata?.role?.trim();
     const allowedRoles = ["admin", "operation", "assistant", "teacher"];
     
-    if (!allowedRoles.includes(role)) {
+    if (!role || !allowedRoles.includes(role)) {
       throw new Error(`Bạn không có quyền thực hiện hành động này. Vai trò: ${role || "không có"}. Vui lòng đăng xuất và đăng nhập lại.`);
     }
 
