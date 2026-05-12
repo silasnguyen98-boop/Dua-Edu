@@ -31,6 +31,12 @@ export function useDashboardMetrics({
         topStudents: [],
         bottomStudents: [],
         studentRows: [],
+        submissionSummary: {
+          assignment: { submitted: 0, missing: 0, total: 0 },
+          project: { submitted: 0, missing: 0, total: 0 },
+        },
+        certificateSummary: { participation: 0, completion: 0, none: 0 },
+        eligibleCertificateStudents: { participation: [], completion: [] },
         classAverageRate: 0,
         attendanceSegments: {
           attendance: { excellent: 0, good: 0, average: 0, risky: 0 },
@@ -93,14 +99,15 @@ export function useDashboardMetrics({
 
     const totalAssignments = Number(selectedAttendanceClass.totalAssignments || 0);
     const totalPossibleAssignments = totalStudents * totalAssignments;
-    const actualAssignmentsCount = assignmentRecords.filter(r => 
+    const assignmentRecordsForClass = assignmentRecords.filter(r =>
       enrollmentIds.has(String(r.enrollment_id))
-    ).length;
+    );
+    const actualAssignmentsCount = assignmentRecordsForClass.filter((record) => Number(record.score ?? 0) > 0 || record.status === "submitted").length;
 
     const assignmentRate = totalPossibleAssignments ? Math.round((actualAssignmentsCount / totalPossibleAssignments) * 100) : 0;
     
     const projectsSubmittedCount = selectedAttendanceClass.enrollments.filter((en: any) => 
-      en.projectUrl || en.projectScore != null
+      en.projectUrl || Number(en.projectScore ?? 0) > 0
     ).length;
     const projectRate = totalStudents ? Math.round((projectsSubmittedCount / totalStudents) * 100) : 0;
 
@@ -128,6 +135,38 @@ export function useDashboardMetrics({
 
     const topStudents = [...studentDiligence].sort((a: any, b: any) => b.rate - a.rate || b.score - a.score).slice(0, 10);
     const bottomStudents = [...studentDiligence].sort((a: any, b: any) => a.rate - b.rate || a.score - b.score).slice(0, 10);
+    const eligibleCertificateStudents = selectedAttendanceClass.enrollments.reduce(
+      (groups: { participation: any[]; completion: any[] }, enrollment: any) => {
+        const attendanceScore = Number(enrollment.attendanceScore ?? 0);
+        const assignmentScore = Number(enrollment.assignmentScore ?? 0);
+        const projectScore = Number(enrollment.projectScore ?? 0);
+        const finalScore = Number(enrollment.finalScore ?? 0);
+        const baseRow = {
+          id: enrollment.id,
+          name: enrollment.name,
+          email: enrollment.email,
+          phone: enrollment.phone,
+          attendanceScore,
+          assignmentScore,
+          projectScore,
+          finalScore,
+        };
+
+        if (attendanceScore >= 4 && projectScore > 0 && finalScore >= 4) {
+          groups.completion.push(baseRow);
+        } else if (attendanceScore >= 2 && assignmentScore > 0) {
+          groups.participation.push(baseRow);
+        }
+
+        return groups;
+      },
+      { participation: [], completion: [] },
+    );
+    const certificateSummary = {
+      participation: eligibleCertificateStudents.participation.length,
+      completion: eligibleCertificateStudents.completion.length,
+      none: Math.max(totalStudents - eligibleCertificateStudents.participation.length - eligibleCertificateStudents.completion.length, 0),
+    };
     const markedSessionCount = sessionRows.filter(r => r.isMarked).length;
     const studentRows = studentDiligence.map((student: any) => {
       const attendedCount = student.presentCount + student.lateCount;
@@ -175,6 +214,20 @@ export function useDashboardMetrics({
       atRiskStudents,
       assignmentRate,
       projectRate,
+      submissionSummary: {
+        assignment: {
+          submitted: actualAssignmentsCount,
+          missing: Math.max(totalPossibleAssignments - actualAssignmentsCount, 0),
+          total: totalPossibleAssignments,
+        },
+        project: {
+          submitted: projectsSubmittedCount,
+          missing: Math.max(totalStudents - projectsSubmittedCount, 0),
+          total: totalStudents,
+        },
+      },
+      certificateSummary,
+      eligibleCertificateStudents,
       topStudents,
       bottomStudents,
       studentRows,

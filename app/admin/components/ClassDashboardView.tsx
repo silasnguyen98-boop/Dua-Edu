@@ -39,6 +39,8 @@ export function ClassDashboardView({
   selectedAttendanceClass,
 }: ClassDashboardViewProps) {
   const [sessionDetailStatus, setSessionDetailStatus] = useState<string | null>(null);
+  const [submissionChartType, setSubmissionChartType] = useState<"assignment" | "project">("assignment");
+  const [certificateDetailType, setCertificateDetailType] = useState<"participation" | "completion" | null>(null);
   const segmentLabels = {
     excellent: "Xuất sắc",
     good: "Tốt",
@@ -61,6 +63,50 @@ export function ClassDashboardView({
   }));
   const getEnrollmentStatusLabel = (status: string) =>
     enrollmentStatusOptions.find((option) => option.value === status)?.label ?? status ?? "Chưa có";
+  const submissionSummary = classDashboardMetrics.submissionSummary?.[submissionChartType] ?? { submitted: 0, missing: 0, total: 0 };
+  const submissionItems = [
+    {
+      id: "submitted",
+      label: submissionChartType === "assignment" ? "Đã nộp bài tập" : "Đã nộp đồ án",
+      value: submissionSummary.submitted,
+      percent: submissionSummary.total ? Math.round((submissionSummary.submitted / submissionSummary.total) * 100) : 0,
+      color: "#0f766e",
+    },
+    {
+      id: "missing",
+      label: "Chưa nộp",
+      value: submissionSummary.missing,
+      percent: submissionSummary.total ? Math.round((submissionSummary.missing / submissionSummary.total) * 100) : 0,
+      color: "#f59e0b",
+    },
+  ];
+  const certificateSummary = classDashboardMetrics.certificateSummary ?? { participation: 0, completion: 0, none: 0 };
+  const certificateItems = [
+    {
+      id: "completion",
+      label: "Hoàn thành",
+      value: certificateSummary.completion,
+      percent: classDashboardMetrics.totalStudents ? Math.round((certificateSummary.completion / classDashboardMetrics.totalStudents) * 100) : 0,
+      color: "#0f766e",
+    },
+    {
+      id: "participation",
+      label: "Tham gia",
+      value: certificateSummary.participation,
+      percent: classDashboardMetrics.totalStudents ? Math.round((certificateSummary.participation / classDashboardMetrics.totalStudents) * 100) : 0,
+      color: "#f59e0b",
+    },
+    {
+      id: "none",
+      label: "Chưa đủ điều kiện",
+      value: certificateSummary.none,
+      percent: classDashboardMetrics.totalStudents ? Math.round((certificateSummary.none / classDashboardMetrics.totalStudents) * 100) : 0,
+      color: "#cbd5e1",
+    },
+  ];
+  const certificateDetailRows = certificateDetailType
+    ? classDashboardMetrics.eligibleCertificateStudents?.[certificateDetailType] ?? []
+    : [];
 
   return (
     <section className="analytics-grid" aria-label="Dashboard lớp học">
@@ -361,6 +407,113 @@ export function ClassDashboardView({
                   </div>
                   <PieChart emptyText="Chưa có dữ liệu" items={segmentItems} />
                 </article>
+
+                <article className="class-dashboard-panel">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", gap: "10px" }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <p style={{ margin: 0, fontSize: "10px", fontWeight: 700, color: "#10b981", textTransform: "uppercase", letterSpacing: "0.05em" }}>Nộp bài</p>
+                      <h3 style={{ margin: "2px 0 0", fontSize: "16px", fontWeight: 700, color: "var(--foreground)" }}>Tình trạng nộp</h3>
+                    </div>
+                    <select
+                      value={submissionChartType}
+                      onChange={(event) => setSubmissionChartType(event.target.value as "assignment" | "project")}
+                      style={{
+                        width: "150px",
+                        padding: "6px 12px",
+                        borderRadius: "8px",
+                        border: "1px solid var(--border)",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        background: "white",
+                      }}
+                    >
+                      <option value="assignment">Bài tập</option>
+                      <option value="project">Đồ án</option>
+                    </select>
+                  </div>
+                  <PieChart
+                    emptyText="Chưa có dữ liệu"
+                    centerLabel={submissionChartType === "assignment" ? "lượt nộp" : "học viên"}
+                    centerValue={`${submissionSummary.submitted}/${submissionSummary.total}`}
+                    items={submissionItems}
+                  />
+                </article>
+
+                <article className="class-dashboard-panel">
+                  <div className="section-heading compact">
+                    <div>
+                      <p className="eyebrow">Chứng chỉ</p>
+                      <h3>Điều kiện nhận chứng chỉ</h3>
+                    </div>
+                  </div>
+                  <PieChart
+                    emptyText="Chưa có dữ liệu"
+                    centerLabel="đủ điều kiện"
+                    centerValue={certificateSummary.participation + certificateSummary.completion}
+                    items={certificateItems}
+                  />
+                  <div className="certificate-detail-actions">
+                    <button
+                      className="secondary-button compact-button"
+                      onClick={() => setCertificateDetailType(certificateDetailType === "participation" ? null : "participation")}
+                      type="button"
+                    >
+                      {certificateDetailType === "participation" ? "Ẩn tham gia" : "Chi tiết tham gia"}
+                    </button>
+                    <button
+                      className="secondary-button compact-button"
+                      onClick={() => setCertificateDetailType(certificateDetailType === "completion" ? null : "completion")}
+                      type="button"
+                    >
+                      {certificateDetailType === "completion" ? "Ẩn hoàn thành" : "Chi tiết hoàn thành"}
+                    </button>
+                  </div>
+                </article>
+
+                {certificateDetailType && (
+                  <article className="class-dashboard-panel wide">
+                    <div className="section-heading compact">
+                      <div>
+                        <p className="eyebrow">Danh sách</p>
+                        <h3>
+                          Học viên đủ điều kiện chứng chỉ {certificateDetailType === "completion" ? "Hoàn thành" : "Tham gia"}
+                        </h3>
+                      </div>
+                    </div>
+                    <div className="class-table" style={{ marginTop: "16px" }}>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Học viên</th>
+                            <th>Email</th>
+                            <th>Chuyên cần</th>
+                            <th>Bài tập</th>
+                            <th>Đồ án</th>
+                            <th>Final</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {certificateDetailRows.length ? (
+                            certificateDetailRows.map((student: any) => (
+                              <tr key={student.id}>
+                                <td>{student.name}</td>
+                                <td>{student.email}</td>
+                                <td>{student.attendanceScore}</td>
+                                <td>{student.assignmentScore}</td>
+                                <td>{student.projectScore}</td>
+                                <td>{student.finalScore}</td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={6}>Chưa có học viên đủ điều kiện.</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </article>
+                )}
 
                 <article className="class-dashboard-panel wide">
                   <div className="section-heading compact">
