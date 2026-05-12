@@ -126,6 +126,7 @@ export default function Home() {
   const [isAssistantView, setIsAssistantView] = useState(false);
   const [isAdminView, setIsAdminView] = useState(false);
   const [accountTab, setAccountTab] = useState<"staff" | "student">("staff");
+  const [classDashboardMode, setClassDashboardMode] = useState<"session" | "overall">("session");
 
   useEffect(() => {
     setIsAssistantView(currentUserRole === "assistant");
@@ -503,7 +504,7 @@ export default function Home() {
         attendanceRate: totalStudents ? Math.round((attended / totalStudents) * 1000) / 10 : 0,
         sessionNumber,
       };
-    });
+    }).filter(row => (row.present + row.absent + row.late + row.excused) > 0);
 
     return {
       statusCounts: sessionRows.reduce(
@@ -2929,8 +2930,8 @@ export default function Home() {
         {isClassDashboardView && (
           <section className="analytics-grid" aria-label="Dashboard lớp học">
             <article className="analytics-card detail-card wide" style={{ paddingTop: "24px" }}>
-              <div className="attendance-toolbar" style={{ alignItems: "flex-end", marginBottom: "22px" }}>
-                <label style={{ flex: "1 1 360px" }}>
+              <div className="attendance-toolbar" style={{ alignItems: "flex-end", marginBottom: "22px", gap: "12px" }}>
+                <label style={{ flex: "1 1 300px" }}>
                   <span>Lớp học</span>
                   <select
                     onChange={(event) => {
@@ -2948,19 +2949,48 @@ export default function Home() {
                   </select>
                 </label>
 
-                <label style={{ flex: "0 1 220px" }}>
-                  <span>Buổi học</span>
-                  <select
-                    onChange={(event) => setSelectedAttendanceSession(Number(event.target.value))}
-                    value={selectedAttendanceSession}
+                <div style={{ display: "flex", gap: "8px", background: "var(--surface-soft)", padding: "4px", borderRadius: "10px", border: "1px solid var(--border)" }}>
+                  <button
+                    onClick={() => setClassDashboardMode("session")}
+                    style={{
+                      padding: "6px 16px", borderRadius: "8px", border: "none", fontSize: "13px", fontWeight: 600,
+                      background: classDashboardMode === "session" ? "white" : "transparent",
+                      color: classDashboardMode === "session" ? "var(--accent-dark)" : "var(--text-secondary)",
+                      boxShadow: classDashboardMode === "session" ? "var(--shadow-sm)" : "none",
+                      cursor: "pointer"
+                    }}
                   >
-                    {Array.from({ length: attendanceSessionCount }, (_, index) => index + 1).map((sessionNumber) => (
-                      <option key={sessionNumber} value={sessionNumber}>
-                        Buổi {sessionNumber}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    Theo buổi
+                  </button>
+                  <button
+                    onClick={() => setClassDashboardMode("overall")}
+                    style={{
+                      padding: "6px 16px", borderRadius: "8px", border: "none", fontSize: "13px", fontWeight: 600,
+                      background: classDashboardMode === "overall" ? "white" : "transparent",
+                      color: classDashboardMode === "overall" ? "var(--accent-dark)" : "var(--text-secondary)",
+                      boxShadow: classDashboardMode === "overall" ? "var(--shadow-sm)" : "none",
+                      cursor: "pointer"
+                    }}
+                  >
+                    Toàn khoá
+                  </button>
+                </div>
+
+                {classDashboardMode === "session" && (
+                  <label style={{ flex: "0 1 200px" }}>
+                    <span>Buổi học</span>
+                    <select
+                      onChange={(event) => setSelectedAttendanceSession(Number(event.target.value))}
+                      value={selectedAttendanceSession}
+                    >
+                      {Array.from({ length: attendanceSessionCount }, (_, index) => index + 1).map((sessionNumber) => (
+                        <option key={sessionNumber} value={sessionNumber}>
+                          Buổi {sessionNumber}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
               </div>
 
               {attendanceError && <div className="notice error">{attendanceError}</div>}
@@ -2974,13 +3004,18 @@ export default function Home() {
                   </p>
 
                   <div className="class-dashboard-stats">
-                    {[
+                    {(classDashboardMode === "session" ? [
                       { color: "#0f766e", label: "Có mặt", value: classDashboardMetrics.selectedSession.present },
                       { color: "#b91c1c", label: "Vắng", value: classDashboardMetrics.selectedSession.absent },
                       { color: "#b45309", label: "Đi muộn", value: classDashboardMetrics.selectedSession.late },
                       { color: "#0369a1", label: "Có phép", value: classDashboardMetrics.selectedSession.excused },
                       { color: "#64748b", label: "Chưa điểm danh", value: classDashboardMetrics.selectedSession.unmarked },
-                    ].map((item) => (
+                    ] : [
+                      { color: "#0f766e", label: "Tổng lượt có mặt", value: classDashboardMetrics.statusCounts.present },
+                      { color: "#b91c1c", label: "Tổng lượt vắng", value: classDashboardMetrics.statusCounts.absent },
+                      { color: "#b45309", label: "Tổng lượt muộn", value: classDashboardMetrics.statusCounts.late },
+                      { color: "#0369a1", label: "Tổng lượt phép", value: classDashboardMetrics.statusCounts.excused },
+                    ]).map((item) => (
                       <article className="class-dashboard-stat" key={item.label}>
                         <span>{item.label}</span>
                         <strong style={{ color: item.color }}>{item.value}</strong>
