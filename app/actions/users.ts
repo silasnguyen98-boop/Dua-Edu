@@ -169,7 +169,7 @@ export async function getUsers(token: string) {
           ? credentialMap.get(u.id) || u.user_metadata?.initial_password
           : undefined,
       created_at: u.created_at,
-      last_sign_in_at: u.last_sign_in_at,
+      last_sign_in_at: u.last_sign_in_at ?? undefined,
     };
   }));
 }
@@ -322,6 +322,8 @@ export async function createStudentAccount(
 
   if (authUserResult.error) throw new Error(authUserResult.error.message);
   const authUser = authUserResult.data.user;
+  if (!authUser) throw new Error("Không tạo được tài khoản đăng nhập cho học viên.");
+
   await ensurePublicUserProfile(adminClient, authUser);
   await upsertStudentInitialPassword(adminClient, {
     auth_user_id: authUser.id,
@@ -361,6 +363,8 @@ export async function resetStudentPassword(
   });
 
   if (error) throw new Error(error.message);
+  if (!data.user) throw new Error("Không reset được mật khẩu học viên.");
+
   await upsertStudentInitialPassword(adminClient, {
     auth_user_id: data.user.id,
     created_by: actor.id,
