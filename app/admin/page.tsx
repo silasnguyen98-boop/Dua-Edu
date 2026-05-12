@@ -3028,11 +3028,11 @@ export default function Home() {
                             <div className="attendance-stack-row" key={row.sessionNumber}>
                               <span>Buổi {row.sessionNumber}</span>
                               <div className="attendance-stack">
-                                <i className="present" style={{ width: `${(row.present / total) * 100}%` }} />
-                                <i className="late" style={{ width: `${(row.late / total) * 100}%` }} />
-                                <i className="excused" style={{ width: `${(row.excused / total) * 100}%` }} />
-                                <i className="absent" style={{ width: `${(row.absent / total) * 100}%` }} />
-                                <i className="unmarked" style={{ width: `${(row.unmarked / total) * 100}%` }} />
+                                <i className="present" title={`Có mặt: ${row.present} (${Math.round((row.present / total) * 100)}%)`} style={{ width: `${(row.present / total) * 100}%` }} />
+                                <i className="late" title={`Đi muộn: ${row.late} (${Math.round((row.late / total) * 100)}%)`} style={{ width: `${(row.late / total) * 100}%` }} />
+                                <i className="excused" title={`Có phép: ${row.excused} (${Math.round((row.excused / total) * 100)}%)`} style={{ width: `${(row.excused / total) * 100}%` }} />
+                                <i className="absent" title={`Vắng: ${row.absent} (${Math.round((row.absent / total) * 100)}%)`} style={{ width: `${(row.absent / total) * 100}%` }} />
+                                <i className="unmarked" title={`Chưa điểm danh: ${row.unmarked} (${Math.round((row.unmarked / total) * 100)}%)`} style={{ width: `${(row.unmarked / total) * 100}%` }} />
                               </div>
                               <strong>{row.attended}/{classDashboardMetrics.totalStudents}</strong>
                             </div>
