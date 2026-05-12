@@ -2054,6 +2054,68 @@ export default function Home() {
     setUpdatingEnrollmentId(null);
   }
 
+  async function syncCertificates() {
+    const confirmed = window.confirm("Hệ thống sẽ quét toàn bộ danh sách ghi danh và tự động tạo chứng chỉ cho những học viên đủ điều kiện. Tiếp tục?");
+    if (!confirmed) return;
+
+    setError("");
+    setMessage("");
+    setIsSaving(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Vui lòng đăng nhập lại.");
+
+      // 1. Identify eligible enrollments
+      const certificateBatch: any[] = [];
+      const existingEnrollmentIds = new Set(data.certificates.map(c => String(c.enrollment_id)));
+
+      data.enrollments.forEach(enrollment => {
+        const attScore = enrollment.attendance_score != null ? Number(enrollment.attendance_score) : 0;
+        const assignScore = enrollment.assignment_score != null ? Number(enrollment.assignment_score) : 0;
+        const projScore = enrollment.project_score != null ? Number(enrollment.project_score) : 0;
+        const finalScore = enrollment.final_score != null ? Number(enrollment.final_score) : 0;
+
+        let type = "";
+        if (attScore >= 4 && projScore > 0 && finalScore >= 4) {
+          type = "Completion";
+        } else if (attScore >= 2 && assignScore > 0) {
+          type = "Participation";
+        }
+
+        if (type && !existingEnrollmentIds.has(String(enrollment.id))) {
+          const classRow = data.classes.find(c => String(c.id) === String(enrollment.class_id));
+          const classCode = String(classRow?.class_code || "EDU");
+          const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
+          const code = `${classCode}-${type.substring(0, 4).toUpperCase()}-${randomStr}`;
+
+          certificateBatch.push({
+            enrollment_id: enrollment.id,
+            certificate_type: type,
+            certificate_code: code,
+            status: "Issued",
+            issued_at: new Date().toISOString(),
+          });
+        }
+      });
+
+      if (certificateBatch.length === 0) {
+        setMessage("Không tìm thấy học viên mới đủ điều kiện cấp chứng chỉ.");
+        return;
+      }
+
+      const { error: insertError } = await supabase.from("certificates").insert(certificateBatch);
+      if (insertError) throw insertError;
+
+      setMessage(`✓ Đã đồng bộ thành công ${certificateBatch.length} chứng chỉ mới.`);
+      await loadAllTables();
+    } catch (err: any) {
+      setError(err.message || "Lỗi khi đồng bộ chứng chỉ.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   const exportClassDetailExcel = () => {
     if (!selectedClass) return;
 
@@ -2543,6 +2605,17 @@ export default function Home() {
             <p>{pageDescription}</p>
           </div>
           <div className="topbar-actions">
+            {activeTable === "certificates" && (
+              <button 
+                className="secondary-button" 
+                onClick={() => void syncCertificates()} 
+                disabled={isSaving}
+                style={{ background: "var(--accent-soft)", borderColor: "var(--accent)", color: "var(--accent-dark)", fontWeight: 700 }}
+                type="button"
+              >
+                {isSaving ? "Đang đồng bộ..." : "Đồng bộ dữ liệu"}
+              </button>
+            )}
             <button
               className="secondary-button"
               onClick={() => isAssistantAssignmentsView ? void loadAssistantAssignmentOverview() : void loadAllTables()}
