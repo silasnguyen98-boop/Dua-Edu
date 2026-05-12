@@ -1,5 +1,6 @@
 "use client";
 
+import { useAdmin } from "./hooks/useAdmin";
 import { Sidebar } from "./components/Sidebar";
 import { Topbar } from "./components/Topbar";
 import { GeneralDashboard } from "./components/GeneralDashboard";
@@ -238,6 +239,7 @@ export default function Home() {
               openRelationPicker={admin.openRelationPicker}
               setOpenRelationPicker={admin.setOpenRelationPicker}
               getRelationLabel={admin.getRelationLabel}
+              adminUsers={admin.adminUsers}
             />
           )}
         </div>

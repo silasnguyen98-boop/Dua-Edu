@@ -35,6 +35,7 @@ interface DataTableSectionProps {
   openRelationPicker: string | null;
   setOpenRelationPicker: (key: string | null) => void;
   getRelationLabel: (field: any, row: any) => string;
+  adminUsers: any[];
 }
 
 export const DataTableSection: React.FC<DataTableSectionProps & { 
@@ -75,6 +76,7 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
   openRelationPicker,
   setOpenRelationPicker,
   getRelationLabel,
+  adminUsers,
 }) => {
   const columns = React.useMemo(
     () =>
@@ -100,6 +102,28 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
     const start = (currentPage - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
   }, [data, activeTable, search, classSessionsFilterId, currentPage, pageSize]);
+
+  const renderCellValue = (row: any, column: any) => {
+    const value = getFieldValue(row, column);
+
+    if (activeTable === "students" && column.key === "email") {
+      const email = String(row.email ?? "");
+      const account = adminUsers.find((item: any) => String(item.email ?? "").toLowerCase() === email.toLowerCase() && item.role === "student");
+
+      return (
+        <div className="student-account-cell">
+          <span>{value}</span>
+          {account ? (
+            <span className="account-badge active">Da cap</span>
+          ) : (
+            <span className="account-badge pending">Chua cap</span>
+          )}
+        </div>
+      );
+    }
+
+    return value;
+  };
 
   return (
     <>
@@ -271,7 +295,7 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
                     <tr className={editingRow?.id === row.id ? "editing" : ""} key={row.id}>
                       {columns.map((column: any) => (
                         <td className={column.key === "score" || column.key === "project_score" || column.key === "attendance_score" || column.key === "assignment_score" ? getScoreClass(row[column.key]) : ""} key={column.key}>
-                          {getFieldValue(row, column)}
+                          {renderCellValue(row, column)}
                         </td>
                       ))}
                       <td>
