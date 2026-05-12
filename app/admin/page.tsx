@@ -531,6 +531,32 @@ export default function Home() {
     ).length;
     const projectRate = totalStudents ? Math.round((projectsSubmittedCount / totalStudents) * 100) : 0;
 
+    const studentDiligence = selectedAttendanceClass.enrollments.map((en) => {
+      const studentRecords = recordsForClass.filter((r) => String(r.enrollment_id) === en.id);
+      const presentCount = studentRecords.filter((r) => r.status === "present").length;
+      const lateCount = studentRecords.filter((r) => r.status === "late").length;
+      const absentCount = studentRecords.filter((r) => r.status === "absent").length;
+      const excusedCount = studentRecords.filter((r) => r.status === "excused").length;
+      
+      // Score: Present = 1, Late = 0.5, Excused = 0.8, Absent = 0
+      const score = presentCount * 1 + lateCount * 0.5 + excusedCount * 0.8;
+      const totalSessionsChecked = studentRecords.length;
+      const rate = totalSessionsChecked ? Math.round((score / totalSessionsChecked) * 100) : 0;
+
+      return {
+        ...en,
+        presentCount,
+        absentCount,
+        lateCount,
+        excusedCount,
+        score,
+        rate,
+      };
+    });
+
+    const topStudents = [...studentDiligence].sort((a, b) => b.rate - a.rate || b.score - a.score).slice(0, 10);
+    const bottomStudents = [...studentDiligence].sort((a, b) => a.rate - b.rate || a.score - b.score).slice(0, 10);
+
     return {
       statusCounts: sessionRows.reduce(
         (totals, row) => ({
@@ -548,6 +574,8 @@ export default function Home() {
       atRiskStudents,
       assignmentRate,
       projectRate,
+      topStudents,
+      bottomStudents,
     };
   }, [attendanceRecords, assignmentRecords, attendanceSessionCount, selectedAttendanceClass, selectedAttendanceSession]);
 
@@ -3165,59 +3193,72 @@ export default function Home() {
                       )}
 
                       <article className="class-dashboard-panel" style={{ gridColumn: "1 / -1" }}>
-                        <div className="section-heading compact">
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: "24px" }}>
                           <div>
-                            <p className="eyebrow">Theo dõi</p>
-                            <h3>Tình trạng học viên</h3>
-                          </div>
-                        </div>
-                        <div className="class-table">
-                          <table style={{ background: "transparent" }}>
-                            <thead>
-                              <tr>
-                                <th style={{ background: "transparent" }}>Học viên</th>
-                                <th style={{ background: "transparent" }}>Email</th>
-                                <th style={{ background: "transparent" }}>Trạng thái</th>
-                                <th style={{ background: "transparent" }}>Chuyên cần</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {selectedAttendanceClass.enrollments.slice(0, 10).map((en) => {
-                                const attendRecords = attendanceRecords.filter(r => String(r.enrollment_id) === en.id);
-                                const absentCount = attendRecords.filter(r => r.status === "absent").length;
-                                return (
-                                  <tr key={en.id}>
-                                    <td>{en.name}</td>
-                                    <td>{en.email}</td>
-                                    <td>
-                                      <span style={{ 
-                                        padding: "2px 8px", 
-                                        borderRadius: "99px", 
-                                        fontSize: "11px", 
-                                        fontWeight: 600,
-                                        background: en.status === "active" ? "#ecfdf5" : "#f1f5f9",
-                                        color: en.status === "active" ? "#059669" : "#64748b"
-                                      }}>
-                                        {en.status || "—"}
-                                      </span>
-                                    </td>
-                                    <td>
-                                      {absentCount > 0 ? (
-                                        <span style={{ color: "#dc2626", fontWeight: 600 }}>Vắng {absentCount} buổi</span>
-                                      ) : (
-                                        <span style={{ color: "#059669" }}>Tốt</span>
-                                      )}
-                                    </td>
+                            <div className="section-heading compact">
+                              <div>
+                                <p className="eyebrow" style={{ color: "#059669" }}>Chăm chỉ</p>
+                                <h3>Top 10 chăm học nhất</h3>
+                              </div>
+                            </div>
+                            <div className="class-table">
+                              <table style={{ background: "transparent" }}>
+                                <thead>
+                                  <tr>
+                                    <th style={{ background: "transparent" }}>Học viên</th>
+                                    <th style={{ background: "transparent", textAlign: "right" }}>Chuyên cần</th>
                                   </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                          {selectedAttendanceClass.enrollments.length > 10 && (
-                            <p style={{ textAlign: "center", fontSize: "13px", color: "var(--text-secondary)", marginTop: "12px" }}>
-                              Hiển thị 10 học viên tiêu biểu. Xem chi tiết tại tab Ghi danh.
-                            </p>
-                          )}
+                                </thead>
+                                <tbody>
+                                  {classDashboardMetrics.topStudents.map((s) => (
+                                    <tr key={s.id}>
+                                      <td>
+                                        <div style={{ fontWeight: 600 }}>{s.name}</div>
+                                        <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>{s.email}</div>
+                                      </td>
+                                      <td style={{ textAlign: "right" }}>
+                                        <div style={{ fontWeight: 700, color: "#059669" }}>{s.rate}%</div>
+                                        <div style={{ fontSize: "10px", color: "var(--text-secondary)" }}>{s.presentCount} có mặt / {s.absentCount} vắng</div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="section-heading compact">
+                              <div>
+                                <p className="eyebrow" style={{ color: "#dc2626" }}>Cần chú ý</p>
+                                <h3>Top 10 lười học nhất</h3>
+                              </div>
+                            </div>
+                            <div className="class-table">
+                              <table style={{ background: "transparent" }}>
+                                <thead>
+                                  <tr>
+                                    <th style={{ background: "transparent" }}>Học viên</th>
+                                    <th style={{ background: "transparent", textAlign: "right" }}>Chuyên cần</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {classDashboardMetrics.bottomStudents.map((s) => (
+                                    <tr key={s.id}>
+                                      <td>
+                                        <div style={{ fontWeight: 600 }}>{s.name}</div>
+                                        <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>{s.email}</div>
+                                      </td>
+                                      <td style={{ textAlign: "right" }}>
+                                        <div style={{ fontWeight: 700, color: "#dc2626" }}>{s.rate}%</div>
+                                        <div style={{ fontSize: "10px", color: "var(--text-secondary)" }}>{s.presentCount} có mặt / {s.absentCount} vắng</div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
                         </div>
                       </article>
                     </div>
