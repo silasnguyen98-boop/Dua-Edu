@@ -2021,7 +2021,7 @@ export default function Home() {
     setUpdatingEnrollmentId(null);
   }
 
-  async function updateEnrollmentProjectField(enrollmentId: string, field: "project_score" | "project_url" | "assignment_score", value: number | string) {
+  async function updateEnrollmentProjectField(enrollmentId: string, field: "project_score" | "project_url" | "assignment_score" | "final_score" | "attendance_score", value: number | string) {
     if (!enrollmentId) return;
 
     setUpdatingEnrollmentId(enrollmentId);
@@ -2045,18 +2045,28 @@ export default function Home() {
         String(enrollment.id) === enrollmentId ? { ...enrollment, [field]: value } : enrollment,
       ),
     }));
+    
     const messageFieldMap: Record<string, string> = {
       "project_score": "điểm đồ án",
       "project_url": "link đồ án",
       "assignment_score": "điểm bài tập",
+      "final_score": "điểm tổng kết",
+      "attendance_score": "điểm chuyên cần",
     };
     setMessage(`Đã cập nhật ${messageFieldMap[field]}.`);
     setUpdatingEnrollmentId(null);
+
+    // Auto-sync certificate for this student if score changed
+    if (["project_score", "assignment_score", "final_score", "attendance_score"].includes(field)) {
+      void syncCertificates(enrollmentId);
+    }
   }
 
-  async function syncCertificates() {
-    const confirmed = window.confirm("Hệ thống sẽ quét toàn bộ danh sách ghi danh và tự động tạo chứng chỉ cho những học viên đủ điều kiện. Tiếp tục?");
-    if (!confirmed) return;
+  async function syncCertificates(targetEnrollmentId?: string) {
+    if (!targetEnrollmentId) {
+      const confirmed = window.confirm("Hệ thống sẽ quét toàn bộ danh sách ghi danh và tự động tạo chứng chỉ cho những học viên đủ điều kiện. Tiếp tục?");
+      if (!confirmed) return;
+    }
 
     setError("");
     setMessage("");
@@ -2068,9 +2078,13 @@ export default function Home() {
 
       // 1. Identify eligible enrollments
       const certificateBatch: any[] = [];
-      const existingEnrollmentIds = new Set(data.certificates.map(c => String(c.enrollment_id)));
+      const existingEnrollments = new Map(data.certificates.map(c => [String(c.enrollment_id), c]));
+      
+      const targetEnrollments = targetEnrollmentId 
+        ? data.enrollments.filter(e => String(e.id) === targetEnrollmentId)
+        : data.enrollments;
 
-      data.enrollments.forEach(enrollment => {
+      targetEnrollments.forEach(enrollment => {
         const attScore = enrollment.attendance_score != null ? Number(enrollment.attendance_score) : 0;
         const assignScore = enrollment.assignment_score != null ? Number(enrollment.assignment_score) : 0;
         const projScore = enrollment.project_score != null ? Number(enrollment.project_score) : 0;
@@ -2083,7 +2097,9 @@ export default function Home() {
           type = "Participation";
         }
 
-        if (type && !existingEnrollmentIds.has(String(enrollment.id))) {
+        const existing = existingEnrollments.get(String(enrollment.id));
+
+        if (type && !existing) {
           const classRow = data.classes.find(c => String(c.id) === String(enrollment.class_id));
           const classCode = String(classRow?.class_code || "EDU");
           const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -2096,21 +2112,43 @@ export default function Home() {
             status: "Issued",
             issued_at: new Date().toISOString(),
           });
+        } 
+        // Auto upgrade if Participation -> Completion
+        else if (type === "Completion" && existing && existing.certificate_type === "Participation") {
+          certificateBatch.push({
+            id: existing.id,
+            certificate_type: "Completion",
+            issued_at: new Date().toISOString(),
+            note: ((existing.note as string) || "") + " [Auto-upgraded on sync]"
+          });
         }
       });
 
       if (certificateBatch.length === 0) {
-        setMessage("Không tìm thấy học viên mới đủ điều kiện cấp chứng chỉ.");
+        if (!targetEnrollmentId) setMessage("Không tìm thấy học viên mới đủ điều kiện cấp chứng chỉ.");
         return;
       }
 
-      const { error: insertError } = await supabase.from("certificates").insert(certificateBatch);
-      if (insertError) throw insertError;
+      // Separate inserts and updates
+      const toInsert = certificateBatch.filter(c => !c.id);
+      const toUpdate = certificateBatch.filter(c => c.id);
 
-      setMessage(`✓ Đã đồng bộ thành công ${certificateBatch.length} chứng chỉ mới.`);
+      if (toInsert.length > 0) {
+        const { error: insertError } = await supabase.from("certificates").insert(toInsert);
+        if (insertError) throw insertError;
+      }
+
+      if (toUpdate.length > 0) {
+        for (const cert of toUpdate) {
+          const { error: updateError } = await supabase.from("certificates").update(cert).eq("id", cert.id);
+          if (updateError) throw updateError;
+        }
+      }
+
+      if (!targetEnrollmentId) setMessage(`✓ Đã đồng bộ thành công ${certificateBatch.length} chứng chỉ.`);
       await loadAllTables();
     } catch (err: any) {
-      setError(err.message || "Lỗi khi đồng bộ chứng chỉ.");
+      if (!targetEnrollmentId) setError(err.message || "Lỗi khi đồng bộ chứng chỉ.");
     } finally {
       setIsSaving(false);
     }
@@ -3084,11 +3122,33 @@ export default function Home() {
                           <tr key={enrollment.id}>
                             <td>{enrollment.name}</td>
                             <td>{enrollment.email}</td>
-                            <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>{formatValue(enrollment.attendanceScore)}</td>
-                            <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>{formatValue(enrollment.assignmentScore)}</td>
-                            <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>{formatValue(enrollment.projectScore)}</td>
+                            <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>
+                              <input 
+                                type="number" step="0.1" defaultValue={enrollment.attendanceScore ?? ""}
+                                onBlur={(e) => void updateEnrollmentProjectField(enrollment.id, "attendance_score", Number(e.target.value))}
+                                style={{ width: "50px", border: "1px solid transparent", background: "transparent", textAlign: "center" }}
+                              />
+                            </td>
+                            <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>
+                              <input 
+                                type="number" step="0.1" defaultValue={enrollment.assignmentScore ?? ""}
+                                onBlur={(e) => void updateEnrollmentProjectField(enrollment.id, "assignment_score", Number(e.target.value))}
+                                style={{ width: "50px", border: "1px solid transparent", background: "transparent", textAlign: "center" }}
+                              />
+                            </td>
+                            <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>
+                              <input 
+                                type="number" step="0.1" defaultValue={enrollment.projectScore ?? ""}
+                                onBlur={(e) => void updateEnrollmentProjectField(enrollment.id, "project_score", Number(e.target.value))}
+                                style={{ width: "50px", border: "1px solid transparent", background: "transparent", textAlign: "center" }}
+                              />
+                            </td>
                             <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px", color: "var(--accent)" }}>
-                              <strong>{formatValue(enrollment.finalScore)}</strong>
+                              <input 
+                                type="number" step="0.1" defaultValue={enrollment.finalScore ?? ""}
+                                onBlur={(e) => void updateEnrollmentProjectField(enrollment.id, "final_score", Number(e.target.value))}
+                                style={{ width: "50px", border: "1px solid transparent", background: "transparent", textAlign: "center", fontWeight: 700, color: "var(--accent)" }}
+                              />
                             </td>
                             <td style={{ textAlign: "center", borderLeft: "1px solid var(--border)" }}>
                               {(enrollment as any).certificate === "Completion" ? (
