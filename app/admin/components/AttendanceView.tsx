@@ -58,9 +58,9 @@ export function AttendanceView({
     let totalPoints = 0;
     studentRecords.forEach(r => {
       if (r.status === "present") totalPoints += 1;
-      else if (r.status === "excused") totalPoints += 0.75;
-      else if (r.status === "late") totalPoints += 0.5;
-      else if (r.status === "absent") totalPoints += 0.25;
+      else if (r.status === "late") totalPoints += 0.75;
+      else if (r.status === "excused") totalPoints += 0.5;
+      else if (r.status === "absent") totalPoints += 0;
     });
     
     return Number(((totalPoints / attendanceSessionCount) * 10).toFixed(2));

@@ -59,9 +59,9 @@ export function AttendanceGuideModal({ onClose }: AttendanceGuideModalProps) {
         <div style={{ display: "grid", gap: "12px", marginBottom: "24px" }}>
           {[
             { label: "Có mặt (V)", score: "1.0", color: "#10b981", desc: "Học viên tham gia đầy đủ buổi học." },
-            { label: "Có phép (P)", score: "0.75", color: "#3b82f6", desc: "Vắng mặt nhưng có lý do chính đáng được duyệt." },
-            { label: "Đi muộn (M)", score: "0.5", color: "#f59e0b", desc: "Học viên vào lớp sau thời gian quy định." },
-            { label: "Vắng mặt (X)", score: "0.25", color: "#ef4444", desc: "Vắng mặt không thông báo hoặc không lý do." },
+            { label: "Đi muộn (M)", score: "0.75", color: "#f59e0b", desc: "Học viên vào lớp sau thời gian quy định." },
+            { label: "Có phép (P)", score: "0.5", color: "#3b82f6", desc: "Vắng mặt nhưng có lý do chính đáng được duyệt." },
+            { label: "Vắng mặt (X)", score: "0", color: "#ef4444", desc: "Vắng mặt không thông báo hoặc không lý do." },
             { label: "Chưa điểm danh", score: "0", color: "#e2e8f0", desc: "Trạng thái mặc định khi chưa bắt đầu." },
           ].map((item, idx) => (
             <div key={idx} style={{ 
