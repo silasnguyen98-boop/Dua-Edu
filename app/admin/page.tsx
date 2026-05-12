@@ -488,9 +488,14 @@ export default function Home() {
         present: rows.filter((record) => record.status === "present").length,
       };
 
+      const attended = counted.present + counted.late;
+
       return {
         ...counted,
         unmarked: Math.max(totalStudents - rows.length, 0),
+        attended,
+        attendanceRate: totalStudents ? Math.round((attended / totalStudents) * 100) : 0,
+        isMarked: rows.length > 0
       };
     };
 
@@ -577,7 +582,10 @@ export default function Home() {
       projectRate,
       topStudents,
       bottomStudents,
-      classAverageRate: sessionRows.length ? Math.round(sessionRows.reduce((sum, r) => sum + r.attendanceRate, 0) / sessionRows.length) : 0,
+      classAverageRate: (() => {
+        const markedSessions = sessionRows.filter(r => r.isMarked);
+        return markedSessions.length ? Math.round(markedSessions.reduce((sum, r) => sum + r.attendanceRate, 0) / markedSessions.length) : 0;
+      })(),
       chronicAbsenteesInSession: selectedAttendanceClass.enrollments.filter(en => {
         const todayRecord = attendanceRecords.find(r => String(r.enrollment_id) === en.id && r.session_number === selectedAttendanceSession);
         if (!todayRecord || (todayRecord.status !== "absent" && todayRecord.status !== "late")) return false;
