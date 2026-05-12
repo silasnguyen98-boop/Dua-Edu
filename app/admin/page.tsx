@@ -3384,18 +3384,18 @@ export default function Home() {
                       </article>
 
                       <article className="class-dashboard-panel">
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
-                          <div>
-                            <p className="eyebrow" style={{ margin: 0 }}>Phân tích</p>
-                            <h3 style={{ margin: "4px 0 0", fontSize: "18px" }}>Phân loại học viên</h3>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "20px" }}>
+                          <div style={{ minWidth: 0 }}>
+                            <p className="eyebrow" style={{ margin: 0, fontSize: "11px" }}>Phân tích</p>
+                            <h3 style={{ margin: "2px 0 0", fontSize: "16px", whiteSpace: "nowrap" }}>Phân loại học viên</h3>
                           </div>
                           <select 
                             value={segmentCriteria} 
                             onChange={(e) => setSegmentCriteria(e.target.value as any)}
                             style={{ 
-                              padding: "8px 16px", borderRadius: "10px", border: "1px solid var(--border)", 
-                              fontSize: "13px", fontWeight: 600, background: "white", cursor: "pointer",
-                              outline: "none", boxShadow: "0 1px 2px rgba(0,0,0,0.05)", minWidth: "160px"
+                              padding: "6px 12px", borderRadius: "8px", border: "1px solid var(--border)", 
+                              fontSize: "12px", fontWeight: 600, background: "white", cursor: "pointer",
+                              outline: "none", boxShadow: "0 1px 2px rgba(0,0,0,0.05)", flexShrink: 0
                             }}
                           >
                             <option value="attendance">Theo chuyên cần</option>
