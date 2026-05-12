@@ -577,6 +577,21 @@ export default function Home() {
       projectRate,
       topStudents,
       bottomStudents,
+      classAverageRate: sessionRows.length ? Math.round(sessionRows.reduce((sum, r) => sum + r.attendanceRate, 0) / sessionRows.length) : 0,
+      chronicAbsenteesInSession: selectedAttendanceClass.enrollments.filter(en => {
+        const todayRecord = attendanceRecords.find(r => String(r.enrollment_id) === en.id && r.session_number === selectedAttendanceSession);
+        if (!todayRecord || (todayRecord.status !== "absent" && todayRecord.status !== "late")) return false;
+        
+        const history = attendanceRecords.filter(r => String(r.enrollment_id) === en.id && r.session_number < selectedAttendanceSession);
+        const badCount = history.filter(r => r.status === "absent" || r.status === "late").length;
+        return badCount >= 2;
+      }).map(en => {
+        const history = attendanceRecords.filter(r => String(r.enrollment_id) === en.id && r.session_number < selectedAttendanceSession);
+        return {
+          ...en,
+          badCount: history.filter(r => r.status === "absent" || r.status === "late").length
+        };
+      })
     };
   }, [attendanceRecords, assignmentRecords, attendanceSessionCount, selectedAttendanceClass, selectedAttendanceSession]);
 
@@ -3108,8 +3123,43 @@ export default function Home() {
 
                   {classDashboardMode === "session" && (
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "24px", marginTop: "24px" }}>
-                      <article className="class-dashboard-panel" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                         <div className="section-heading compact" style={{ width: "100%" }}>
+                      <article className="class-dashboard-panel">
+                         <div className="section-heading compact">
+                          <div>
+                            <p className="eyebrow">Hiệu suất</p>
+                            <h3>So sánh trung bình</h3>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "16px", marginTop: "16px" }}>
+                          <div style={{ 
+                            width: "80px", height: "80px", borderRadius: "50%", border: "6px solid #f1f5f9", 
+                            display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column"
+                          }}>
+                            <strong style={{ fontSize: "20px", color: "var(--foreground)" }}>{classDashboardMetrics.selectedSession.attendanceRate}%</strong>
+                            <small style={{ fontSize: "10px", color: "var(--text-secondary)" }}>Buổi này</small>
+                          </div>
+                          <div>
+                            {(() => {
+                              const diff = classDashboardMetrics.selectedSession.attendanceRate - classDashboardMetrics.classAverageRate;
+                              const isPositive = diff >= 0;
+                              return (
+                                <>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "6px", color: isPositive ? "#059669" : "#dc2626", fontWeight: 700, fontSize: "16px" }}>
+                                    {isPositive ? "↑" : "↓"} {Math.abs(diff)}% 
+                                    <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--text-secondary)" }}>so với trung bình ({classDashboardMetrics.classAverageRate}%)</span>
+                                  </div>
+                                  <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--text-secondary)" }}>
+                                    {isPositive ? "Buổi học có tỉ lệ tham gia tốt hơn thường lệ." : "Tỉ lệ tham gia đang thấp hơn mức kỳ vọng."}
+                                  </p>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      </article>
+
+                      <article className="class-dashboard-panel">
+                         <div className="section-heading compact">
                           <div>
                             <p className="eyebrow">Thống kê</p>
                             <h3>Cơ cấu buổi {selectedAttendanceSession}</h3>
@@ -3123,6 +3173,33 @@ export default function Home() {
                           { id: "unmarked", label: "Chưa điểm danh", value: classDashboardMetrics.selectedSession.unmarked, percent: Math.round((classDashboardMetrics.selectedSession.unmarked / (classDashboardMetrics.totalStudents || 1)) * 100), color: "#64748b" },
                         ].filter(item => item.value > 0)} />
                       </article>
+
+                      {classDashboardMetrics.chronicAbsenteesInSession.length > 0 && (
+                        <article className="class-dashboard-panel" style={{ borderLeft: "4px solid #f59e0b", background: "#fffbeb" }}>
+                          <div className="section-heading compact">
+                            <div>
+                              <p className="eyebrow" style={{ color: "#d97706" }}>Lưu ý đặc biệt</p>
+                              <h3>Học viên vắng/muộn có hệ thống</h3>
+                            </div>
+                          </div>
+                          <div className="class-table" style={{ maxHeight: "200px", overflowY: "auto", marginTop: "12px" }}>
+                             <table style={{ background: "transparent" }}>
+                              <tbody>
+                                {classDashboardMetrics.chronicAbsenteesInSession.map(s => (
+                                  <tr key={s.id}>
+                                    <td style={{ padding: "8px 0" }}>
+                                      <div style={{ fontWeight: 600, fontSize: "13px" }}>{s.name}</div>
+                                      <div style={{ fontSize: "11px", color: "#d97706", fontWeight: 500 }}>
+                                        Đã vắng/muộn {s.badCount} lần trước đó
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </article>
+                      )}
 
                       {sessionDetailStatus && (
                         <article className="class-dashboard-panel">
