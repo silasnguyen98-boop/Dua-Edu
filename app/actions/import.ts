@@ -85,7 +85,7 @@ const findExistingEmails = async (
 };
 
 const sanitizePayloadForTable = (tableName: string, payload: any[]) => {
-  if (tableName !== "classes") {
+  if (tableName !== "classes" && tableName !== "class_sessions") {
     return payload;
   }
 

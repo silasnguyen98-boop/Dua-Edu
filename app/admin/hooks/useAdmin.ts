@@ -687,7 +687,7 @@ export function useAdmin() {
       else p[f.name] = rawValue;
       return p;
     }, {});
-    if (activeTable === "classes") delete payload.status;
+    if (activeTable === "classes" || activeTable === "class_sessions") delete payload.status;
     return payload;
   }
 
@@ -709,7 +709,7 @@ export function useAdmin() {
       }, {})).filter(row => Object.values(row).some(v => v !== null && v !== ""));
       if (!payload.length) throw new Error("Không có dòng dữ liệu hợp lệ.");
       const resolvedPayload = await resolveImportReferences(payload);
-      if (activeTable === "classes") resolvedPayload.forEach(r => delete r.status);
+      if (activeTable === "classes" || activeTable === "class_sessions") resolvedPayload.forEach(r => delete r.status);
       const importData = await skipDuplicateEmails(resolvedPayload);
       if (!importData.payload.length) { setMessage("Không có dòng mới để import."); return; }
       const { data: { session } } = await supabase.auth.getSession();
