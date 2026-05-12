@@ -75,9 +75,9 @@ export function LineChart({ items }: { items: { label: string; value: number }[]
     );
   }
 
-  const height = 120;
-  const width = 400;
-  const padding = 20;
+  const height = 160;
+  const width = 440;
+  const padding = 35;
   const maxValue = 100;
 
   const points = items.map((item, i) => {
@@ -93,15 +93,15 @@ export function LineChart({ items }: { items: { label: string; value: number }[]
   const minVal = Math.min(...values);
 
   return (
-    <div className="line-chart-container" style={{ width: "100%", overflowX: "auto", padding: "10px 0" }}>
+    <div className="line-chart-container" style={{ width: "100%", overflowX: "auto", padding: "20px 0" }}>
       <svg height={height} style={{ overflow: "visible" }} viewBox={`0 0 ${width} ${height}`} width="100%">
         {/* Grid lines */}
         {[0, 25, 50, 75, 100].map(v => {
           const y = height - padding - (v / maxValue) * (height - 2 * padding);
           return (
             <g key={v}>
-              <line stroke="#e2e8f0" strokeDasharray="4 4" x1={padding} x2={width - padding} y1={y} y2={y} />
-              <text fill="#94a3b8" fontSize="10" x="0" y={y + 4}>{v}%</text>
+              <line stroke="#f1f5f9" strokeDasharray="4 4" x1={padding} x2={width - padding} y1={y} y2={y} />
+              <text fill="#cbd5e1" fontSize="10" x="4" y={y + 4}>{v}%</text>
             </g>
           );
         })}
@@ -115,13 +115,13 @@ export function LineChart({ items }: { items: { label: string; value: number }[]
           
           return (
             <g key={i}>
-              <circle cx={p.x} cy={p.y} fill="white" r="5" stroke={pointColor} strokeWidth="3" />
+              <circle cx={p.x} cy={p.y} fill="white" r="6" stroke={pointColor} strokeWidth="3" />
               { (isMax || isMin) && (
-                <text fill={pointColor} fontSize="10" fontWeight="800" textAnchor="middle" x={p.x} y={p.y - 10}>
+                <text fill={pointColor} fontSize="12" fontWeight="800" textAnchor="middle" x={p.x} y={p.y - 15}>
                   {items[i].value}%
                 </text>
               )}
-              <text fill="#64748b" fontSize="10" fontWeight="600" textAnchor="middle" x={p.x} y={height}>{items[i].label}</text>
+              <text fill="#64748b" fontSize="10" fontWeight="600" textAnchor="middle" x={p.x} y={height - 10}>{items[i].label}</text>
             </g>
           );
         })}
