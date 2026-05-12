@@ -1,6 +1,5 @@
 "use client";
 
-import { useAdmin } from "./hooks/useAdmin";
 import { Sidebar } from "./components/Sidebar";
 import { Topbar } from "./components/Topbar";
 import { GeneralDashboard } from "./components/GeneralDashboard";
@@ -67,6 +66,16 @@ export default function Home() {
         />
 
         <div className="admin-content">
+          {admin.error && (
+            <div className="alert alert-error" style={{ marginBottom: "20px", padding: "12px 16px", borderRadius: "8px", backgroundColor: "#fef2f2", color: "#991b1b", border: "1px solid #fecaca", fontSize: "14px", fontWeight: 500 }}>
+              {admin.error}
+            </div>
+          )}
+          {admin.message && (
+            <div className="alert alert-success" style={{ marginBottom: "20px", padding: "12px 16px", borderRadius: "8px", backgroundColor: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0", fontSize: "14px", fontWeight: 500 }}>
+              {admin.message}
+            </div>
+          )}
           {admin.activeView === "dashboard" && (
             <GeneralDashboard
               stats={admin.stats}
