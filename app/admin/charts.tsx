@@ -111,17 +111,48 @@ export function LineChart({ items }: { items: { label: string; value: number }[]
         {points.map((p, i) => {
           const isMax = items[i].value === maxVal && maxVal !== minVal;
           const isMin = items[i].value === minVal && maxVal !== minVal;
-          const pointColor = isMax ? "#10b981" : isMin ? "#ef4444" : "#6366f1";
+          const isLast = i === items.length - 1;
+          
+          const pointColor = isMax ? "#10b981" : isMin ? "#ef4444" : isLast ? "#6366f1" : "#cbd5e1";
+          const strokeWidth = isLast || isMax || isMin ? 3 : 2;
+          const radius = isLast ? 7 : 5;
+
+          let diffText = "";
+          let diffColor = "";
+          if (isLast && i > 0) {
+            const diff = items[i].value - items[i - 1].value;
+            if (diff > 0) {
+              diffText = `+${diff.toFixed(1)}%`;
+              diffColor = "#10b981";
+            } else if (diff < 0) {
+              diffText = `${diff.toFixed(1)}%`;
+              diffColor = "#ef4444";
+            } else {
+              diffText = "0%";
+              diffColor = "#64748b";
+            }
+          }
           
           return (
             <g key={i}>
-              <circle cx={p.x} cy={p.y} fill="white" r="6" stroke={pointColor} strokeWidth="3" />
-              { (isMax || isMin) && (
-                <text fill={pointColor} fontSize="12" fontWeight="800" textAnchor="middle" x={p.x} y={p.y - 15}>
-                  {items[i].value}%
-                </text>
+              <circle cx={p.x} cy={p.y} fill="white" r={radius} stroke={pointColor} strokeWidth={strokeWidth} />
+              
+              { (isMax || isMin || isLast) && (
+                <g>
+                  <text fill={pointColor} fontSize="11" fontWeight="800" textAnchor="middle" x={p.x} y={p.y - 15}>
+                    {items[i].value}%
+                  </text>
+                  {isLast && diffText && (
+                    <text fill={diffColor} fontSize="10" fontWeight="700" textAnchor="middle" x={p.x} y={p.y - 28}>
+                      {diffText}
+                    </text>
+                  )}
+                </g>
               )}
-              <text fill="#64748b" fontSize="10" fontWeight="600" textAnchor="middle" x={p.x} y={height - 10}>{items[i].label}</text>
+              
+              <text fill={isLast ? "var(--foreground)" : "#94a3b8"} fontSize="10" fontWeight={isLast ? "700" : "600"} textAnchor="middle" x={p.x} y={height - 10}>
+                {items[i].label}
+              </text>
             </g>
           );
         })}
@@ -132,6 +163,9 @@ export function LineChart({ items }: { items: { label: string; value: number }[]
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: "4px", color: "#ef4444" }}>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ef4444" }} /> Thấp nhất
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: "4px", color: "#6366f1" }}>
+          <span style={{ width: 8, height: 8, border: "2px solid #6366f1", borderRadius: "50%", background: "white" }} /> Buổi mới nhất
         </span>
       </div>
     </div>
