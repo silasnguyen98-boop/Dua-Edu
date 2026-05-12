@@ -586,6 +586,25 @@ export default function Home() {
         const markedSessions = sessionRows.filter(r => r.isMarked);
         return markedSessions.length ? Math.round(markedSessions.reduce((sum, r) => sum + r.attendanceRate, 0) / markedSessions.length) : 0;
       })(),
+      attendanceSegments: (() => {
+        const markedCount = sessionRows.filter(r => r.isMarked).length;
+        if (markedCount === 0) return { excellent: 0, good: 0, average: 0, risky: 0 };
+        
+        let excellent = 0, good = 0, average = 0, risky = 0;
+        
+        selectedAttendanceClass.enrollments.forEach(en => {
+          const records = recordsForClass.filter(r => String(r.enrollment_id) === en.id);
+          const attended = records.filter(r => r.status === "present" || r.status === "late").length;
+          const rate = Math.round((attended / markedCount) * 100);
+          
+          if (rate >= 90) excellent++;
+          else if (rate >= 70) good++;
+          else if (rate >= 50) average++;
+          else risky++;
+        });
+        
+        return { excellent, good, average, risky };
+      })(),
       chronicAbsenteesInSession: selectedAttendanceClass.enrollments.filter(en => {
         const todayRecord = attendanceRecords.find(r => String(r.enrollment_id) === en.id && r.session_number === selectedAttendanceSession);
         if (!todayRecord || (todayRecord.status !== "absent" && todayRecord.status !== "late")) return false;
@@ -3338,6 +3357,36 @@ export default function Home() {
                         </div>
                         <div className="session-growth-chart">
                           <LineChart items={classDashboardMetrics.sessionRows.map(r => ({ label: `B${r.sessionNumber}`, value: r.attendanceRate }))} />
+                        </div>
+                      </article>
+
+                      <article className="class-dashboard-panel">
+                        <div className="section-heading compact">
+                          <div>
+                            <p className="eyebrow">Phân tích</p>
+                            <h3>Phân loại học viên</h3>
+                          </div>
+                        </div>
+                        <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                          {[
+                            { label: "Xuất sắc (90-100%)", count: classDashboardMetrics.attendanceSegments.excellent, color: "#059669" },
+                            { label: "Tốt (70-90%)", count: classDashboardMetrics.attendanceSegments.good, color: "#10b981" },
+                            { label: "Trung bình (50-70%)", count: classDashboardMetrics.attendanceSegments.average, color: "#f59e0b" },
+                            { label: "Nguy cơ cao (<50%)", count: classDashboardMetrics.attendanceSegments.risky, color: "#dc2626" },
+                          ].map(seg => {
+                            const percent = classDashboardMetrics.totalStudents ? Math.round((seg.count / classDashboardMetrics.totalStudents) * 100) : 0;
+                            return (
+                              <div key={seg.label}>
+                                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "4px" }}>
+                                  <span style={{ fontWeight: 600, color: "var(--text-secondary)" }}>{seg.label}</span>
+                                  <span style={{ fontWeight: 700 }}>{seg.count} học viên ({percent}%)</span>
+                                </div>
+                                <div style={{ height: "8px", background: "#f1f5f9", borderRadius: "4px", overflow: "hidden" }}>
+                                  <div style={{ height: "100%", width: `${percent}%`, background: seg.color, borderRadius: "4px", transition: "width 0.5s ease" }} />
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </article>
 
