@@ -138,7 +138,11 @@ const ensurePublicUserProfile = async (adminClient: ReturnType<typeof getSupabas
 };
 
 export async function getUsers(token: string) {
-  const { adminClient } = await verifyStudentAccountManager(token);
+  const authResult = await verifyStudentAccountManager(token);
+  if (authResult.error) throw new Error(authResult.error);
+  const { adminClient } = authResult;
+  if (!adminClient) throw new Error("Lỗi cấu hình hệ thống.");
+
   const { data, error } = await adminClient.auth.admin.listUsers();
   if (error) throw new Error(error.message);
 
@@ -202,15 +206,23 @@ export async function createUser(
   username: string,
   role: UserRole,
 ) {
-  const adminClient = await verifyAdmin(token);
-  const { data, error } = await adminClient.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: { username, role },
-  });
-  if (error) throw new Error(error.message);
-  return data.user;
+  try {
+    const authResult = await verifyAdmin(token);
+    if (authResult.error) throw new Error(authResult.error);
+    const { adminClient } = authResult;
+    if (!adminClient) throw new Error("Lỗi cấu hình hệ thống.");
+
+    const { data, error } = await adminClient.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { username, role },
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true, user: data.user };
+  } catch (error: any) {
+    return { ok: false, error: error.message || "Không thể tạo người dùng." };
+  }
 }
 
 const generateStudentPassword = () => {
@@ -442,23 +454,39 @@ export async function updateUser(
   id: string,
   updates: { email?: string; password?: string; username?: string; role?: UserRole },
 ) {
-  const adminClient = await verifyAdmin(token);
-  const payload: any = {};
-  if (updates.email) payload.email = updates.email;
-  if (updates.password) payload.password = updates.password;
-  if (updates.username !== undefined || updates.role !== undefined) {
-    payload.user_metadata = {};
-    if (updates.username !== undefined) payload.user_metadata.username = updates.username;
-    if (updates.role !== undefined) payload.user_metadata.role = updates.role;
+  try {
+    const authResult = await verifyAdmin(token);
+    if (authResult.error) throw new Error(authResult.error);
+    const { adminClient } = authResult;
+    if (!adminClient) throw new Error("Lỗi cấu hình hệ thống.");
+
+    const payload: any = {};
+    if (updates.email) payload.email = updates.email;
+    if (updates.password) payload.password = updates.password;
+    if (updates.username !== undefined || updates.role !== undefined) {
+      payload.user_metadata = {};
+      if (updates.username !== undefined) payload.user_metadata.username = updates.username;
+      if (updates.role !== undefined) payload.user_metadata.role = updates.role;
+    }
+    const { data, error } = await adminClient.auth.admin.updateUserById(id, payload);
+    if (error) throw new Error(error.message);
+    return { ok: true, user: data.user };
+  } catch (error: any) {
+    return { ok: false, error: error.message || "Không thể cập nhật người dùng." };
   }
-  const { data, error } = await adminClient.auth.admin.updateUserById(id, payload);
-  if (error) throw new Error(error.message);
-  return data.user;
 }
 
 export async function deleteUser(token: string, id: string) {
-  const adminClient = await verifyAdmin(token);
-  const { error } = await adminClient.auth.admin.deleteUser(id);
-  if (error) throw new Error(error.message);
-  return true;
+  try {
+    const authResult = await verifyAdmin(token);
+    if (authResult.error) throw new Error(authResult.error);
+    const { adminClient } = authResult;
+    if (!adminClient) throw new Error("Lỗi cấu hình hệ thống.");
+
+    const { error } = await adminClient.auth.admin.deleteUser(id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  } catch (error: any) {
+    return { ok: false, error: error.message || "Không thể xóa người dùng." };
+  }
 }
