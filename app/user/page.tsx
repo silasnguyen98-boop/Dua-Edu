@@ -217,7 +217,7 @@ export default function StudentDashboard() {
       }
 
       if (!(await canAccessStudentPortal(session.user))) {
-        router.push("/");
+        router.push("/admin");
         return;
       }
 

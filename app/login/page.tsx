@@ -50,7 +50,7 @@ export default function LoginPage() {
         if (await isStudentSession(session)) {
           router.replace("/user");
         } else {
-          router.replace("/");
+          router.replace("/admin");
         }
       }
     });
@@ -74,7 +74,7 @@ export default function LoginPage() {
       if (await isStudentSession(session)) {
         router.replace("/user");
       } else {
-        router.replace("/");
+        router.replace("/admin");
       }
     }
   }
