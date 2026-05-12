@@ -797,6 +797,26 @@ export function useAdmin() {
     setUpdatingCertificateEnrollmentId(null);
   }
 
+  async function syncAttendanceScore(enrollmentId: string) {
+    const enrollment = data.enrollments.find(e => String(e.id) === String(enrollmentId));
+    if (!enrollment) return;
+    const cls = data.classes.find(c => String(c.id) === String(enrollment.class_id));
+    if (!cls) return;
+    const totalSessions = Number(cls.total_sessions || 0);
+    if (totalSessions === 0) return;
+
+    const { data: records } = await supabase.from("attendance_records").select("status").eq("enrollment_id", enrollmentId);
+    if (!records) return;
+
+    let totalPoints = 0;
+    records.forEach(r => {
+      if (r.status === "present" || r.status === "excused") totalPoints += 1;
+      else if (r.status === "late") totalPoints += 0.5;
+    });
+    const score = Number(((totalPoints / totalSessions) * 10).toFixed(1));
+    await supabase.from("enrollments").update({ attendance_score: score }).eq("id", enrollmentId);
+  }
+
   async function updateAttendance(enrollmentId: string, session: number, status: string) {
     setIsSaving(true);
     if (!status) {
@@ -810,7 +830,8 @@ export function useAdmin() {
         setAttendanceRecords((current) =>
           current.filter((record) => !(String(record.enrollment_id) === enrollmentId && Number(record.session_number) === session)),
         );
-        setMessage("Đã chuyển về Chưa điểm danh.");
+        await syncAttendanceScore(enrollmentId);
+        setMessage("Đã chuyển về Chưa điểm danh và cập nhật điểm CC.");
       }
       setIsSaving(false);
       return;
@@ -818,7 +839,11 @@ export function useAdmin() {
 
     const { error: saveError } = await supabase.from("attendance_records").upsert({ enrollment_id: enrollmentId, session_number: session, status }, { onConflict: "enrollment_id,session_number" });
     if (saveError) setError(saveError.message);
-    else await loadAttendanceRecords(new Set(visibleClassItems.flatMap(c => c.enrollments.map((e: any) => e.id))));
+    else {
+      await loadAttendanceRecords(new Set(visibleClassItems.flatMap(c => c.enrollments.map((e: any) => e.id))));
+      await syncAttendanceScore(enrollmentId);
+      setMessage("Đã điểm danh và cập nhật điểm CC.");
+    }
     setIsSaving(false);
   }
 
