@@ -836,6 +836,14 @@ export function useAdmin() {
           : data.enrollments.filter(e => e.student_id === targetId))
         : data.enrollments;
       
+      const classById = new Map(data.classes.map((classRow) => [String(classRow.id), classRow]));
+      const createCertificateCode = (enrollment: Row, type: string) => {
+        const classRow = classById.get(String(enrollment.class_id ?? ""));
+        const classCode = String(classRow?.class_code ?? "EDU").trim() || "EDU";
+        const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+        return `${classCode}-${type.slice(0, 4).toUpperCase()}-${suffix}`;
+      };
+
       const certificateBatch = enrollments.map(e => {
         const attScore = Number(e.attendance_score ?? 0);
         const projScore = Number(e.project_score ?? 0);
@@ -844,11 +852,48 @@ export function useAdmin() {
         let type = "none";
         if (attScore >= 4 && projScore > 0 && finalScore >= 4) type = "completion";
         else if (attScore >= 2 && assignScore > 0) type = "participation";
-        return type !== "none" ? { enrollment_id: e.id, certificate_type: type } : null;
+        return type !== "none" ? { enrollment: e, certificate_type: type } : null;
       }).filter(Boolean);
 
       for (const cert of certificateBatch) {
-        await supabase.from("certificates").upsert(cert!, { onConflict: "enrollment_id" });
+        const enrollment = cert!.enrollment;
+        const enrollmentId = String(enrollment.id ?? "");
+        const nextType = cert!.certificate_type;
+        const { data: existingCertificate, error: selectError } = await supabase
+          .from("certificates")
+          .select("id,certificate_type,status")
+          .eq("enrollment_id", enrollmentId)
+          .maybeSingle();
+
+        if (selectError) throw selectError;
+
+        if (existingCertificate?.id) {
+          const shouldUpgrade =
+            existingCertificate.certificate_type !== nextType &&
+            (existingCertificate.certificate_type !== "completion" || nextType === "completion");
+          if (shouldUpgrade) {
+            const updatePayload: Record<string, string> = {
+              certificate_type: nextType,
+            };
+            if (nextType === "completion") {
+              updatePayload.issued_at = new Date().toISOString();
+            }
+
+            const { error: updateError } = await supabase
+              .from("certificates")
+              .update(updatePayload)
+              .eq("id", existingCertificate.id);
+            if (updateError) throw updateError;
+          }
+        } else {
+          const { error: insertError } = await supabase.from("certificates").insert({
+            enrollment_id: enrollmentId,
+            certificate_type: nextType,
+            certificate_code: createCertificateCode(enrollment, nextType),
+            status: "pending",
+          });
+          if (insertError) throw insertError;
+        }
       }
       setMessage("✓ Đã đồng bộ chứng chỉ.");
       await loadAllTables();
