@@ -312,9 +312,7 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
                                 Xoá
                               </button>
                             </>
-                          ) : (
-                            <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Chỉ xem</span>
-                          )}
+                          ) : null}
                         </div>
                       </td>
                     </tr>
