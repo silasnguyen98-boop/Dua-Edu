@@ -431,7 +431,6 @@ const getSidebarGroupForView = (view: ViewName): SidebarGroup => {
   if (view === "enrollments" || view === "certificates") return "extendedData";
   return "system";
 };
-
 const isAssistantAllowedView = (view: ViewName) =>
   view === "classManagement" ||
   view === "classDetail" ||
@@ -962,33 +961,33 @@ export default function Home() {
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!session) {
         setIsAuthenticated(false);
         setCurrentUserRole(null);
-        router.push("/login");
+        if (event === "SIGNED_OUT" || event === "INITIAL_SESSION") {
+          router.push("/login");
+        }
         return;
       }
 
-      void (async () => {
-        const role = session.user.user_metadata?.role?.trim() || "student";
-        setCurrentUserRole(role);
+      const role = session.user.user_metadata?.role?.trim() || "student";
+      setCurrentUserRole(role);
 
-        if (role === "assistant") {
-          try {
-            const ids = await getMyAssignedClassIds(session.access_token);
-            setAssignedClassIds(ids);
-          } catch {
-            setAssignedClassIds([]);
-          }
-          setOpenSidebarGroup("academic");
+      if (role === "assistant") {
+        try {
+          const ids = await getMyAssignedClassIds(session.access_token);
+          setAssignedClassIds(ids);
           if (!isAssistantAllowedView(activeView)) {
             setActiveView("classManagement");
           }
+        } catch (e) {
+          console.error("Failed to load assistant data:", e);
+          setAssignedClassIds([]);
         }
+      }
 
-        setIsAuthenticated(true);
-      })();
+      setIsAuthenticated(true);
     });
 
     return () => subscription.unsubscribe();
@@ -1654,10 +1653,11 @@ export default function Home() {
   ) {
     const hasEmailField = activeConfig.fields.some(f => f.name === "email");
     if (!hasEmailField) {
-      return { duplicateCount: 0, payload };
+      return { duplicateCount: 0, duplicateEmails: [], payload };
     }
 
     const seenEmails = new Set<string>();
+    const duplicateEmails: string[] = [];
     let duplicateCount = 0;
     const uniqueRows = payload.filter((row) => {
       const email = String(row.email ?? "").trim().toLowerCase();
@@ -1668,6 +1668,7 @@ export default function Home() {
 
       if (seenEmails.has(email)) {
         duplicateCount += 1;
+        duplicateEmails.push(email);
         return false;
       }
 
@@ -1677,7 +1678,7 @@ export default function Home() {
     const emails = Array.from(seenEmails);
 
     if (!emails.length) {
-      return { duplicateCount, payload: uniqueRows };
+      return { duplicateCount, duplicateEmails, payload: uniqueRows };
     }
 
     const { data: existingRows, error: emailCheckError } = await supabase
@@ -1697,13 +1698,14 @@ export default function Home() {
 
       if (email && existingEmails.has(email)) {
         duplicateCount += 1;
+        duplicateEmails.push(email);
         return false;
       }
 
       return true;
     });
 
-    return { duplicateCount, payload: filteredPayload };
+    return { duplicateCount, duplicateEmails, payload: filteredPayload };
   }
 
   async function resolveImportReferences(payload: Record<string, string | number | null>[]) {
@@ -1832,9 +1834,12 @@ export default function Home() {
       const importData = await skipDuplicateEmails(resolvedPayload);
 
       if (!importData.payload.length) {
+        const duplicatePreview = importData.duplicateEmails.length
+          ? ` Email trùng: ${importData.duplicateEmails.slice(0, 10).join(", ")}${importData.duplicateEmails.length > 10 ? `, ... (+${importData.duplicateEmails.length - 10} email khác)` : ""}.`
+          : "";
         setMessage(
           importData.duplicateCount
-            ? `Không có dòng mới để import. Đã bỏ qua ${importData.duplicateCount} email đã tồn tại trong hệ thống.`
+            ? `Không có dòng mới để import. Đã bỏ qua ${importData.duplicateCount} email đã tồn tại trong hệ thống.${duplicatePreview}`
             : "Không có dòng mới để import.",
         );
         return;
@@ -1850,12 +1855,14 @@ export default function Home() {
       }
 
       const totalSkipped = (importData.duplicateCount || 0) + (result.skipped || 0);
-      const duplicateEmails = (result as any).duplicatedEmails || [];
+      const duplicateEmails = Array.from(
+        new Set([...(importData.duplicateEmails || []), ...((result as any).duplicatedEmails || [])]),
+      );
 
       setMessage(
         `✓ Đã import ${result.data?.length || 0} dòng thành công.` +
           (totalSkipped > 0
-            ? ` (Bỏ qua ${totalSkipped} email trùng${duplicateEmails.length > 0 ? `: ${duplicateEmails.slice(0, 3).join(", ")}${duplicateEmails.length > 3 ? "..." : ""}` : ""}).`
+            ? ` Bỏ qua ${totalSkipped} email trùng${duplicateEmails.length > 0 ? `: ${duplicateEmails.slice(0, 10).join(", ")}${duplicateEmails.length > 10 ? `, ... (+${duplicateEmails.length - 10} email khác)` : ""}` : ""}.`
             : ""),
       );
       await loadAllTables();
@@ -2368,7 +2375,7 @@ export default function Home() {
             ? "Điểm bài tập"
             : isProjectScoreView
               ? "Điểm đồ án"
-              : activeConfig.label;
+              : activeConfig?.label || "Đang tải...";
   const pageDescription = isDashboardView
     ? "Theo dõi ghi danh theo khoá học, giảng viên và tỉ lệ quay lại."
     : isAdminsView
@@ -2387,7 +2394,7 @@ export default function Home() {
             ? "Nhập điểm bài tập cho từng học viên trong lớp."
             : isProjectScoreView
               ? "Nhập điểm đồ án cho từng học viên trong lớp."
-              : activeConfig.description;
+              : activeConfig?.description || "";
 
   if (isAuthenticated === null || !isAuthenticated) {
     return (

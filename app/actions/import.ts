@@ -31,6 +31,36 @@ const getSupabaseUserClient = (token: string) => {
   });
 };
 
+const normalizeEmail = (value: unknown) => String(value ?? "").trim().toLowerCase();
+
+const formatDuplicateEmails = (emails: string[]) => {
+  const uniqueEmails = Array.from(new Set(emails.map(normalizeEmail).filter(Boolean)));
+  if (!uniqueEmails.length) {
+    return "chưa xác định email cụ thể";
+  }
+
+  const preview = uniqueEmails.slice(0, 10).join(", ");
+  return uniqueEmails.length > 10 ? `${preview}, ... (+${uniqueEmails.length - 10} email khác)` : preview;
+};
+
+const findExistingEmails = async (
+  adminClient: ReturnType<typeof getSupabaseAdmin>,
+  tableName: string,
+  emails: string[],
+) => {
+  const normalizedEmails = Array.from(new Set(emails.map(normalizeEmail).filter(Boolean)));
+  if (!normalizedEmails.length) return [];
+
+  const { data, error } = await adminClient
+    .from(tableName)
+    .select("email")
+    .in("email", normalizedEmails);
+
+  if (error) return [];
+
+  return (data ?? []).map((row) => normalizeEmail(row.email)).filter(Boolean);
+};
+
 /**
  * Server action to perform bulk import using service role key to bypass RLS.
  * This is restricted to users with valid roles (admin, operation, assistant).
@@ -59,18 +89,26 @@ export async function bulkImportAction(
     // 2. Perform import using admin client (service role)
     const adminClient = getSupabaseAdmin();
     
-    // Normalize and de-duplicate payload internally first
-    const cleanPayload = payload.filter((item, index) => {
-      if (!item.email) return true;
-      const email = String(item.email).trim().toLowerCase();
-      return payload.findIndex(p => String(p.email || "").trim().toLowerCase() === email) === index;
+    const duplicatedEmails: string[] = [];
+    const seenEmails = new Set<string>();
+    const cleanPayload = payload.filter((item) => {
+      const email = normalizeEmail(item.email);
+      if (!email) return true;
+
+      if (seenEmails.has(email)) {
+        duplicatedEmails.push(email);
+        return false;
+      }
+
+      seenEmails.add(email);
+      return true;
     });
 
     const hasEmailField = cleanPayload.length > 0 && "email" in cleanPayload[0];
     
     if (hasEmailField) {
       const emailsInPayload = cleanPayload
-        .map(p => String(p.email || "").trim().toLowerCase())
+        .map(p => normalizeEmail(p.email))
         .filter(Boolean);
         
       if (emailsInPayload.length > 0) {
@@ -94,19 +132,16 @@ export async function bulkImportAction(
           }
         }
 
-        const existingEmailsSet = new Set(
-          (existingRows ?? []).map(r => String(r.email || "").trim().toLowerCase())
-        );
+        const existingEmailsSet = new Set((existingRows ?? []).map(r => normalizeEmail(r.email)));
         
-        const duplicatedInPayload: string[] = [];
         const cleanPayloadInternal: any[] = [];
         const seenInThisPayload = new Set<string>();
 
         // We check for duplicates against DB and WITHIN the current batch
         for (const item of cleanPayload) {
-          const email = String(item.email || "").trim().toLowerCase();
+          const email = normalizeEmail(item.email);
           if (email && (existingEmailsSet.has(email) || seenInThisPayload.has(email))) {
-            duplicatedInPayload.push(email);
+            duplicatedEmails.push(email);
           } else {
             if (email) seenInThisPayload.add(email);
             cleanPayloadInternal.push(item);
@@ -114,7 +149,7 @@ export async function bulkImportAction(
         }
         
         if (cleanPayloadInternal.length === 0) {
-          return { ok: true, data: [], skipped: payload.length, duplicatedEmails: duplicatedInPayload };
+          return { ok: true, data: [], skipped: payload.length, duplicatedEmails };
         }
         
         // Insert the clean payload
@@ -124,14 +159,19 @@ export async function bulkImportAction(
           .select();
           
         if (importError) {
-          throw new Error(`Lỗi ràng buộc dữ liệu. Email trùng phát hiện: ${duplicatedInPayload.slice(0, 5).join(", ")}${duplicatedInPayload.length > 5 ? "..." : ""}. Chi tiết lỗi: ${importError.message}`);
+          const existingAfterFailure = await findExistingEmails(adminClient, tableName, emailsInPayload);
+          const duplicateDetails = formatDuplicateEmails([...duplicatedEmails, ...existingAfterFailure]);
+          throw new Error(
+            `Không import được vì email bị trùng: ${duplicateDetails}. ` +
+            `Hãy xoá các dòng này khỏi file hoặc cập nhật học viên đã có. Chi tiết kỹ thuật: ${importError.message}`,
+          );
         }
         
         return { 
           ok: true, 
           data, 
           skipped: payload.length - cleanPayloadInternal.length,
-          duplicatedEmails: duplicatedInPayload 
+          duplicatedEmails,
         };
       }
     }
@@ -142,8 +182,18 @@ export async function bulkImportAction(
       .insert(cleanPayload)
       .select();
       
-    if (importError) throw new Error(importError.message);
-    return { ok: true, data, skipped: payload.length - cleanPayload.length };
+    if (importError) {
+      if (importError.message.includes("duplicate key") || importError.message.includes("unique constraint")) {
+        const emails = cleanPayload.map((item) => normalizeEmail(item.email)).filter(Boolean);
+        const existingAfterFailure = await findExistingEmails(adminClient, tableName, emails);
+        throw new Error(
+          `Không import được vì email bị trùng: ${formatDuplicateEmails([...duplicatedEmails, ...existingAfterFailure])}. ` +
+          `Hãy xoá các dòng này khỏi file hoặc cập nhật bản ghi đã có. Chi tiết kỹ thuật: ${importError.message}`,
+        );
+      }
+      throw new Error(importError.message);
+    }
+    return { ok: true, data, skipped: payload.length - cleanPayload.length, duplicatedEmails };
   } catch (error: any) {
     return { ok: false, error: error.message };
   }
