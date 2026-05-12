@@ -18,6 +18,7 @@ interface AttendanceViewProps {
   attendanceMode: "session" | "summary";
   setAttendanceMode: (mode: "session" | "summary") => void;
   attendanceRecords: any[];
+  setShowAttendanceGuide: (val: boolean) => void;
 }
 
 export function AttendanceView({
@@ -36,6 +37,7 @@ export function AttendanceView({
   attendanceMode,
   setAttendanceMode,
   attendanceRecords,
+  setShowAttendanceGuide,
 }: AttendanceViewProps) {
   // Helper to get status label and color
   const getStatusDisplay = (status: string) => {
@@ -122,6 +124,14 @@ export function AttendanceView({
                 Tổng hợp
               </button>
             </div>
+            <button className="secondary-button" onClick={() => setShowAttendanceGuide(true)} type="button" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+              Hướng dẫn
+            </button>
             <button className="secondary-button" onClick={onRefresh} type="button">Làm mới</button>
           </div>
         </div>

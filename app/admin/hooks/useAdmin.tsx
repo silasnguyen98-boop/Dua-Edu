@@ -112,6 +112,7 @@ export function useAdmin() {
   const [classAssistants, setClassAssistants] = useState<ClassAssistant[]>([]);
   const [showAssignModal, setShowAssignModal] = useState<string | null>(null);
   const [showCertGuide, setShowCertGuide] = useState(false);
+  const [showAttendanceGuide, setShowAttendanceGuide] = useState(false);
 
   useEffect(() => {
     if (showAssignModal) {
@@ -1254,6 +1255,7 @@ export function useAdmin() {
     classAssistants, setClassAssistants,
     showAssignModal, setShowAssignModal,
     showCertGuide, setShowCertGuide,
+    showAttendanceGuide, setShowAttendanceGuide,
     activeConfig,
     visibleClassItems,
     stats,

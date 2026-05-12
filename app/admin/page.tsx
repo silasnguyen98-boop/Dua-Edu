@@ -13,6 +13,7 @@ import { DataTableSection } from "./components/DataTableSection";
 import { AttendanceView } from "./components/AttendanceView";
 import { ScoreView } from "./components/ScoreView";
 import { CertGuideModal } from "./components/CertGuideModal";
+import { AttendanceGuideModal } from "./components/AttendanceGuideModal";
 import { StudentDetailModal } from "./components/StudentDetailModal";
 import { SessionDetailModal } from "./components/SessionDetailModal";
 import { AssignAssistantModal } from "./components/AssignAssistantModal";
@@ -163,6 +164,7 @@ export default function Home() {
               attendanceMode={admin.attendanceMode}
               setAttendanceMode={admin.setAttendanceMode}
               attendanceRecords={admin.attendanceRecords}
+              setShowAttendanceGuide={admin.setShowAttendanceGuide}
             />
           )}
 
@@ -295,7 +297,13 @@ export default function Home() {
         />
       )}
 
-      {admin.showCertGuide && <CertGuideModal show={admin.showCertGuide} onClose={() => admin.setShowCertGuide(false)} />}
+      {admin.showCertGuide && (
+        <CertGuideModal onClose={() => admin.setShowCertGuide(false)} />
+      )}
+
+      {admin.showAttendanceGuide && (
+        <AttendanceGuideModal onClose={() => admin.setShowAttendanceGuide(false)} />
+      )}
     </div>
   );
 }
