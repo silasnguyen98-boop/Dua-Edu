@@ -2735,7 +2735,7 @@ export default function Home() {
                 Quay lại lớp
               </button>
             )}
-            {isDataView && (
+            {isDataView && !(isAssistantUser && activeTable === "students") && (
               <>
                 <button className="secondary-button" onClick={() => void downloadTemplate()} type="button">
                   Tải file mẫu
@@ -2758,6 +2758,11 @@ export default function Home() {
                   type="file"
                 />
               </>
+            )}
+            {isDataView && isAssistantUser && activeTable === "students" && (
+                <button className="secondary-button" onClick={exportData} type="button">
+                  Export data
+                </button>
             )}
           </div>
         </header>
@@ -3913,6 +3918,7 @@ export default function Home() {
 
         {isDataView && (
         <section className="management-grid">
+          {!(isAssistantUser && activeTable === "students") && (
           <form className="editor" onSubmit={(event) => void saveRow(event)}>
             <div className="section-heading">
               <div>
@@ -3977,6 +3983,7 @@ export default function Home() {
               {isSaving ? "Đang lưu..." : editingRow ? "Cập nhật" : "Thêm mới"}
             </button>
           </form>
+          )}
 
           <section className="table-panel">
             <div className="section-heading" style={{ flexWrap: "wrap", gap: "16px" }}>
@@ -4093,16 +4100,18 @@ export default function Home() {
                                     {!hasLoggedIn && account.initial_password && (
                                       <code>{account.initial_password}</code>
                                     )}
-                                    <button
-                                      className="secondary-button compact-button"
-                                      disabled={isSaving}
-                                      onClick={() => void resetStudentLoginPassword(String(account.id), String(account.email ?? email))}
-                                      type="button"
-                                    >
-                                      Reset
-                                    </button>
+                                    {!isAssistantUser && (
+                                      <button
+                                        className="secondary-button compact-button"
+                                        disabled={isSaving}
+                                        onClick={() => void resetStudentLoginPassword(String(account.id), String(account.email ?? email))}
+                                        type="button"
+                                      >
+                                        Reset
+                                      </button>
+                                    )}
                                   </>
-                                ) : (
+                                ) : !isAssistantUser ? (
                                   <button
                                     className="secondary-button compact-button"
                                     disabled={isSaving || !email}
@@ -4115,6 +4124,8 @@ export default function Home() {
                                   >
                                     Cấp tài khoản
                                   </button>
+                                ) : (
+                                  <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Chưa có tài khoản</span>
                                 )}
                               </div>
                             </td>
@@ -4122,12 +4133,18 @@ export default function Home() {
                         })()}
                         <td>
                           <div className="row-actions">
-                            <button onClick={() => startEdit(row)} type="button">
-                              Sửa
-                            </button>
-                            <button onClick={() => void deleteRow(row)} type="button">
-                              Xoá
-                            </button>
+                            {!(isAssistantUser && activeTable === "students") ? (
+                              <>
+                                <button onClick={() => startEdit(row)} type="button">
+                                  Sửa
+                                </button>
+                                <button onClick={() => void deleteRow(row)} type="button">
+                                  Xoá
+                                </button>
+                              </>
+                            ) : (
+                              <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Chỉ xem</span>
+                            )}
                           </div>
                         </td>
                       </tr>
