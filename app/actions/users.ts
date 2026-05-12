@@ -284,46 +284,44 @@ export async function createStudentAccount(
     const actor = authResult.user;
     if (!adminClient || !actor) return { ok: false, error: "Lỗi cấu hình hệ thống hoặc phiên đăng nhập." };
 
-    const email = input.email?.trim().toLowerCase();
-    const fullName = input.full_name?.trim();
-
-    if (!fullName) return { ok: false, error: "Vui lòng nhập tên học viên." };
-    if (!email) return { ok: false, error: "Vui lòng nhập email học viên." };
-
     let studentId = input.student_id;
+    let finalEmail = input.email?.trim().toLowerCase();
+    let finalFullName = input.full_name?.trim();
 
+    // 1. Kiểm tra học viên có tồn tại hay không
     if (studentId) {
-      const { error: updateError } = await adminClient
+      const { data: student, error: studentError } = await adminClient
         .from("students")
-        .update({ full_name: fullName, email })
-        .eq("id", studentId);
-      if (updateError) return { ok: false, error: `Lỗi cập nhật học viên: ${updateError.message}` };
-    } else {
-      const { data: existingStudent, error: selectError } = await adminClient
-        .from("students")
-        .select("id")
-        .eq("email", email)
+        .select("id, email, full_name")
+        .eq("id", studentId)
         .maybeSingle();
       
-      if (selectError) return { ok: false, error: `Lỗi kiểm tra học viên: ${selectError.message}` };
+      if (studentError) return { ok: false, error: `Lỗi truy vấn học viên: ${studentError.message}` };
+      if (!student) return { ok: false, error: "Không tìm thấy học viên này trong hệ thống." };
+      
+      // Nếu không nhập email/tên trong form thì lấy từ database
+      if (!finalEmail) finalEmail = student.email;
+      if (!finalFullName) finalFullName = student.full_name;
+    } else if (finalEmail) {
+      const { data: student, error: studentError } = await adminClient
+        .from("students")
+        .select("id, full_name")
+        .eq("email", finalEmail)
+        .maybeSingle();
 
-      if (existingStudent?.id) {
-        studentId = String(existingStudent.id);
-        const { error: updateError } = await adminClient
-          .from("students")
-          .update({ full_name: fullName })
-          .eq("id", studentId);
-        if (updateError) return { ok: false, error: `Lỗi cập nhật học viên: ${updateError.message}` };
-      } else {
-        const { data: insertedStudent, error: insertError } = await adminClient
-          .from("students")
-          .insert({ full_name: fullName, email })
-          .select("id")
-          .single();
-        if (insertError) return { ok: false, error: `Lỗi thêm học viên: ${insertError.message}` };
-        studentId = String(insertedStudent.id);
-      }
+      if (studentError) return { ok: false, error: `Lỗi truy vấn học viên: ${studentError.message}` };
+      if (!student) return { ok: false, error: "Không tìm thấy học viên có email này trong danh sách học viên." };
+      
+      studentId = String(student.id);
+      if (!finalFullName) finalFullName = student.full_name;
     }
+
+    if (!studentId) return { ok: false, error: "Cần cung cấp ID hoặc Email của học viên để cấp tài khoản." };
+    if (!finalEmail) return { ok: false, error: "Học viên chưa có địa chỉ email." };
+    if (!finalFullName) return { ok: false, error: "Học viên chưa có họ tên." };
+
+    const email = finalEmail;
+    const fullName = finalFullName;
 
     if (!studentId) return { ok: false, error: "Không xác định được học viên." };
 
