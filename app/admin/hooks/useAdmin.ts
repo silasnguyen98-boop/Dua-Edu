@@ -899,6 +899,12 @@ export function useAdmin() {
   function getFieldValue(row: Row, column: any) {
     const val = row[column.key];
 
+    if (activeTable === "class_sessions" && column.key === "time_range") {
+      const startTime = row.start_time ? String(row.start_time).slice(0, 5) : "";
+      const endTime = row.end_time ? String(row.end_time).slice(0, 5) : "";
+      return startTime || endTime ? [startTime, endTime].filter(Boolean).join(" - ") : "-";
+    }
+
     if (column.key === "score" || column.key === "project_score" || column.key === "attendance_score" || column.key === "assignment_score") {
       return val != null ? Number(val).toFixed(1) : "-";
     }

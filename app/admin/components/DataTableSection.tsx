@@ -257,7 +257,11 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
               {activeTable === "class_sessions" && (
                 <select
                   className="search-input"
-                  onChange={(e) => setClassSessionsFilterId(e.target.value)}
+                  onChange={(e) => {
+                    const nextClassId = e.target.value || null;
+                    setClassSessionsFilterId(nextClassId);
+                    updateFormValue("class_id", nextClassId ?? "");
+                  }}
                   value={classSessionsFilterId ?? ""}
                 >
                   <option value="">Tất cả lớp</option>

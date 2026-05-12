@@ -654,11 +654,95 @@ tbody tr:last-child td { border-bottom: none; }
 .row-actions button:last-child { color: var(--danger); border-color: rgba(239, 68, 68, 0.3); }
 .row-actions button:last-child:hover { background: var(--danger-soft); }
 
-.relation-picker { position: relative; }
-.relation-options { position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 50; display: grid; gap: 4px; max-height: 280px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-solid); padding: 8px; box-shadow: var(--shadow-lg); }
-.relation-options button { width: 100%; border: none; border-radius: var(--radius-sm); padding: 10px 14px; text-align: left; background: transparent; color: var(--foreground); font-size: 14px; }
-.relation-options button:hover, .relation-options button.selected { background: var(--surface-soft); color: var(--accent-dark); font-weight: 500; }
-.relation-options p { margin: 0; padding: 12px; color: var(--muted); font-size: 14px; text-align: center; }
+.relation-picker,
+.relation-picker-container {
+  position: relative;
+  min-width: 0;
+}
+
+.relation-input-wrapper {
+  position: relative;
+  min-width: 0;
+}
+
+.relation-input-trigger {
+  padding-right: 42px;
+  cursor: pointer;
+}
+
+.clear-relation {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: var(--muted);
+  transform: translateY(-50%);
+}
+
+.relation-dropdown,
+.relation-options {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 80;
+  display: grid;
+  gap: 8px;
+  max-height: 340px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-solid);
+  padding: 8px;
+  box-shadow: var(--shadow-lg);
+}
+
+.relation-dropdown .relation-options {
+  position: static;
+  max-height: 230px;
+  overflow: auto;
+  border: none;
+  border-radius: 10px;
+  padding: 0;
+  box-shadow: none;
+}
+
+.relation-option,
+.relation-options button {
+  width: 100%;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  text-align: left;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.relation-option:hover,
+.relation-option.selected,
+.relation-options button:hover,
+.relation-options button.selected {
+  background: var(--surface-soft);
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
+.relation-no-results,
+.relation-options p {
+  margin: 0;
+  padding: 12px;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+}
 
 /* Utilities */
 .center-cell { text-align: center; }
