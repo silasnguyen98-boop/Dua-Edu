@@ -7,10 +7,18 @@ type AdminUser = {
   id: string;
   profile_id?: string;
   email?: string;
+  initial_password?: string;
+  student_id?: string;
   username: string;
   role: string;
   created_at: string;
   last_sign_in_at?: string;
+};
+type StudentAccountResult = {
+  auth_user_id: string;
+  email: string;
+  initial_password?: string;
+  student_id: string;
 };
 
 const getSupabaseAdmin = () => {
@@ -42,16 +50,29 @@ const getSupabaseUserClient = (token: string) => {
   });
 };
 
-const verifyAdmin = async (token: string) => {
+const getRole = (user: any) => user.user_metadata?.role?.trim() || "student";
+
+const verifyUserRole = async (token: string, allowedRoles: UserRole[]) => {
   const userClient = getSupabaseUserClient(token);
   const { data: { user }, error } = await userClient.auth.getUser();
   if (error || !user) {
     throw new Error("Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng xuất rồi đăng nhập lại.");
   }
 
+  const role = getRole(user);
+  if (!allowedRoles.includes(role as UserRole)) {
+    throw new Error(`Bạn không có quyền thực hiện hành động này. Vai trò hiện tại: ${role}.`);
+  }
+
   const adminClient = getSupabaseAdmin();
-  return adminClient;
+  return { adminClient, user };
 };
+
+const verifyAdmin = async (token: string) =>
+  (await verifyUserRole(token, ["admin", "operation"])).adminClient;
+
+const verifyStudentAccountManager = async (token: string) =>
+  verifyUserRole(token, ["admin", "operation", "assistant"]);
 
 const ensurePublicUserProfile = async (adminClient: ReturnType<typeof getSupabaseAdmin>, authUser: any) => {
   const email = authUser.email ?? "";
@@ -111,18 +132,46 @@ const ensurePublicUserProfile = async (adminClient: ReturnType<typeof getSupabas
 };
 
 export async function getUsers(token: string) {
-  const adminClient = await verifyAdmin(token);
+  const { adminClient } = await verifyStudentAccountManager(token);
   const { data, error } = await adminClient.auth.admin.listUsers();
   if (error) throw new Error(error.message);
-  return Promise.all(data.users.map(async (u) => ({
-    id: u.id,
-    profile_id: await ensurePublicUserProfile(adminClient, u),
-    email: u.email,
-    username: u.user_metadata?.username ?? "",
-    role: u.user_metadata?.role ?? "",
-    created_at: u.created_at,
-    last_sign_in_at: u.last_sign_in_at,
-  })));
+
+  const studentUserIds = data.users
+    .filter((u) => u.user_metadata?.role === "student")
+    .map((u) => u.id);
+  const credentialMap = new Map<string, string>();
+
+  if (studentUserIds.length > 0) {
+    const { data: credentials, error: credentialsError } = await adminClient
+      .from("student_account_credentials")
+      .select("auth_user_id,initial_password")
+      .in("auth_user_id", studentUserIds);
+
+    if (!credentialsError) {
+      credentials?.forEach((row) => {
+        credentialMap.set(String(row.auth_user_id), String(row.initial_password ?? ""));
+      });
+    }
+  }
+
+  return Promise.all(data.users.map(async (u) => {
+    const role = u.user_metadata?.role ?? "";
+
+    return {
+      id: u.id,
+      profile_id: await ensurePublicUserProfile(adminClient, u),
+      email: u.email,
+      username: u.user_metadata?.username ?? "",
+      role,
+      student_id: u.user_metadata?.student_id ?? undefined,
+      initial_password:
+        role === "student" && !u.last_sign_in_at
+          ? credentialMap.get(u.id) || u.user_metadata?.initial_password
+          : undefined,
+      created_at: u.created_at,
+      last_sign_in_at: u.last_sign_in_at,
+    };
+  }));
 }
 
 export async function getUsersSafe(token: string): Promise<
@@ -156,6 +205,175 @@ export async function createUser(
   });
   if (error) throw new Error(error.message);
   return data.user;
+}
+
+const generateStudentPassword = () => {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+};
+
+const findAuthUserByEmail = async (
+  adminClient: ReturnType<typeof getSupabaseAdmin>,
+  email: string,
+) => {
+  const { data, error } = await adminClient.auth.admin.listUsers();
+  if (error) throw new Error(error.message);
+
+  return data.users.find((user) => user.email?.toLowerCase() === email.toLowerCase()) ?? null;
+};
+
+const upsertStudentInitialPassword = async (
+  adminClient: ReturnType<typeof getSupabaseAdmin>,
+  payload: {
+    auth_user_id: string;
+    created_by?: string;
+    initial_password: string;
+    student_id: string;
+  },
+) => {
+  const { error } = await adminClient
+    .from("student_account_credentials")
+    .upsert(
+      {
+        auth_user_id: payload.auth_user_id,
+        created_by: payload.created_by,
+        initial_password: payload.initial_password,
+        student_id: payload.student_id,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "auth_user_id" },
+    );
+
+  if (error) {
+    throw new Error(
+      `Không lưu được mật khẩu khởi tạo. Hãy chạy migration student_account_credentials. Chi tiết: ${error.message}`,
+    );
+  }
+};
+
+export async function createStudentAccount(
+  token: string,
+  input: { email: string; full_name: string; student_id?: string },
+): Promise<StudentAccountResult> {
+  const { adminClient, user: actor } = await verifyStudentAccountManager(token);
+  const email = input.email.trim().toLowerCase();
+  const fullName = input.full_name.trim();
+
+  if (!fullName) throw new Error("Vui lòng nhập tên học viên.");
+  if (!email) throw new Error("Vui lòng nhập email học viên.");
+
+  let studentId = input.student_id;
+
+  if (studentId) {
+    const { error } = await adminClient
+      .from("students")
+      .update({ full_name: fullName, email, updated_at: new Date().toISOString() })
+      .eq("id", studentId);
+    if (error) throw new Error(error.message);
+  } else {
+    const { data: existingStudent, error: selectError } = await adminClient
+      .from("students")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+    if (selectError) throw new Error(selectError.message);
+
+    if (existingStudent?.id) {
+      studentId = String(existingStudent.id);
+      const { error } = await adminClient
+        .from("students")
+        .update({ full_name: fullName, updated_at: new Date().toISOString() })
+        .eq("id", studentId);
+      if (error) throw new Error(error.message);
+    } else {
+      const { data: insertedStudent, error: insertError } = await adminClient
+        .from("students")
+        .insert({ full_name: fullName, email })
+        .select("id")
+        .single();
+      if (insertError) throw new Error(insertError.message);
+      studentId = String(insertedStudent.id);
+    }
+  }
+
+  if (!studentId) {
+    throw new Error("Không xác định được học viên để cấp tài khoản.");
+  }
+
+  const password = generateStudentPassword();
+  const existingAuthUser = await findAuthUserByEmail(adminClient, email);
+  if (existingAuthUser && existingAuthUser.user_metadata?.role !== "student") {
+    throw new Error(`Email ${email} đang thuộc tài khoản hệ thống, không thể chuyển thành tài khoản học viên.`);
+  }
+
+  const metadata = { username: fullName, role: "student", student_id: studentId, initial_password: password };
+  const authUserResult = existingAuthUser
+    ? await adminClient.auth.admin.updateUserById(existingAuthUser.id, {
+        email,
+        password,
+        user_metadata: metadata,
+      })
+    : await adminClient.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: metadata,
+      });
+
+  if (authUserResult.error) throw new Error(authUserResult.error.message);
+  const authUser = authUserResult.data.user;
+  await ensurePublicUserProfile(adminClient, authUser);
+  await upsertStudentInitialPassword(adminClient, {
+    auth_user_id: authUser.id,
+    created_by: actor.id,
+    initial_password: password,
+    student_id,
+  });
+
+  return { auth_user_id: authUser.id, email, initial_password: password, student_id };
+}
+
+export async function resetStudentPassword(
+  token: string,
+  authUserId: string,
+): Promise<StudentAccountResult> {
+  const { adminClient, user: actor } = await verifyStudentAccountManager(token);
+  const { data: existing, error: getError } = await adminClient.auth.admin.getUserById(authUserId);
+  if (getError || !existing.user) {
+    throw new Error(getError?.message || "Không tìm thấy tài khoản học viên.");
+  }
+
+  if (existing.user.user_metadata?.role !== "student") {
+    throw new Error("Chỉ có thể reset mật khẩu cho tài khoản học viên.");
+  }
+
+  const password = generateStudentPassword();
+  const studentId = existing.user.user_metadata?.student_id;
+  if (!studentId) {
+    throw new Error("Tài khoản học viên chưa được liên kết với bản ghi học viên.");
+  }
+  const { data, error } = await adminClient.auth.admin.updateUserById(authUserId, {
+    password,
+    user_metadata: {
+      ...existing.user.user_metadata,
+      initial_password: password,
+    },
+  });
+
+  if (error) throw new Error(error.message);
+  await upsertStudentInitialPassword(adminClient, {
+    auth_user_id: data.user.id,
+    created_by: actor.id,
+    initial_password: password,
+    student_id,
+  });
+
+  return {
+    auth_user_id: data.user.id,
+    email: data.user.email ?? "",
+    initial_password: password,
+    student_id,
+  };
 }
 
 export async function updateUser(

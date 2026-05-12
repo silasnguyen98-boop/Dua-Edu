@@ -39,64 +39,311 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--background)", fontFamily: "var(--font-geist-sans)" }}>
-      <div style={{ background: "var(--surface)", borderRadius: "16px", padding: "40px", width: "100%", maxWidth: "400px", boxShadow: "0 8px 32px rgba(0,0,0,0.1)", border: "1px solid var(--border)" }}>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: "24px" }}>
-          <img alt="Dua-Edu" src="https://i.ibb.co/3yKrstMS/Thie-t-ke-chu-a-co-te-n-20.png" style={{ height: "48px", borderRadius: "12px" }} />
+    <main className="login-shell">
+      <section className="login-brand">
+        <div className="brand-top">
+          <img alt="Dua-Edu" src="https://i.ibb.co/3yKrstMS/Thie-t-ke-chu-a-co-te-n-20.png" />
+          <span>Dua Edu</span>
         </div>
-        <h1 style={{ fontSize: "24px", fontWeight: 700, textAlign: "center", marginBottom: "8px", color: "var(--foreground)" }}>Đăng nhập Quản trị</h1>
-        <p style={{ color: "var(--text-secondary)", textAlign: "center", marginBottom: "32px", fontSize: "14px" }}>Vui lòng đăng nhập để truy cập hệ thống.</p>
-        
-        <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div className="brand-copy">
+          <p className="eyebrow">Learning Operations</p>
+          <h1>Nâng cấp kỹ năng làm chủ dữ liệu</h1>
+          <p>
+            Theo dõi lớp học, điểm danh, bài tập và tiến độ học viên trong một không gian quản trị gọn gàng.
+          </p>
+        </div>
+        <div className="brand-panel">
           <div>
-            <label style={{ display: "block", fontSize: "14px", fontWeight: 600, marginBottom: "8px", color: "var(--foreground)" }}>Email</label>
+            <strong>294</strong>
+            <span>Học viên</span>
+          </div>
+          <div>
+            <strong>22</strong>
+            <span>Lớp học</span>
+          </div>
+          <div>
+            <strong>100%</strong>
+            <span>Dữ liệu tập trung</span>
+          </div>
+        </div>
+      </section>
+
+      <section className="login-side">
+        <div className="login-card">
+          <div className="mobile-logo">
+            <img alt="Dua-Edu" src="https://i.ibb.co/3yKrstMS/Thie-t-ke-chu-a-co-te-n-20.png" />
+          </div>
+          <p className="eyebrow">Đăng nhập hệ thống</p>
+          <h2>Chào mừng trở lại</h2>
+          <p className="login-note">Nhập email và mật khẩu để tiếp tục quản lý dữ liệu học viên.</p>
+
+          <form onSubmit={handleLogin} className="login-form">
+            <label>
+              <span>Email</span>
             <input 
               type="email" 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="admin@dua-edu.com" 
               required
-              style={{ width: "100%", padding: "12px 16px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--background)", color: "var(--foreground)", fontSize: "15px", outline: "none", boxSizing: "border-box" }}
             />
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: "14px", fontWeight: 600, marginBottom: "8px", color: "var(--foreground)" }}>Mật khẩu</label>
+            </label>
+            <label>
+              <span>Mật khẩu</span>
             <input 
               type="password" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••" 
               required
-              style={{ width: "100%", padding: "12px 16px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--background)", color: "var(--foreground)", fontSize: "15px", outline: "none", boxSizing: "border-box" }}
             />
-          </div>
+            </label>
           
-          {error && <div style={{ color: "#EF4444", fontSize: "14px", padding: "10px", background: "rgba(239, 68, 68, 0.1)", borderRadius: "8px", textAlign: "center" }}>{error}</div>}
+            {error && <div className="login-error">{error}</div>}
           
-          <button 
-            type="submit" 
-            disabled={loading}
-            style={{ marginTop: "8px", padding: "14px", borderRadius: "8px", border: "none", background: "var(--primary)", color: "white", fontSize: "16px", fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, transition: "background 0.2s" }}
-          >
-            {loading ? "Đang xử lý..." : "Đăng nhập"}
-          </button>
-        </form>
+            <button className="login-button" type="submit" disabled={loading}>
+              <span>{loading ? "Đang xử lý..." : "Đăng nhập"}</span>
+            </button>
+          </form>
 
-        <div style={{ marginTop: "32px", textAlign: "center" }}>
-          <Link href="/tracuu" style={{ color: "var(--text-secondary)", fontSize: "14px", textDecoration: "none" }}>
-            ← Quay lại Cổng tra cứu học viên
+          <Link href="/tracuu" className="lookup-link">
+            Quay lại Cổng tra cứu học viên
           </Link>
         </div>
-      </div>
+      </section>
       <style dangerouslySetInnerHTML={{__html: `
-        input:focus {
-          border-color: var(--primary) !important;
-          box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        .login-shell {
+          min-height: 100vh;
+          display: grid;
+          grid-template-columns: minmax(0, 1.05fr) minmax(380px, 0.95fr);
+          background: #f7faf8;
+          color: #10231d;
+          font-family: var(--font-geist-sans);
         }
-        button:hover:not(:disabled) {
-          background: var(--primary-hover) !important;
+        .login-brand {
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          padding: 56px;
+          overflow: hidden;
+          background:
+            linear-gradient(135deg, rgba(3, 105, 82, 0.92), rgba(15, 118, 110, 0.78)),
+            url("https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1400&q=80");
+          background-size: cover;
+          background-position: center;
+          color: white;
+        }
+        .login-brand::after {
+          content: "";
+          position: absolute;
+          inset: auto -12% -18% 18%;
+          height: 280px;
+          background: rgba(255, 255, 255, 0.12);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          transform: rotate(-8deg);
+        }
+        .brand-top, .brand-copy, .brand-panel {
+          position: relative;
+          z-index: 1;
+        }
+        .brand-top {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-weight: 800;
+          font-size: 18px;
+        }
+        .brand-top img, .mobile-logo img {
+          width: 46px;
+          height: 46px;
+          border-radius: 14px;
+          object-fit: cover;
+          background: white;
+        }
+        .eyebrow {
+          margin: 0 0 12px;
+          color: #0f766e;
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .brand-copy {
+          max-width: 620px;
+          margin: 96px 0;
+        }
+        .brand-copy .eyebrow {
+          color: #bbf7d0;
+        }
+        .brand-copy h1 {
+          margin: 0;
+          max-width: 680px;
+          font-size: clamp(42px, 6vw, 76px);
+          line-height: 0.96;
+          letter-spacing: 0;
+        }
+        .brand-copy p {
+          max-width: 540px;
+          margin: 24px 0 0;
+          color: rgba(255, 255, 255, 0.82);
+          font-size: 18px;
+          line-height: 1.65;
+        }
+        .brand-panel {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+          max-width: 620px;
+        }
+        .brand-panel div {
+          padding: 18px;
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.12);
+          backdrop-filter: blur(12px);
+        }
+        .brand-panel strong {
+          display: block;
+          font-size: 28px;
+          line-height: 1;
+        }
+        .brand-panel span {
+          display: block;
+          margin-top: 8px;
+          color: rgba(255, 255, 255, 0.78);
+          font-size: 13px;
+        }
+        .login-side {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 40px 28px;
+        }
+        .login-card {
+          width: 100%;
+          max-width: 430px;
+          padding: 42px;
+          border: 1px solid #dbe7e1;
+          border-radius: 28px;
+          background: rgba(255, 255, 255, 0.92);
+          box-shadow: 0 28px 70px rgba(15, 35, 29, 0.12);
+        }
+        .mobile-logo {
+          display: none;
+          margin-bottom: 22px;
+        }
+        .login-card h2 {
+          margin: 0;
+          color: #10231d;
+          font-size: 32px;
+          line-height: 1.1;
+        }
+        .login-note {
+          margin: 12px 0 30px;
+          color: #60756e;
+          line-height: 1.6;
+        }
+        .login-form {
+          display: grid;
+          gap: 16px;
+        }
+        .login-form label {
+          display: grid;
+          gap: 8px;
+          color: #263d35;
+          font-size: 14px;
+          font-weight: 700;
+        }
+        .login-form input {
+          width: 100%;
+          min-height: 48px;
+          box-sizing: border-box;
+          padding: 12px 14px;
+          border: 1px solid #d7e4de;
+          border-radius: 12px;
+          background: #fbfefd;
+          color: #10231d;
+          font-size: 15px;
+          outline: none;
+        }
+        .login-form input:focus {
+          border-color: #0f766e;
+          box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.14);
+        }
+        .login-error {
+          padding: 12px 14px;
+          border: 1px solid #fecaca;
+          border-radius: 12px;
+          background: #fff1f2;
+          color: #be123c;
+          font-size: 14px;
+          font-weight: 600;
+        }
+        .login-button {
+          display: inline-flex !important;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          min-height: 52px;
+          margin-top: 6px;
+          padding: 14px 18px;
+          border: 0;
+          border-radius: 14px;
+          background: linear-gradient(135deg, #10b981, #047857) !important;
+          color: #ffffff !important;
+          box-shadow: 0 16px 34px rgba(4, 120, 87, 0.28);
+          cursor: pointer;
+          font-size: 16px;
+          font-weight: 800;
+          letter-spacing: 0;
+          opacity: ${loading ? 0.7 : 1};
+        }
+        .login-button:hover:not(:disabled) {
+          filter: brightness(1.04);
+          transform: translateY(-1px);
+        }
+        .login-button:disabled {
+          cursor: not-allowed;
+        }
+        .lookup-link {
+          display: inline-flex;
+          margin-top: 24px;
+          color: #60756e;
+          font-size: 14px;
+          font-weight: 700;
+          text-decoration: none;
+        }
+        .lookup-link:hover {
+          color: #047857;
+        }
+        @media (max-width: 900px) {
+          .login-shell {
+            grid-template-columns: 1fr;
+          }
+          .login-brand {
+            display: none;
+          }
+          .login-side {
+            min-height: 100vh;
+          }
+          .mobile-logo {
+            display: block;
+          }
+        }
+        @media (max-width: 520px) {
+          .login-side {
+            padding: 22px;
+          }
+          .login-card {
+            padding: 28px;
+            border-radius: 22px;
+          }
+          .login-card h2 {
+            font-size: 28px;
+          }
         }
       `}} />
-    </div>
+    </main>
   );
 }

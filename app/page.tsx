@@ -5,7 +5,15 @@ import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { getUsersSafe, createUser, updateUser, deleteUser, type UserRole } from "@/app/actions/users";
+import {
+  getUsersSafe,
+  createStudentAccount,
+  createUser,
+  deleteUser,
+  resetStudentPassword,
+  updateUser,
+  type UserRole,
+} from "@/app/actions/users";
 import {
   assignAssistantSafe,
   getClassAssistantsSafe,
@@ -437,6 +445,7 @@ const isAssistantAllowedView = (view: ViewName) =>
   view === "attendance" ||
   view === "assignmentScore" ||
   view === "projectScore" ||
+  view === "students" ||
   view === "class_sessions";
 
 export default function Home() {
@@ -490,6 +499,7 @@ export default function Home() {
   const isDataView = isTableName(activeView);
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [adminForm, setAdminForm] = useState({ email: "", password: "", username: "", role: "admin" as UserRole, id: "" });
+  const [studentAccountForm, setStudentAccountForm] = useState({ email: "", full_name: "" });
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const isAssistantUser = currentUserRole === "assistant";
@@ -522,10 +532,10 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (isAdminsView && isAuthenticated) {
+    if ((isAdminsView || activeTable === "students") && isAuthenticated) {
       void loadAdmins();
     }
-  }, [isAdminsView, isAuthenticated]);
+  }, [activeTable, isAdminsView, isAuthenticated]);
 
   const activeConfig = useMemo(
     () => tableConfigs.find((config) => config.name === activeTable) ?? tableConfigs[0],
@@ -539,7 +549,7 @@ export default function Home() {
       return;
     }
 
-    setOpenSidebarGroup(getSidebarGroupForView(view));
+    setOpenSidebarGroup(isAssistantUser && view === "students" ? "academic" : getSidebarGroupForView(view));
     setActiveView(view);
   };
 
@@ -759,6 +769,14 @@ export default function Home() {
   const assistantUserByProfileId = useMemo(() => {
     return new Map(
       adminUsers.map((user) => [String(user.profile_id ?? user.id), user]),
+    );
+  }, [adminUsers]);
+
+  const studentAccountByEmail = useMemo(() => {
+    return new Map(
+      adminUsers
+        .filter((user) => user.role === "student" && user.email)
+        .map((user) => [String(user.email).toLowerCase(), user]),
     );
   }, [adminUsers]);
 
@@ -1924,6 +1942,60 @@ export default function Home() {
     setIsSaving(false);
   }
 
+  async function createStudentLoginAccount(input: { email: string; full_name: string; student_id?: string }) {
+    setError("");
+    setMessage("");
+
+    const fullName = input.full_name.trim();
+    const email = input.email.trim().toLowerCase();
+    if (!fullName || !email) {
+      setError("Vui lòng nhập tên và email học viên.");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Vui lòng đăng nhập lại.");
+
+      const result = await createStudentAccount(session.access_token, {
+        email,
+        full_name: fullName,
+        student_id: input.student_id,
+      });
+
+      setMessage(`✓ Đã cấp tài khoản học viên ${email}. Mật khẩu: ${result.initial_password}`);
+      setStudentAccountForm({ email: "", full_name: "" });
+      await Promise.all([loadAllTables(), loadAdmins()]);
+    } catch (err: any) {
+      setError(err.message || "Không cấp được tài khoản học viên.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function resetStudentLoginPassword(authUserId: string, email: string) {
+    const confirmed = window.confirm(`Reset mật khẩu cho tài khoản học viên "${email}"?`);
+    if (!confirmed) return;
+
+    setError("");
+    setMessage("");
+
+    try {
+      setIsSaving(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Vui lòng đăng nhập lại.");
+
+      const result = await resetStudentPassword(session.access_token, authUserId);
+      setMessage(`✓ Đã reset mật khẩu cho ${email}. Mật khẩu mới: ${result.initial_password}`);
+      await loadAdmins();
+    } catch (err: any) {
+      setError(err.message || "Không reset được mật khẩu học viên.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   async function deleteRow(row: Row) {
     const label = String(row.full_name ?? row.name ?? row.class_name ?? row.certificate_code ?? row.id);
     const confirmed = window.confirm(`Xoá "${label}" khỏi ${activeConfig.label}?`);
@@ -2503,6 +2575,16 @@ export default function Home() {
                   <span>Quản lý buổi học</span>
                   <strong>{data.class_sessions.length}</strong>
                 </button>
+                {currentUserRole === "assistant" && (
+                  <button
+                    className={activeView === "students" ? "active" : ""}
+                    onClick={() => changeView("students")}
+                    type="button"
+                  >
+                    <span>Học viên</span>
+                    <strong>{data.students.length}</strong>
+                  </button>
+                )}
                 {currentUserRole !== "assistant" && (
                   <button
                     className={isAssistantAssignmentsView ? "active" : ""}
@@ -3789,6 +3871,46 @@ export default function Home() {
           </div>
         )}
 
+        {isDataView && activeTable === "students" && (
+          <section className="student-account-panel">
+            <div>
+              <p className="eyebrow">Tài khoản học viên</p>
+              <h3>Cấp tài khoản student</h3>
+              <p>Tạo tài khoản đăng nhập bằng tên và email. Mật khẩu được random 6 ký tự và chỉ hiển thị khi học viên chưa đăng nhập.</p>
+            </div>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void createStudentLoginAccount(studentAccountForm);
+              }}
+            >
+              <label>
+                <span>Tên học viên</span>
+                <input
+                  onChange={(event) => setStudentAccountForm((current) => ({ ...current, full_name: event.target.value }))}
+                  placeholder="Nguyễn Văn A"
+                  required
+                  type="text"
+                  value={studentAccountForm.full_name}
+                />
+              </label>
+              <label>
+                <span>Email</span>
+                <input
+                  onChange={(event) => setStudentAccountForm((current) => ({ ...current, email: event.target.value }))}
+                  placeholder="student@email.com"
+                  required
+                  type="email"
+                  value={studentAccountForm.email}
+                />
+              </label>
+              <button className="primary-button" disabled={isSaving} type="submit">
+                {isSaving ? "Đang cấp..." : "Cấp tài khoản"}
+              </button>
+            </form>
+          </section>
+        )}
+
         {isDataView && (
         <section className="management-grid">
           <form className="editor" onSubmit={(event) => void saveRow(event)}>
@@ -3916,13 +4038,14 @@ export default function Home() {
                     {activeConfig.columns.map((column) => (
                       <th key={column}>{formatLabel(column)}</th>
                     ))}
+                    {activeTable === "students" && <th>Tài khoản</th>}
                     <th>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <td colSpan={activeConfig.columns.length + 1}>Đang tải dữ liệu...</td>
+                      <td colSpan={activeConfig.columns.length + (activeTable === "students" ? 2 : 1)}>Đang tải dữ liệu...</td>
                     </tr>
                   ) : paginatedRows.length ? (
                     paginatedRows.map((row) => (
@@ -3954,6 +4077,49 @@ export default function Home() {
                           }
                           return <td key={column}>{resolveReference(column, row[column])}</td>;
                         })}
+                        {activeTable === "students" && (() => {
+                          const email = String(row.email ?? "").toLowerCase();
+                          const account = studentAccountByEmail.get(email);
+                          const hasLoggedIn = Boolean(account?.last_sign_in_at);
+
+                          return (
+                            <td>
+                              <div className="student-account-cell">
+                                {account ? (
+                                  <>
+                                    <span className={hasLoggedIn ? "account-badge active" : "account-badge pending"}>
+                                      {hasLoggedIn ? "Đã đăng nhập" : "Chưa đăng nhập"}
+                                    </span>
+                                    {!hasLoggedIn && account.initial_password && (
+                                      <code>{account.initial_password}</code>
+                                    )}
+                                    <button
+                                      className="secondary-button compact-button"
+                                      disabled={isSaving}
+                                      onClick={() => void resetStudentLoginPassword(String(account.id), String(account.email ?? email))}
+                                      type="button"
+                                    >
+                                      Reset
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    className="secondary-button compact-button"
+                                    disabled={isSaving || !email}
+                                    onClick={() => void createStudentLoginAccount({
+                                      email,
+                                      full_name: String(row.full_name ?? ""),
+                                      student_id: String(row.id),
+                                    })}
+                                    type="button"
+                                  >
+                                    Cấp tài khoản
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          );
+                        })()}
                         <td>
                           <div className="row-actions">
                             <button onClick={() => startEdit(row)} type="button">
@@ -3968,7 +4134,7 @@ export default function Home() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={activeConfig.columns.length + 1}>
+                      <td colSpan={activeConfig.columns.length + (activeTable === "students" ? 2 : 1)}>
                         {data[activeTable].length
                           ? `Không tìm thấy ${activeConfig.label.toLowerCase()} phù hợp với từ khoá "${search.trim()}".`
                           : "Chưa có dữ liệu cho bảng này."}
