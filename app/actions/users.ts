@@ -295,7 +295,7 @@ export async function createStudentAccount(
     if (studentId) {
       const { error: updateError } = await adminClient
         .from("students")
-        .update({ full_name: fullName, email, updated_at: new Date().toISOString() })
+        .update({ full_name: fullName, email })
         .eq("id", studentId);
       if (updateError) return { ok: false, error: `Lỗi cập nhật học viên: ${updateError.message}` };
     } else {
@@ -311,7 +311,7 @@ export async function createStudentAccount(
         studentId = String(existingStudent.id);
         const { error: updateError } = await adminClient
           .from("students")
-          .update({ full_name: fullName, updated_at: new Date().toISOString() })
+          .update({ full_name: fullName })
           .eq("id", studentId);
         if (updateError) return { ok: false, error: `Lỗi cập nhật học viên: ${updateError.message}` };
       } else {
@@ -367,7 +367,6 @@ export async function createStudentAccount(
         created_by: actor.id,
         initial_password: password,
         student_id: studentId,
-        updated_at: new Date().toISOString(),
       }, { onConflict: "auth_user_id" });
 
     if (credError) {
@@ -432,7 +431,6 @@ export async function resetStudentPassword(
         created_by: actor.id,
         initial_password: password,
         student_id: studentId,
-        updated_at: new Date().toISOString(),
       }, { onConflict: "auth_user_id" });
 
     if (credError) {
