@@ -298,6 +298,124 @@ p { color: var(--muted); line-height: 1.6; }
 }
 
 .stats-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; }
+
+.class-dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.class-dashboard-stat {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.class-dashboard-stat span,
+.class-dashboard-stat small {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.class-dashboard-stat strong {
+  display: block;
+  margin: 8px 0;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.class-dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.class-dashboard-panel {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.session-growth-chart,
+.attendance-stack-list {
+  display: grid;
+  gap: 12px;
+}
+
+.session-growth-row,
+.attendance-stack-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 56px;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.session-growth-track,
+.attendance-stack {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eef4f2;
+}
+
+.session-growth-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0f766e, #22c55e);
+}
+
+.attendance-stack {
+  display: flex;
+}
+
+.attendance-stack i,
+.attendance-legend i {
+  display: block;
+  height: 100%;
+}
+
+.attendance-stack .present,
+.attendance-legend .present { background: #16a34a; }
+.attendance-stack .late,
+.attendance-legend .late { background: #f59e0b; }
+.attendance-stack .excused,
+.attendance-legend .excused { background: #0ea5e9; }
+.attendance-stack .absent,
+.attendance-legend .absent { background: #ef4444; }
+.attendance-stack .unmarked,
+.attendance-legend .unmarked { background: #cbd5e1; }
+
+.attendance-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-top: 16px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.attendance-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.attendance-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
 .stat-card { padding: 22px; display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden; }
 .stat-card::before { 
   content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; 
@@ -474,6 +592,8 @@ tbody tr:last-child td { border-bottom: none; }
 
 @media (max-width: 1280px) {
   .stats-grid { grid-template-columns: repeat(3, 1fr); }
+  .class-dashboard-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .class-dashboard-grid { grid-template-columns: 1fr; }
   .management-grid { grid-template-columns: 1fr; }
   .analytics-grid { grid-template-columns: 1fr; }
 }
@@ -489,6 +609,7 @@ tbody tr:last-child td { border-bottom: none; }
   .workspace { padding: 20px; }
   .topbar { flex-direction: column; align-items: stretch; }
   .stats-grid, .form-grid { grid-template-columns: 1fr; }
+  .class-dashboard-stats { grid-template-columns: 1fr; }
   .student-account-panel, .student-account-panel form { grid-template-columns: 1fr; }
   .student-account-panel .primary-button { width: 100%; }
   .attendance-toolbar { flex-direction: column; }

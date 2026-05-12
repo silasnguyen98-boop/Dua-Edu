@@ -23,6 +23,7 @@ export type TableName =
 
 export type ViewName =
   | "dashboard"
+  | "classDashboard"
   | "classManagement"
   | "classDetail"
   | "assistantAssignments"

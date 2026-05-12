@@ -47,6 +47,7 @@ export const isTableName = (value: string | null): value is TableName =>
 
 export const isViewName = (value: string | null): value is ViewName =>
   value === "dashboard" ||
+  value === "classDashboard" ||
   value === "classManagement" ||
   value === "classDetail" ||
   value === "assistantAssignments" ||
@@ -114,6 +115,7 @@ export const getInitialAttendanceMode = (): "session" | "summary" => {
 export const getSidebarGroupForView = (view: ViewName): SidebarGroup => {
   if (view === "dashboard") return "overview";
   if (
+    view === "classDashboard" ||
     view === "classManagement" ||
     view === "classDetail" ||
     view === "assistantAssignments" ||
@@ -131,6 +133,7 @@ export const getSidebarGroupForView = (view: ViewName): SidebarGroup => {
 
 export const isAssistantAllowedView = (view: ViewName) =>
   view === "classManagement" ||
+  view === "classDashboard" ||
   view === "classDetail" ||
   view === "attendance" ||
   view === "assignmentScore" ||

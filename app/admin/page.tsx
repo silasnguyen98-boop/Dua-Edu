@@ -108,6 +108,7 @@ export default function Home() {
   const previousDataTableRef = useRef<TableName | null>(null);
   const activeTable: TableName = isTableName(activeView) ? activeView : "students";
   const isDashboardView = activeView === "dashboard";
+  const isClassDashboardView = activeView === "classDashboard";
   const isClassManagementView = activeView === "classManagement";
   const isClassDetailView = activeView === "classDetail";
   const isAssistantAssignmentsView = activeView === "assistantAssignments";
@@ -460,6 +461,67 @@ export default function Home() {
     return records;
   }, [attendanceRecords, selectedAttendanceClass, selectedAttendanceSession]);
 
+  const classDashboardMetrics = useMemo(() => {
+    if (!selectedAttendanceClass) {
+      return {
+        statusCounts: { absent: 0, excused: 0, late: 0, present: 0, unmarked: 0 },
+        sessionRows: [],
+        selectedSession: { absent: 0, excused: 0, late: 0, present: 0, unmarked: 0 },
+        totalStudents: 0,
+      };
+    }
+
+    const enrollmentIds = new Set(selectedAttendanceClass.enrollments.map((enrollment) => enrollment.id));
+    const recordsForClass = attendanceRecords.filter((record) =>
+      enrollmentIds.has(String(record.enrollment_id ?? "")),
+    );
+    const totalStudents = selectedAttendanceClass.enrollments.length;
+
+    const countSession = (sessionNumber: number) => {
+      const rows = recordsForClass.filter((record) => Number(record.session_number ?? 0) === sessionNumber);
+      const counted = {
+        absent: rows.filter((record) => record.status === "absent").length,
+        excused: rows.filter((record) => record.status === "excused").length,
+        late: rows.filter((record) => record.status === "late").length,
+        present: rows.filter((record) => record.status === "present").length,
+      };
+
+      return {
+        ...counted,
+        unmarked: Math.max(totalStudents - rows.length, 0),
+      };
+    };
+
+    const sessionRows = Array.from({ length: attendanceSessionCount }, (_, index) => {
+      const sessionNumber = index + 1;
+      const counts = countSession(sessionNumber);
+      const attended = counts.present + counts.late;
+
+      return {
+        ...counts,
+        attended,
+        attendanceRate: totalStudents ? Math.round((attended / totalStudents) * 1000) / 10 : 0,
+        sessionNumber,
+      };
+    });
+
+    return {
+      statusCounts: sessionRows.reduce(
+        (totals, row) => ({
+          absent: totals.absent + row.absent,
+          excused: totals.excused + row.excused,
+          late: totals.late + row.late,
+          present: totals.present + row.present,
+          unmarked: totals.unmarked + row.unmarked,
+        }),
+        { absent: 0, excused: 0, late: 0, present: 0, unmarked: 0 },
+      ),
+      sessionRows,
+      selectedSession: countSession(selectedAttendanceSession),
+      totalStudents,
+    };
+  }, [attendanceRecords, attendanceSessionCount, selectedAttendanceClass, selectedAttendanceSession]);
+
   const assignmentNumberCount = useMemo(() => {
     const totalAssignments = Number(selectedAttendanceClass?.totalAssignments ?? 0);
     return Number.isFinite(totalAssignments) && totalAssignments > 0 ? Math.floor(totalAssignments) : 1;
@@ -701,7 +763,7 @@ export default function Home() {
   }, [activeConfig, classSessionsFilterId]);
 
   useEffect(() => {
-    if (!isClassManagementView && !isClassDetailView && !isAttendanceView && !isProjectScoreView && !isAssignmentScoreView) {
+    if (!isClassDashboardView && !isClassManagementView && !isClassDetailView && !isAttendanceView && !isProjectScoreView && !isAssignmentScoreView) {
       setSelectedClassId(null);
       setClassStatusFilter("all");
       window.localStorage.removeItem(storageKeys.classId);
@@ -710,18 +772,18 @@ export default function Home() {
     if (!isDashboardView) {
       setShowReturningDetails(false);
     }
-  }, [isAttendanceView, isClassManagementView, isClassDetailView, isDashboardView, isProjectScoreView, isAssignmentScoreView]);
+  }, [isAttendanceView, isClassDashboardView, isClassManagementView, isClassDetailView, isDashboardView, isProjectScoreView, isAssignmentScoreView]);
 
   useEffect(() => {
-    if (!isAttendanceView || selectedAttendanceClassId || !visibleClassItems.length) {
+    if ((!isAttendanceView && !isClassDashboardView) || selectedAttendanceClassId || !visibleClassItems.length) {
       return;
     }
 
     setSelectedAttendanceClassId(visibleClassItems[0].id);
-  }, [visibleClassItems, isAttendanceView, selectedAttendanceClassId]);
+  }, [visibleClassItems, isAttendanceView, isClassDashboardView, selectedAttendanceClassId]);
 
   useEffect(() => {
-    if (!isAttendanceView && !isAssignmentScoreView && !isProjectScoreView) {
+    if (!isClassDashboardView && !isAttendanceView && !isAssignmentScoreView && !isProjectScoreView) {
       return;
     }
 
@@ -730,7 +792,7 @@ export default function Home() {
     }
 
     setSelectedAttendanceClassId(visibleClassItems[0]?.id ?? null);
-  }, [isAttendanceView, isAssignmentScoreView, isProjectScoreView, selectedAttendanceClassId, visibleClassItems]);
+  }, [isClassDashboardView, isAttendanceView, isAssignmentScoreView, isProjectScoreView, selectedAttendanceClassId, visibleClassItems]);
 
   useEffect(() => {
     if (selectedAttendanceSession <= attendanceSessionCount) {
@@ -748,20 +810,24 @@ export default function Home() {
     url.searchParams.set("view", activeView);
     url.searchParams.delete("table");
 
-    const urlClassId = isAttendanceView || isProjectScoreView || isAssignmentScoreView ? selectedAttendanceClassId : selectedClassId;
+    const urlClassId = isClassDashboardView || isAttendanceView || isProjectScoreView || isAssignmentScoreView ? selectedAttendanceClassId : selectedClassId;
 
-    if ((isClassDetailView || isAttendanceView || isProjectScoreView || isAssignmentScoreView) && urlClassId) {
+    if ((isClassDashboardView || isClassDetailView || isAttendanceView || isProjectScoreView || isAssignmentScoreView) && urlClassId) {
       url.searchParams.set("classId", urlClassId);
       window.localStorage.setItem(storageKeys.classId, urlClassId);
     } else {
       url.searchParams.delete("classId");
     }
 
-    if (isAttendanceView) {
+    if (isAttendanceView || isClassDashboardView) {
       url.searchParams.set("session", String(selectedAttendanceSession));
-      url.searchParams.set("mode", attendanceMode);
       window.localStorage.setItem(storageKeys.session, String(selectedAttendanceSession));
-      window.localStorage.setItem(storageKeys.attendanceMode, attendanceMode);
+      if (isAttendanceView) {
+        url.searchParams.set("mode", attendanceMode);
+        window.localStorage.setItem(storageKeys.attendanceMode, attendanceMode);
+      } else {
+        url.searchParams.delete("mode");
+      }
     } else {
       url.searchParams.delete("session");
       url.searchParams.delete("mode");
@@ -777,6 +843,7 @@ export default function Home() {
   }, [
     activeView,
     isAttendanceView,
+    isClassDashboardView,
     isProjectScoreView,
     isAssignmentScoreView,
     isClassDetailView,
@@ -1694,6 +1761,12 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function openClassDashboard() {
+    setSelectedAttendanceClassId((current) => current ?? visibleClassItems[0]?.id ?? null);
+    changeView("classDashboard");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function openAttendanceView() {
     setSelectedAttendanceClassId((current) => current ?? visibleClassItems[0]?.id ?? null);
     changeView("attendance");
@@ -2034,6 +2107,8 @@ export default function Home() {
 
   const pageEyebrow = isDashboardView
     ? "Tổng quan"
+    : isClassDashboardView
+      ? "Học vụ"
     : isClassManagementView || isClassDetailView || isAssistantAssignmentsView
       ? "Học vụ"
       : isAttendanceView
@@ -2045,6 +2120,8 @@ export default function Home() {
     ? "Dashboard"
     : isAdminsView
       ? "Quản trị viên"
+    : isClassDashboardView
+      ? "Dashboard lớp học"
     : isClassManagementView
       ? "Quản lý lớp"
       : isAssistantAssignmentsView
@@ -2062,6 +2139,8 @@ export default function Home() {
     ? "Theo dõi ghi danh theo khoá học, giảng viên và tỉ lệ quay lại."
     : isAdminsView
       ? "Quản lý danh sách tài khoản đăng nhập vào hệ thống."
+    : isClassDashboardView
+      ? "Chọn lớp và buổi học để theo dõi sĩ số, trạng thái điểm danh và xu hướng tăng trưởng của lớp."
     : isClassManagementView
       ? "Theo dõi sĩ số từng lớp và mở trang riêng để xem danh sách ghi danh."
       : isAssistantAssignmentsView
@@ -2149,6 +2228,14 @@ export default function Home() {
             </button>
             {openSidebarGroup === "academic" && (
               <nav className="nav-tabs" aria-label="Nghiệp vụ học vụ">
+                <button
+                  className={isClassDashboardView ? "active" : ""}
+                  onClick={openClassDashboard}
+                  type="button"
+                >
+                  <span>Dashboard lớp</span>
+                  <strong>{visibleClassItems.length}</strong>
+                </button>
                 <button
                   className={isClassManagementView || isClassDetailView ? "active" : ""}
                   onClick={openClassManagement}
@@ -2827,6 +2914,136 @@ export default function Home() {
                 </div>
               </article>
             )}
+          </section>
+        )}
+
+        {isClassDashboardView && (
+          <section className="analytics-grid" aria-label="Dashboard lớp học">
+            <article className="analytics-card detail-card wide" style={{ paddingTop: "24px" }}>
+              <div className="attendance-toolbar" style={{ alignItems: "flex-end", marginBottom: "22px" }}>
+                <label style={{ flex: "1 1 360px" }}>
+                  <span>Lớp học</span>
+                  <select
+                    onChange={(event) => {
+                      setSelectedAttendanceClassId(event.target.value || null);
+                      setSelectedAttendanceSession(1);
+                    }}
+                    value={selectedAttendanceClassId ?? ""}
+                  >
+                    <option value="">Chọn lớp học</option>
+                    {visibleClassItems.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.classCode} - {item.className}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label style={{ flex: "0 1 220px" }}>
+                  <span>Buổi học</span>
+                  <select
+                    onChange={(event) => setSelectedAttendanceSession(Number(event.target.value))}
+                    value={selectedAttendanceSession}
+                  >
+                    {Array.from({ length: attendanceSessionCount }, (_, index) => index + 1).map((sessionNumber) => (
+                      <option key={sessionNumber} value={sessionNumber}>
+                        Buổi {sessionNumber}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {attendanceError && <div className="notice error">{attendanceError}</div>}
+
+              {selectedAttendanceClass ? (
+                <>
+                  <p className="filter-summary">
+                    {selectedAttendanceClass.courseName} · {selectedAttendanceClass.teacherName} ·{" "}
+                    {selectedAttendanceClass.schedule} · {selectedAttendanceClass.studyTime} ·{" "}
+                    {classDashboardMetrics.totalStudents} học viên ghi danh
+                  </p>
+
+                  <div className="class-dashboard-stats">
+                    {[
+                      { color: "#0f766e", label: "Có mặt", value: classDashboardMetrics.selectedSession.present },
+                      { color: "#b91c1c", label: "Vắng", value: classDashboardMetrics.selectedSession.absent },
+                      { color: "#b45309", label: "Đi muộn", value: classDashboardMetrics.selectedSession.late },
+                      { color: "#0369a1", label: "Có phép", value: classDashboardMetrics.selectedSession.excused },
+                      { color: "#64748b", label: "Chưa điểm danh", value: classDashboardMetrics.selectedSession.unmarked },
+                    ].map((item) => (
+                      <article className="class-dashboard-stat" key={item.label}>
+                        <span>{item.label}</span>
+                        <strong style={{ color: item.color }}>{item.value}</strong>
+                        <small>
+                          {classDashboardMetrics.totalStudents
+                            ? `${Math.round((item.value / classDashboardMetrics.totalStudents) * 100)}% sĩ số`
+                            : "0% sĩ số"}
+                        </small>
+                      </article>
+                    ))}
+                  </div>
+
+                  <div className="class-dashboard-grid">
+                    <article className="class-dashboard-panel">
+                      <div className="section-heading compact">
+                        <div>
+                          <p className="eyebrow">Xu hướng</p>
+                          <h3>Tỉ lệ tham gia theo buổi</h3>
+                        </div>
+                      </div>
+                      <div className="session-growth-chart">
+                        {classDashboardMetrics.sessionRows.map((row) => (
+                          <div className="session-growth-row" key={row.sessionNumber}>
+                            <span>Buổi {row.sessionNumber}</span>
+                            <div className="session-growth-track">
+                              <i style={{ width: `${Math.max(row.attendanceRate, row.attended ? 5 : 0)}%` }} />
+                            </div>
+                            <strong>{row.attendanceRate}%</strong>
+                          </div>
+                        ))}
+                      </div>
+                    </article>
+
+                    <article className="class-dashboard-panel">
+                      <div className="section-heading compact">
+                        <div>
+                          <p className="eyebrow">Điểm danh</p>
+                          <h3>Cơ cấu từng buổi</h3>
+                        </div>
+                      </div>
+                      <div className="attendance-stack-list">
+                        {classDashboardMetrics.sessionRows.map((row) => {
+                          const total = classDashboardMetrics.totalStudents || 1;
+                          return (
+                            <div className="attendance-stack-row" key={row.sessionNumber}>
+                              <span>Buổi {row.sessionNumber}</span>
+                              <div className="attendance-stack">
+                                <i className="present" style={{ width: `${(row.present / total) * 100}%` }} />
+                                <i className="late" style={{ width: `${(row.late / total) * 100}%` }} />
+                                <i className="excused" style={{ width: `${(row.excused / total) * 100}%` }} />
+                                <i className="absent" style={{ width: `${(row.absent / total) * 100}%` }} />
+                                <i className="unmarked" style={{ width: `${(row.unmarked / total) * 100}%` }} />
+                              </div>
+                              <strong>{row.attended}/{classDashboardMetrics.totalStudents}</strong>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="attendance-legend">
+                        <span><i className="present" />Có mặt</span>
+                        <span><i className="late" />Muộn</span>
+                        <span><i className="excused" />Phép</span>
+                        <span><i className="absent" />Vắng</span>
+                        <span><i className="unmarked" />Chưa điểm danh</span>
+                      </div>
+                    </article>
+                  </div>
+                </>
+              ) : (
+                <p className="empty-chart">Chưa có lớp để hiển thị dashboard.</p>
+              )}
+            </article>
           </section>
         )}
 
