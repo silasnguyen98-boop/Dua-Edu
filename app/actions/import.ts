@@ -59,56 +59,78 @@ export async function bulkImportAction(
     // 2. Perform import using admin client (service role)
     const adminClient = getSupabaseAdmin();
     
-    const hasEmail = payload.length > 0 && "email" in payload[0];
+    // Normalize and de-duplicate payload internally first
+    const cleanPayload = payload.filter((item, index) => {
+      if (!item.email) return true;
+      const email = String(item.email).trim().toLowerCase();
+      return payload.findIndex(p => String(p.email || "").trim().toLowerCase() === email) === index;
+    });
+
+    const hasEmailField = cleanPayload.length > 0 && "email" in cleanPayload[0];
     
-    if (hasEmail) {
-      // 1. Get all emails from payload
-      const emailsInPayload = payload
+    if (hasEmailField) {
+      const emailsInPayload = cleanPayload
         .map(p => String(p.email || "").trim().toLowerCase())
         .filter(Boolean);
         
       if (emailsInPayload.length > 0) {
-        // 2. Fetch existing emails from DB
+        // Fetch existing emails from DB
         const { data: existingRows, error: fetchError } = await adminClient
           .from(tableName)
           .select("email")
           .in("email", emailsInPayload);
           
-        if (!fetchError && existingRows) {
-          const existingEmails = new Set(existingRows.map(r => String(r.email || "").trim().toLowerCase()));
-          
-          // 3. Filter payload to exclude existing emails
-          const filteredPayload = payload.filter(p => {
-            const email = String(p.email || "").trim().toLowerCase();
-            return !email || !existingEmails.has(email);
-          });
-          
-          if (filteredPayload.length === 0) {
-            return { ok: true, data: [], skipped: payload.length };
+        if (fetchError) {
+          console.error("Fetch existing emails error:", fetchError);
+          // If we can't check, we should probably fail or try upsert
+          // Let's try upsert as a secondary fallback if it's a student table
+          if (tableName === "students") {
+            const { data, error: upsertError } = await adminClient
+              .from(tableName)
+              .upsert(cleanPayload, { onConflict: "email" })
+              .select();
+            if (upsertError) throw new Error(upsertError.message);
+            return { ok: true, data };
           }
-          
-          // 4. Insert the clean payload
-          const { data, error: importError } = await adminClient
-            .from(tableName)
-            .insert(filteredPayload)
-            .select();
-            
-          if (importError) throw new Error(importError.message);
-          return { ok: true, data, skipped: payload.length - filteredPayload.length };
         }
+
+        const existingEmails = new Set(
+          (existingRows ?? []).map(r => String(r.email || "").trim().toLowerCase())
+        );
+        
+        // Filter payload to exclude existing emails
+        const filteredPayload = cleanPayload.filter(p => {
+          const email = String(p.email || "").trim().toLowerCase();
+          return !email || !existingEmails.has(email);
+        });
+        
+        if (filteredPayload.length === 0) {
+          return { ok: true, data: [], skipped: payload.length };
+        }
+        
+        // Insert the clean payload
+        const { data, error: importError } = await adminClient
+          .from(tableName)
+          .insert(filteredPayload)
+          .select();
+          
+        if (importError) {
+          // If insert still fails, it might be a race condition or other constraint
+          throw new Error(importError.message);
+        }
+        
+        return { ok: true, data, skipped: payload.length - filteredPayload.length };
       }
     }
 
-    // Fallback for tables without email or if check fails
+    // Default insert for tables without email or simple cases
     const { data, error: importError } = await adminClient
       .from(tableName)
-      .insert(payload)
+      .insert(cleanPayload)
       .select();
       
     if (importError) throw new Error(importError.message);
-    return { ok: true, data };
-
-    return { ok: true, data };
+    return { ok: true, data, skipped: payload.length - cleanPayload.length };
   } catch (error: any) {
     return { ok: false, error: error.message };
   }
