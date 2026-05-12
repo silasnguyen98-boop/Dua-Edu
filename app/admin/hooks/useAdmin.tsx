@@ -868,7 +868,8 @@ export function useAdmin(): UseAdminReturn {
 
   async function updateAssignmentScore(enrollmentId: string, assignmentNumber: number, score: string) {
     setIsSaving(true);
-    // 1. Lưu điểm chi tiết
+    // Ghi chú: Điểm trung bình trong bảng enrollments được tự động tính toán 
+    // bởi Database Trigger khi bảng assignment_records có thay đổi.
     const { error: saveError } = await supabase
       .from("assignment_records")
       .upsert(
@@ -879,25 +880,9 @@ export function useAdmin(): UseAdminReturn {
     if (saveError) {
       setError(saveError.message);
     } else {
-      // 2. Tính toán lại điểm trung bình
-      const { data: allAssignments } = await supabase
-        .from("assignment_records")
-        .select("score")
-        .eq("enrollment_id", enrollmentId);
-      
-      if (allAssignments && allAssignments.length > 0) {
-        const avg = allAssignments.reduce((acc, curr) => acc + (Number(curr.score) || 0), 0) / allAssignments.length;
-        
-        // 3. Cập nhật vào bảng enrollments
-        await supabase
-          .from("enrollments")
-          .update({ assignment_score: avg })
-          .eq("id", enrollmentId);
-      }
-
-      // 4. Refresh dữ liệu
+      // Refresh dữ liệu để giao diện hiển thị đúng điểm trung bình mới từ trigger
       await loadAssignmentRecords(new Set(visibleClassItems.flatMap(c => c.enrollments.map(e => e.id))));
-      await loadAllTables(); // Tải lại cả bảng enrollments để thấy điểm trung bình mới
+      await loadAllTables(); 
     }
     setIsSaving(false);
   }
