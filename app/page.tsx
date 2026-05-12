@@ -1846,10 +1846,12 @@ export default function Home() {
         throw new Error(result.error);
       }
 
+      const totalSkipped = (importData.duplicateCount || 0) + (result.skipped || 0);
+
       setMessage(
-        `✓ Đã import ${importData.payload.length} dòng thành công.` +
-          (importData.duplicateCount
-            ? ` (Đã tự động bỏ qua ${importData.duplicateCount} email bị trùng lặp).`
+        `✓ Đã import ${result.data?.length || 0} dòng thành công.` +
+          (totalSkipped > 0
+            ? ` (Đã tự động bỏ qua ${totalSkipped} email bị trùng lặp).`
             : ""),
       );
       await loadAllTables();

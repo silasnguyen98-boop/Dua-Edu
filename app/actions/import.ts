@@ -57,28 +57,56 @@ export async function bulkImportAction(
     }
 
     // 2. Perform import using admin client (service role)
-    // Use upsert if the table has an email field to handle duplicates gracefully
-    const hasEmail = payload.length > 0 && "email" in payload[0];
     const adminClient = getSupabaseAdmin();
     
-    let query = adminClient.from(tableName);
+    const hasEmail = payload.length > 0 && "email" in payload[0];
     
     if (hasEmail) {
-      // @ts-ignore - Supabase types can be tricky with dynamic table names
-      const { data, error: importError } = await query
-        .upsert(payload, { onConflict: "email", ignoreDuplicates: false })
-        .select();
-      
-      if (importError) throw new Error(importError.message);
-      return { ok: true, data };
-    } else {
-      const { data, error: importError } = await query
-        .insert(payload)
-        .select();
+      // 1. Get all emails from payload
+      const emailsInPayload = payload
+        .map(p => String(p.email || "").trim().toLowerCase())
+        .filter(Boolean);
         
-      if (importError) throw new Error(importError.message);
-      return { ok: true, data };
+      if (emailsInPayload.length > 0) {
+        // 2. Fetch existing emails from DB
+        const { data: existingRows, error: fetchError } = await adminClient
+          .from(tableName)
+          .select("email")
+          .in("email", emailsInPayload);
+          
+        if (!fetchError && existingRows) {
+          const existingEmails = new Set(existingRows.map(r => String(r.email || "").trim().toLowerCase()));
+          
+          // 3. Filter payload to exclude existing emails
+          const filteredPayload = payload.filter(p => {
+            const email = String(p.email || "").trim().toLowerCase();
+            return !email || !existingEmails.has(email);
+          });
+          
+          if (filteredPayload.length === 0) {
+            return { ok: true, data: [], skipped: payload.length };
+          }
+          
+          // 4. Insert the clean payload
+          const { data, error: importError } = await adminClient
+            .from(tableName)
+            .insert(filteredPayload)
+            .select();
+            
+          if (importError) throw new Error(importError.message);
+          return { ok: true, data, skipped: payload.length - filteredPayload.length };
+        }
+      }
     }
+
+    // Fallback for tables without email or if check fails
+    const { data, error: importError } = await adminClient
+      .from(tableName)
+      .insert(payload)
+      .select();
+      
+    if (importError) throw new Error(importError.message);
+    return { ok: true, data };
 
     return { ok: true, data };
   } catch (error: any) {
