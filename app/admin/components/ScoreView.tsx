@@ -33,12 +33,54 @@ export function ScoreView({
   sessionCount,
   assignmentRecordsByEnrollment,
 }: ScoreViewProps) {
+  const [showGuide, setShowGuide] = React.useState(false);
   const isAssignment = type === "assignment";
   const label = isAssignment ? "bài tập" : "đồ án";
 
   return (
     <section className="analytics-grid" aria-label={`Giao diện chấm điểm ${label}`}>
       <article className="analytics-card wide" style={{ paddingTop: "24px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 700, color: "var(--foreground)" }}>Chấm điểm {label}</h2>
+            <p style={{ margin: "4px 0 0", color: "var(--foreground-muted)", fontSize: "0.9rem" }}>
+              Cập nhật kết quả làm {label} của học viên.
+            </p>
+          </div>
+          <div style={{ position: "relative" }}>
+            <button 
+              className="secondary-button" 
+              onClick={() => setShowGuide(!showGuide)}
+              style={{ display: "flex", alignItems: "center", gap: "8px" }}
+            >
+              <span>ℹ️ Hướng dẫn</span>
+            </button>
+            {showGuide && (
+              <div style={{ 
+                position: "absolute", 
+                top: "100%", 
+                right: 0, 
+                width: "300px", 
+                backgroundColor: "var(--background)", 
+                border: "1px solid var(--border)", 
+                borderRadius: "12px", 
+                padding: "16px", 
+                boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+                zIndex: 100,
+                marginTop: "8px"
+              }}>
+                <h4 style={{ margin: "0 0 8px", fontSize: "1rem" }}>Cách tính điểm:</h4>
+                <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "0.85rem", lineHeight: "1.6", color: "var(--foreground-muted)" }}>
+                  <li>Nhập điểm trực tiếp vào từng ô BT (0-10).</li>
+                  <li>Hệ thống <strong>tự động lưu</strong> khi bạn chuyển ô.</li>
+                  <li>Điểm trung bình (Assignment Score) sẽ được <strong>tự động tính toán</strong> lại ngay sau khi lưu.</li>
+                  <li>Nếu để trống, hệ thống sẽ coi như chưa có điểm.</li>
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="attendance-toolbar" style={{ alignItems: "flex-end", marginBottom: "24px", gap: "16px", display: "flex", justifyContent: "space-between" }}>
           <div style={{ display: "flex", gap: "16px", flex: 1, alignItems: "flex-end" }}>
             <label style={{ flex: "1 1 300px", maxWidth: "400px" }}>
