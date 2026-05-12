@@ -66,8 +66,8 @@ export function AttendanceView({
     <section className="analytics-grid" aria-label="Giao diện điểm danh">
       <article className="analytics-card wide" style={{ paddingTop: "24px" }}>
         <div className="attendance-toolbar" style={{ marginBottom: "24px", gap: "16px", display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-end" }}>
-          <div style={{ display: "flex", gap: "16px", flex: "1", minWidth: "300px", flexWrap: "wrap", alignItems: "flex-end" }}>
-            <label style={{ flex: "1 1 240px", maxWidth: "350px" }}>
+          <div style={{ display: "flex", gap: "16px", flex: "1", minWidth: "200px", flexWrap: "wrap", alignItems: "flex-end" }}>
+            <label style={{ flex: "1 1 200px", maxWidth: "350px" }}>
               <span>Lớp học</span>
               <select onChange={(e) => { setSelectedAttendanceClassId(e.target.value || null); setSelectedAttendanceSession(1); }} value={selectedAttendanceClassId ?? ""}>
                 <option value="">Chọn lớp học</option>
@@ -75,14 +75,25 @@ export function AttendanceView({
               </select>
             </label>
 
-            <div style={{ display: "flex", gap: "12px", background: "var(--background-secondary)", padding: "4px", borderRadius: "10px", border: "1px solid var(--border)", marginBottom: "4px" }}>
+            {attendanceMode === "session" && (
+              <label style={{ width: "140px" }}>
+                <span>Buổi học</span>
+                <select onChange={(e) => setSelectedAttendanceSession(Number(e.target.value))} value={selectedAttendanceSession}>
+                  {Array.from({ length: attendanceSessionCount }, (_, i) => i + 1).map(n => <option key={n} value={n}>Buổi {n}</option>)}
+                </select>
+              </label>
+            )}
+          </div>
+
+          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "8px", background: "var(--background-secondary)", padding: "4px", borderRadius: "10px", border: "1px solid var(--border)" }}>
               <button 
                 onClick={() => setAttendanceMode("session")}
                 style={{ 
-                  padding: "6px 16px", 
+                  padding: "6px 14px", 
                   borderRadius: "7px", 
                   border: "none", 
-                  fontSize: "13px",
+                  fontSize: "12px",
                   fontWeight: 600,
                   cursor: "pointer",
                   backgroundColor: attendanceMode === "session" ? "white" : "transparent",
@@ -95,10 +106,10 @@ export function AttendanceView({
               <button 
                 onClick={() => setAttendanceMode("summary")}
                 style={{ 
-                  padding: "6px 16px", 
+                  padding: "6px 14px", 
                   borderRadius: "7px", 
                   border: "none", 
-                  fontSize: "13px",
+                  fontSize: "12px",
                   fontWeight: 600,
                   cursor: "pointer",
                   backgroundColor: attendanceMode === "summary" ? "white" : "transparent",
@@ -109,17 +120,8 @@ export function AttendanceView({
                 Tổng hợp
               </button>
             </div>
-
-            {attendanceMode === "session" && (
-              <label style={{ width: "140px" }}>
-                <span>Buổi học</span>
-                <select onChange={(e) => setSelectedAttendanceSession(Number(e.target.value))} value={selectedAttendanceSession}>
-                  {Array.from({ length: attendanceSessionCount }, (_, i) => i + 1).map(n => <option key={n} value={n}>Buổi {n}</option>)}
-                </select>
-              </label>
-            )}
+            <button className="secondary-button" onClick={onRefresh} type="button">Làm mới</button>
           </div>
-          <button className="secondary-button" onClick={onRefresh} type="button">Làm mới dữ liệu</button>
         </div>
 
         {attendanceError && <div className="notice error">{attendanceError}</div>}
