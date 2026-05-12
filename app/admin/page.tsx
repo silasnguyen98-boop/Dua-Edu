@@ -3066,159 +3066,160 @@ export default function Home() {
 
                   {classDashboardMode === "overall" && (
                     <div className="class-dashboard-grid">
-                    <article className="class-dashboard-panel">
-                      <div className="section-heading compact">
-                        <div>
-                          <p className="eyebrow">Xu hướng</p>
-                          <h3>Tỉ lệ tham gia theo buổi</h3>
+                      <article className="class-dashboard-panel">
+                        <div className="section-heading compact">
+                          <div>
+                            <p className="eyebrow">Xu hướng</p>
+                            <h3>Tỉ lệ tham gia theo buổi</h3>
+                          </div>
                         </div>
-                      </div>
-                      <div className="session-growth-chart">
-                        <LineChart items={classDashboardMetrics.sessionRows.map(r => ({ label: `B${r.sessionNumber}`, value: r.attendanceRate }))} />
-                      </div>
-                    </article>
+                        <div className="session-growth-chart">
+                          <LineChart items={classDashboardMetrics.sessionRows.map(r => ({ label: `B${r.sessionNumber}`, value: r.attendanceRate }))} />
+                        </div>
+                      </article>
 
-                    <article className="class-dashboard-panel">
-                      <div className="section-heading compact">
-                        <div>
-                          <p className="eyebrow">Nộp bài</p>
-                          <h3>Tỉ lệ bài tập & đồ án</h3>
+                      <article className="class-dashboard-panel">
+                        <div className="section-heading compact">
+                          <div>
+                            <p className="eyebrow">Nộp bài</p>
+                            <h3>Tỉ lệ bài tập & đồ án</h3>
+                          </div>
                         </div>
-                      </div>
-                      <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
-                        <div style={{ flex: 1, minWidth: "150px" }}>
-                          <p style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "10px", textAlign: "center" }}>Bài tập về nhà</p>
-                          <PieChart emptyText="N/A" items={[
-                            { id: "submitted", label: "Đã nộp", value: classDashboardMetrics.assignmentRate, percent: classDashboardMetrics.assignmentRate, color: "#6366f1" },
-                            { id: "pending", label: "Chưa nộp", value: 100 - classDashboardMetrics.assignmentRate, percent: 100 - classDashboardMetrics.assignmentRate, color: "#e2e8f0" }
-                          ]} />
+                        <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+                          <div style={{ flex: 1, minWidth: "150px" }}>
+                            <p style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "10px", textAlign: "center" }}>Bài tập về nhà</p>
+                            <PieChart emptyText="N/A" items={[
+                              { id: "submitted", label: "Đã nộp", value: classDashboardMetrics.assignmentRate, percent: classDashboardMetrics.assignmentRate, color: "#6366f1" },
+                              { id: "pending", label: "Chưa nộp", value: 100 - classDashboardMetrics.assignmentRate, percent: 100 - classDashboardMetrics.assignmentRate, color: "#e2e8f0" }
+                            ]} />
+                          </div>
+                          <div style={{ flex: 1, minWidth: "150px" }}>
+                            <p style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "10px", textAlign: "center" }}>Đồ án cuối khoá</p>
+                            <PieChart emptyText="N/A" items={[
+                              { id: "submitted", label: "Đã nộp", value: classDashboardMetrics.projectRate, percent: classDashboardMetrics.projectRate, color: "#10b981" },
+                              { id: "pending", label: "Chưa nộp", value: 100 - classDashboardMetrics.projectRate, percent: 100 - classDashboardMetrics.projectRate, color: "#e2e8f0" }
+                            ]} />
+                          </div>
                         </div>
-                        <div style={{ flex: 1, minWidth: "150px" }}>
-                          <p style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "10px", textAlign: "center" }}>Đồ án cuối khoá</p>
-                          <PieChart emptyText="N/A" items={[
-                            { id: "submitted", label: "Đã nộp", value: classDashboardMetrics.projectRate, percent: classDashboardMetrics.projectRate, color: "#10b981" },
-                            { id: "pending", label: "Chưa nộp", value: 100 - classDashboardMetrics.projectRate, percent: 100 - classDashboardMetrics.projectRate, color: "#e2e8f0" }
-                          ]} />
-                        </div>
-                      </div>
-                    </article>
+                      </article>
 
-                    <article className="class-dashboard-panel">
-                      <div className="section-heading compact">
-                        <div>
-                          <p className="eyebrow">Điểm danh</p>
-                          <h3>Cơ cấu từng buổi</h3>
+                      <article className="class-dashboard-panel">
+                        <div className="section-heading compact">
+                          <div>
+                            <p className="eyebrow">Điểm danh</p>
+                            <h3>Cơ cấu từng buổi</h3>
+                          </div>
                         </div>
-                      </div>
-                      <div className="attendance-stack-list">
-                        {classDashboardMetrics.sessionRows.map((row) => {
-                          const total = classDashboardMetrics.totalStudents || 1;
-                          return (
-                            <div className="attendance-stack-row" key={row.sessionNumber}>
-                              <span>Buổi {row.sessionNumber}</span>
-                              <div className="attendance-stack">
-                                <i className="present" title={`Có mặt: ${row.present} (${Math.round((row.present / total) * 100)}%)`} style={{ width: `${(row.present / total) * 100}%` }} />
-                                <i className="late" title={`Đi muộn: ${row.late} (${Math.round((row.late / total) * 100)}%)`} style={{ width: `${(row.late / total) * 100}%` }} />
-                                <i className="excused" title={`Có phép: ${row.excused} (${Math.round((row.excused / total) * 100)}%)`} style={{ width: `${(row.excused / total) * 100}%` }} />
-                                <i className="absent" title={`Vắng: ${row.absent} (${Math.round((row.absent / total) * 100)}%)`} style={{ width: `${(row.absent / total) * 100}%` }} />
-                                <i className="unmarked" title={`Chưa điểm danh: ${row.unmarked} (${Math.round((row.unmarked / total) * 100)}%)`} style={{ width: `${(row.unmarked / total) * 100}%` }} />
-                              </div>
-                              <strong>{row.attended}/{classDashboardMetrics.totalStudents}</strong>
-                            </div>
-                          );
-                        })}
-                        {classDashboardMetrics.atRiskStudents.length > 0 && (
-                          <article className="class-dashboard-panel" style={{ gridColumn: "1 / -1", borderLeft: "4px solid #dc2626", background: "#fffafb" }}>
-                            <div className="section-heading compact">
-                              <div>
-                                <p className="eyebrow" style={{ color: "#dc2626" }}>Cảnh báo</p>
-                                <h3>Vắng 2 buổi liên tiếp gần nhất</h3>
-                              </div>
-                              <span style={{ background: "#fee2e2", color: "#dc2626", padding: "4px 12px", borderRadius: "99px", fontSize: "12px", fontWeight: 700 }}>
-                                {classDashboardMetrics.atRiskStudents.length} học viên
-                              </span>
-                            </div>
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "12px", marginTop: "16px" }}>
-                              {classDashboardMetrics.atRiskStudents.map(student => (
-                                <div key={student.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px", borderRadius: "8px", background: "white", border: "1px solid #fecaca" }}>
-                                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#fee2e2", color: "#dc2626", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "14px" }}>
-                                    {student.name.slice(0, 1).toUpperCase()}
-                                  </div>
-                                  <div>
-                                    <p style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "var(--foreground)" }}>{student.name}</p>
-                                    <p style={{ margin: 0, fontSize: "12px", color: "var(--text-secondary)" }}>{student.email}</p>
-                                  </div>
+                        <div className="attendance-stack-list">
+                          {classDashboardMetrics.sessionRows.map((row) => {
+                            const total = classDashboardMetrics.totalStudents || 1;
+                            return (
+                              <div className="attendance-stack-row" key={row.sessionNumber}>
+                                <span>Buổi {row.sessionNumber}</span>
+                                <div className="attendance-stack">
+                                  <i className="present" title={`Có mặt: ${row.present} (${Math.round((row.present / total) * 100)}%)`} style={{ width: `${(row.present / total) * 100}%` }} />
+                                  <i className="late" title={`Đi muộn: ${row.late} (${Math.round((row.late / total) * 100)}%)`} style={{ width: `${(row.late / total) * 100}%` }} />
+                                  <i className="excused" title={`Có phép: ${row.excused} (${Math.round((row.excused / total) * 100)}%)`} style={{ width: `${(row.excused / total) * 100}%` }} />
+                                  <i className="absent" title={`Vắng: ${row.absent} (${Math.round((row.absent / total) * 100)}%)`} style={{ width: `${(row.absent / total) * 100}%` }} />
+                                  <i className="unmarked" title={`Chưa điểm danh: ${row.unmarked} (${Math.round((row.unmarked / total) * 100)}%)`} style={{ width: `${(row.unmarked / total) * 100}%` }} />
                                 </div>
-                              ))}
-                            </div>
-                          </article>
-                        )}
-
-                        <article className="class-dashboard-panel" style={{ gridColumn: "1 / -1" }}>
-                      <div className="section-heading compact">
-                        <div>
-                          <p className="eyebrow">Theo dõi</p>
-                          <h3>Tình trạng học viên</h3>
+                                <strong>{row.attended}/{classDashboardMetrics.totalStudents}</strong>
+                              </div>
+                            );
+                          })}
                         </div>
-                      </div>
-                      <div className="class-table">
-                        <table style={{ background: "transparent" }}>
-                          <thead>
-                            <tr>
-                              <th style={{ background: "transparent" }}>Học viên</th>
-                              <th style={{ background: "transparent" }}>Email</th>
-                              <th style={{ background: "transparent" }}>Trạng thái</th>
-                              <th style={{ background: "transparent" }}>Chuyên cần</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {selectedAttendanceClass.enrollments.slice(0, 10).map((en) => {
-                              const attendRecords = attendanceRecords.filter(r => String(r.enrollment_id) === en.id);
-                              const absentCount = attendRecords.filter(r => r.status === "absent").length;
-                              return (
-                                <tr key={en.id}>
-                                  <td>{en.name}</td>
-                                  <td>{en.email}</td>
-                                  <td>
-                                    <span style={{ 
-                                      padding: "2px 8px", 
-                                      borderRadius: "99px", 
-                                      fontSize: "11px", 
-                                      fontWeight: 600,
-                                      background: en.status === "active" ? "#ecfdf5" : "#f1f5f9",
-                                      color: en.status === "active" ? "#059669" : "#64748b"
-                                    }}>
-                                      {en.status || "—"}
-                                    </span>
-                                  </td>
-                                  <td>
-                                    {absentCount > 0 ? (
-                                      <span style={{ color: "#dc2626", fontWeight: 600 }}>Vắng {absentCount} buổi</span>
-                                    ) : (
-                                      <span style={{ color: "#059669" }}>Tốt</span>
-                                    )}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                        {selectedAttendanceClass.enrollments.length > 10 && (
-                          <p style={{ textAlign: "center", fontSize: "13px", color: "var(--text-secondary)", marginTop: "12px" }}>
-                            Hiển thị 10 học viên tiêu biểu. Xem chi tiết tại tab Ghi danh.
-                          </p>
-                        )}
-                      </div>
-                    </article>
-                  </div>
-                      <div className="attendance-legend">
-                        <span><i className="present" />Có mặt</span>
-                        <span><i className="late" />Muộn</span>
-                        <span><i className="excused" />Phép</span>
-                        <span><i className="absent" />Vắng</span>
-                        <span><i className="unmarked" />Chưa điểm danh</span>
-                      </div>
-                    </article>
+                        <div className="attendance-legend">
+                          <span><i className="present" />Có mặt</span>
+                          <span><i className="late" />Muộn</span>
+                          <span><i className="excused" />Phép</span>
+                          <span><i className="absent" />Vắng</span>
+                          <span><i className="unmarked" />Chưa điểm danh</span>
+                        </div>
+                      </article>
+
+                      {classDashboardMetrics.atRiskStudents.length > 0 && (
+                        <article className="class-dashboard-panel" style={{ gridColumn: "1 / -1", borderLeft: "4px solid #dc2626", background: "#fffafb" }}>
+                          <div className="section-heading compact">
+                            <div>
+                              <p className="eyebrow" style={{ color: "#dc2626" }}>Cảnh báo</p>
+                              <h3>Vắng 2 buổi liên tiếp gần nhất</h3>
+                            </div>
+                            <span style={{ background: "#fee2e2", color: "#dc2626", padding: "4px 12px", borderRadius: "99px", fontSize: "12px", fontWeight: 700 }}>
+                              {classDashboardMetrics.atRiskStudents.length} học viên
+                            </span>
+                          </div>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "12px", marginTop: "16px" }}>
+                            {classDashboardMetrics.atRiskStudents.map(student => (
+                              <div key={student.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px", borderRadius: "8px", background: "white", border: "1px solid #fecaca" }}>
+                                <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#fee2e2", color: "#dc2626", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "14px" }}>
+                                  {student.name.slice(0, 1).toUpperCase()}
+                                </div>
+                                <div>
+                                  <p style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "var(--foreground)" }}>{student.name}</p>
+                                  <p style={{ margin: 0, fontSize: "12px", color: "var(--text-secondary)" }}>{student.email}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </article>
+                      )}
+
+                      <article className="class-dashboard-panel" style={{ gridColumn: "1 / -1" }}>
+                        <div className="section-heading compact">
+                          <div>
+                            <p className="eyebrow">Theo dõi</p>
+                            <h3>Tình trạng học viên</h3>
+                          </div>
+                        </div>
+                        <div className="class-table">
+                          <table style={{ background: "transparent" }}>
+                            <thead>
+                              <tr>
+                                <th style={{ background: "transparent" }}>Học viên</th>
+                                <th style={{ background: "transparent" }}>Email</th>
+                                <th style={{ background: "transparent" }}>Trạng thái</th>
+                                <th style={{ background: "transparent" }}>Chuyên cần</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {selectedAttendanceClass.enrollments.slice(0, 10).map((en) => {
+                                const attendRecords = attendanceRecords.filter(r => String(r.enrollment_id) === en.id);
+                                const absentCount = attendRecords.filter(r => r.status === "absent").length;
+                                return (
+                                  <tr key={en.id}>
+                                    <td>{en.name}</td>
+                                    <td>{en.email}</td>
+                                    <td>
+                                      <span style={{ 
+                                        padding: "2px 8px", 
+                                        borderRadius: "99px", 
+                                        fontSize: "11px", 
+                                        fontWeight: 600,
+                                        background: en.status === "active" ? "#ecfdf5" : "#f1f5f9",
+                                        color: en.status === "active" ? "#059669" : "#64748b"
+                                      }}>
+                                        {en.status || "—"}
+                                      </span>
+                                    </td>
+                                    <td>
+                                      {absentCount > 0 ? (
+                                        <span style={{ color: "#dc2626", fontWeight: 600 }}>Vắng {absentCount} buổi</span>
+                                      ) : (
+                                        <span style={{ color: "#059669" }}>Tốt</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                          {selectedAttendanceClass.enrollments.length > 10 && (
+                            <p style={{ textAlign: "center", fontSize: "13px", color: "var(--text-secondary)", marginTop: "12px" }}>
+                              Hiển thị 10 học viên tiêu biểu. Xem chi tiết tại tab Ghi danh.
+                            </p>
+                          )}
+                        </div>
+                      </article>
                     </div>
                   )}
                 </>
