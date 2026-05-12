@@ -44,7 +44,8 @@ export default function StudentDashboard() {
         return;
       }
 
-      if (session.user.user_metadata?.role !== "student") {
+      const role = String(session.user.user_metadata?.role || "").trim().toLowerCase();
+      if (role !== "student") {
         router.push("/");
         return;
       }

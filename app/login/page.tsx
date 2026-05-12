@@ -15,8 +15,9 @@ export default function LoginPage() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        if (session.user.user_metadata?.role === "student") {
-          router.push("/user");
+        const role = String(session.user.user_metadata?.role || "").trim().toLowerCase();
+        if (role === "student") {
+          window.location.href = "/user";
         } else {
           router.push("/");
         }
@@ -39,8 +40,9 @@ export default function LoginPage() {
       setLoading(false);
     } else {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user.user_metadata?.role === "student") {
-        router.push("/user");
+      const role = String(session?.user.user_metadata?.role || "").trim().toLowerCase();
+      if (role === "student") {
+        window.location.href = "/user";
       } else {
         router.push("/");
       }
