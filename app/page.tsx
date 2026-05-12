@@ -1376,7 +1376,7 @@ export default function Home() {
   }
 
   function buildPayload() {
-    return activeConfig.fields.reduce<Record<string, string | number | null>>((payload, field) => {
+    const payload = activeConfig.fields.reduce<Record<string, string | number | null>>((payload, field) => {
       const rawValue = form[field.name]?.trim() ?? "";
 
       if (rawValue === "") {
@@ -1393,6 +1393,18 @@ export default function Home() {
 
       return payload;
     }, {});
+
+    return sanitizePayloadForTable(activeTable, payload);
+  }
+
+  function sanitizePayloadForTable<T extends Record<string, string | number | null>>(tableName: TableName, payload: T) {
+    if (tableName !== "classes") {
+      return payload;
+    }
+
+    const sanitizedPayload = { ...payload };
+    delete sanitizedPayload.status;
+    return sanitizedPayload;
   }
 
   function normalizeImportValue(field: FieldConfig, value: unknown) {
@@ -1830,7 +1842,9 @@ export default function Home() {
         throw new Error("File Excel không có dòng dữ liệu hợp lệ.");
       }
 
-      const resolvedPayload = await resolveImportReferences(payload);
+      const resolvedPayload = (await resolveImportReferences(payload)).map((row) =>
+        sanitizePayloadForTable(activeTable, row),
+      );
       const importData = await skipDuplicateEmails(resolvedPayload);
 
       if (!importData.payload.length) {

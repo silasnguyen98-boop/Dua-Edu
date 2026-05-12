@@ -84,6 +84,18 @@ const findExistingEmails = async (
   return Array.from(new Set([...exactMatches, ...normalizedExisting]));
 };
 
+const sanitizePayloadForTable = (tableName: string, payload: any[]) => {
+  if (tableName !== "classes") {
+    return payload;
+  }
+
+  return payload.map((item) => {
+    const sanitizedItem = { ...item };
+    delete sanitizedItem.status;
+    return sanitizedItem;
+  });
+};
+
 /**
  * Server action to perform bulk import using service role key to bypass RLS.
  * This is restricted to users with valid roles (admin, operation, assistant).
@@ -111,10 +123,11 @@ export async function bulkImportAction(
 
     // 2. Perform import using admin client (service role)
     const adminClient = getSupabaseAdmin();
+    const safePayload = sanitizePayloadForTable(tableName, payload);
     
     const duplicatedEmails: string[] = [];
     const seenEmails = new Set<string>();
-    const cleanPayload = payload.filter((item) => {
+    const cleanPayload = safePayload.filter((item) => {
       const email = normalizeEmail(item.email);
       if (!email) return true;
 
@@ -172,7 +185,7 @@ export async function bulkImportAction(
         }
         
         if (cleanPayloadInternal.length === 0) {
-          return { ok: true, data: [], skipped: payload.length, duplicatedEmails };
+          return { ok: true, data: [], skipped: safePayload.length, duplicatedEmails };
         }
         
         // Insert the clean payload
@@ -197,7 +210,7 @@ export async function bulkImportAction(
         return { 
           ok: true, 
           data, 
-          skipped: payload.length - cleanPayloadInternal.length,
+          skipped: safePayload.length - cleanPayloadInternal.length,
           duplicatedEmails,
         };
       }
@@ -220,7 +233,7 @@ export async function bulkImportAction(
       }
       throw new Error(importError.message);
     }
-    return { ok: true, data, skipped: payload.length - cleanPayload.length, duplicatedEmails };
+    return { ok: true, data, skipped: safePayload.length - cleanPayload.length, duplicatedEmails };
   } catch (error: any) {
     return { ok: false, error: error.message };
   }
