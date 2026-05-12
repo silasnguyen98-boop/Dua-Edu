@@ -3245,37 +3245,65 @@ export default function Home() {
                       )}
 
                       {sessionDetailStatus && (
-                        <article className="class-dashboard-panel">
-                          <div className="section-heading compact">
-                            <div>
-                              <p className="eyebrow">Chi tiết</p>
-                              <h3>Danh sách {
-                                sessionDetailStatus === "present" ? "Có mặt" :
-                                sessionDetailStatus === "absent" ? "Vắng" :
-                                sessionDetailStatus === "late" ? "Đi muộn" :
-                                sessionDetailStatus === "excused" ? "Có phép" : "Chưa điểm danh"
-                              }</h3>
+                        <div style={{ 
+                          position: "fixed", top: 0, left: 0, right: 0, bottom: 0, 
+                          background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)",
+                          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
+                          padding: "20px"
+                        }} onClick={() => setSessionDetailStatus(null)}>
+                          <article 
+                            className="class-dashboard-panel" 
+                            style={{ width: "100%", maxWidth: "500px", maxHeight: "80vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <div className="section-heading compact">
+                              <div>
+                                <p className="eyebrow">Chi tiết</p>
+                                <h3>Danh sách {
+                                  sessionDetailStatus === "present" ? "Có mặt" :
+                                  sessionDetailStatus === "absent" ? "Vắng" :
+                                  sessionDetailStatus === "late" ? "Đi muộn" :
+                                  sessionDetailStatus === "excused" ? "Có phép" : "Chưa điểm danh"
+                                }</h3>
+                              </div>
+                              <button 
+                                onClick={() => setSessionDetailStatus(null)}
+                                style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "var(--text-secondary)" }}
+                              >
+                                &times;
+                              </button>
                             </div>
-                          </div>
-                          <div className="class-table" style={{ maxHeight: "300px", overflowY: "auto" }}>
-                            <table style={{ background: "transparent" }}>
-                              <tbody>
-                                {selectedAttendanceClass.enrollments.filter(en => {
-                                  const record = attendanceRecords.find(r => String(r.enrollment_id) === en.id && r.session_number === selectedAttendanceSession);
-                                  const status = record?.status || "unmarked";
-                                  return status === sessionDetailStatus;
-                                }).map(en => (
-                                  <tr key={en.id}>
-                                    <td style={{ padding: "8px 0" }}>
-                                      <div style={{ fontWeight: 600, fontSize: "13px" }}>{en.name}</div>
-                                      <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>{en.email}</div>
-                                    </td>
+                            <div className="class-table" style={{ overflowY: "auto", marginTop: "16px" }}>
+                              <table style={{ background: "transparent" }}>
+                                <thead>
+                                  <tr>
+                                    <th style={{ background: "transparent" }}>Học viên</th>
+                                    <th style={{ background: "transparent" }}>Email</th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </article>
+                                </thead>
+                                <tbody>
+                                  {selectedAttendanceClass.enrollments.filter(en => {
+                                    const record = attendanceRecords.find(r => String(r.enrollment_id) === en.id && r.session_number === selectedAttendanceSession);
+                                    const status = record?.status || "unmarked";
+                                    return status === sessionDetailStatus;
+                                  }).map(en => (
+                                    <tr key={en.id}>
+                                      <td style={{ fontWeight: 600 }}>{en.name}</td>
+                                      <td style={{ color: "var(--text-secondary)", fontSize: "13px" }}>{en.email}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                              {selectedAttendanceClass.enrollments.filter(en => {
+                                const record = attendanceRecords.find(r => String(r.enrollment_id) === en.id && r.session_number === selectedAttendanceSession);
+                                const status = record?.status || "unmarked";
+                                return status === sessionDetailStatus;
+                              }).length === 0 && (
+                                <p style={{ textAlign: "center", padding: "20px", color: "var(--text-secondary)" }}>Không có học viên nào ở trạng thái này.</p>
+                              )}
+                            </div>
+                          </article>
+                        </div>
                       )}
                     </div>
                   )}
