@@ -1,3 +1,17 @@
+export type UserRole = "admin" | "operation" | "assistant" | "teacher" | "student";
+
+export type AdminUser = {
+  id: string;
+  profile_id?: string;
+  email?: string;
+  initial_password?: string;
+  student_id?: string;
+  username: string;
+  role: string;
+  created_at: string;
+  last_sign_in_at?: string;
+};
+
 export type FieldType = "text" | "email" | "number" | "date" | "time" | "datetime-local" | "textarea" | "select";
 
 export type FieldConfig = {
