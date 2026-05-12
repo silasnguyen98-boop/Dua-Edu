@@ -129,6 +129,7 @@ export default function Home() {
   const [classDashboardMode, setClassDashboardMode] = useState<"session" | "overall">("session");
   const [sessionDetailStatus, setSessionDetailStatus] = useState<string | null>(null);
   const [segmentCriteria, setSegmentCriteria] = useState<"attendance" | "assignment" | "project">("attendance");
+  const [selectedStudentForDetail, setSelectedStudentForDetail] = useState<Row | null>(null);
 
   useEffect(() => {
     setIsAssistantView(currentUserRole === "assistant");
@@ -705,7 +706,26 @@ export default function Home() {
       }
     }
 
-    return filtered.slice().sort((a, b) => {
+    return filtered.map(enrollment => {
+      // Certificate logic
+      const attScore = enrollment.attendanceScore != null ? Number(enrollment.attendanceScore) : 0;
+      const assignScore = enrollment.assignmentScore != null ? Number(enrollment.assignmentScore) : 0;
+      const projScore = enrollment.projectScore != null ? Number(enrollment.projectScore) : 0;
+      const finalScore = enrollment.finalScore != null ? Number(enrollment.finalScore) : 0;
+
+      let certificate = "None";
+      
+      // Completion: attendance_score >= 4, has project, final_score >= 4
+      if (attScore >= 4 && projScore > 0 && finalScore >= 4) {
+        certificate = "Completion";
+      } 
+      // Participation: attendance_score >= 2, has at least 1 assignment
+      else if (attScore >= 2 && assignScore > 0) {
+        certificate = "Participation";
+      }
+
+      return { ...enrollment, certificate };
+    }).sort((a, b) => {
       let aVal: any = a[classDetailSortField as keyof typeof a];
       let bVal: any = b[classDetailSortField as keyof typeof b];
 
@@ -2981,6 +3001,7 @@ export default function Home() {
                         <th onClick={() => handleClassDetailSort("assignmentScore")} style={{ cursor: "pointer", borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Điểm bài tập {renderClassDetailSortIcon("assignmentScore")}</th>
                         <th onClick={() => handleClassDetailSort("projectScore")} style={{ cursor: "pointer", borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Điểm đồ án {renderClassDetailSortIcon("projectScore")}</th>
                         <th onClick={() => handleClassDetailSort("finalScore")} style={{ cursor: "pointer", borderLeft: "1px solid var(--border)", paddingLeft: "16px", color: "var(--accent)", fontSize: "15px" }}>Điểm tổng kết {renderClassDetailSortIcon("finalScore")}</th>
+                        <th style={{ textAlign: "center" }}>Chứng chỉ</th>
                         <th style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Trạng thái</th>
                       </tr>
                     </thead>
@@ -2995,6 +3016,15 @@ export default function Home() {
                             <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>{formatValue(enrollment.projectScore)}</td>
                             <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px", color: "var(--accent)" }}>
                               <strong>{formatValue(enrollment.finalScore)}</strong>
+                            </td>
+                            <td style={{ textAlign: "center", borderLeft: "1px solid var(--border)" }}>
+                              {(enrollment as any).certificate === "Completion" ? (
+                                <span style={{ background: "#dcfce7", color: "#166534", padding: "4px 10px", borderRadius: "99px", fontSize: "11px", fontWeight: 700 }}>Hoàn thành</span>
+                              ) : (enrollment as any).certificate === "Participation" ? (
+                                <span style={{ background: "#fef9c3", color: "#854d0e", padding: "4px 10px", borderRadius: "99px", fontSize: "11px", fontWeight: 700 }}>Tham gia</span>
+                              ) : (
+                                <span style={{ color: "#94a3b8", fontSize: "12px" }}>-</span>
+                              )}
                             </td>
                             <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>
                               <select
@@ -3025,7 +3055,7 @@ export default function Home() {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={7}>Không có ghi danh phù hợp với bộ lọc này.</td>
+                          <td colSpan={8}>Không có ghi danh phù hợp với bộ lọc này.</td>
                         </tr>
                       )}
                     </tbody>
@@ -4553,6 +4583,15 @@ export default function Home() {
                         })()}
                         <td>
                           <div className="row-actions">
+                            {activeTable === "students" && (
+                              <button
+                                className="secondary-button compact-button"
+                                onClick={() => setSelectedStudentForDetail(row)}
+                                type="button"
+                              >
+                                Chi tiết
+                              </button>
+                            )}
                             {!(isAssistantUser && activeTable === "students") ? (
                               <>
                                 <button onClick={() => startEdit(row)} type="button">
@@ -4790,6 +4829,85 @@ export default function Home() {
               </div>
               <div className="modal-footer" style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px solid var(--color-border)", display: "flex", justifyContent: "flex-end" }}>
                 <button className="primary-button" onClick={() => startEdit(selectedSessionDetail)}>Chỉnh sửa</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {selectedStudentForDetail && (
+          <div className="modal-overlay" onClick={() => setSelectedStudentForDetail(null)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "700px", padding: "0", borderRadius: "16px", overflow: "hidden" }}>
+              <div style={{ background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", padding: "30px 40px", color: "white" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div>
+                    <p style={{ margin: 0, fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700, opacity: 0.9 }}>Hồ sơ học viên</p>
+                    <h2 style={{ margin: "8px 0 0", fontSize: "28px", fontWeight: 800 }}>{String(selectedStudentForDetail.full_name)}</h2>
+                  </div>
+                  <button 
+                    onClick={() => setSelectedStudentForDetail(null)}
+                    style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "white", width: "32px", height: "32px", borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px" }}
+                  >
+                    &times;
+                  </button>
+                </div>
+              </div>
+              
+              <div style={{ padding: "30px 40px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "30px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                  <div>
+                    <p style={{ margin: "0 0 6px", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", color: "var(--text-secondary)" }}>Thông tin liên hệ</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <span style={{ fontSize: "16px" }}>📧</span>
+                        <span style={{ fontSize: "14px", fontWeight: 500 }}>{String(selectedStudentForDetail.email || "-")}</span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <span style={{ fontSize: "16px" }}>📞</span>
+                        <span style={{ fontSize: "14px", fontWeight: 500 }}>{String(selectedStudentForDetail.phone || "-")}</span>
+                      </div>
+                      {selectedStudentForDetail.note && (
+                        <div style={{ marginTop: "10px", padding: "12px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                          <p style={{ margin: "0 0 4px", fontSize: "10px", fontWeight: 700, color: "#64748b" }}>GHI CHÚ</p>
+                          <p style={{ margin: 0, fontSize: "13px", color: "#334155", fontStyle: "italic" }}>{String(selectedStudentForDetail.note)}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <p style={{ margin: "0 0 10px", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", color: "var(--text-secondary)" }}>Lớp học đã ghi danh</p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {(() => {
+                      const studentId = String(selectedStudentForDetail.id);
+                      const enrollmentRows = data.enrollments.filter(e => String(e.student_id) === studentId);
+                      
+                      if (enrollmentRows.length === 0) return <p style={{ fontSize: "13px", color: "var(--muted)" }}>Chưa ghi danh lớp nào.</p>;
+                      
+                      return enrollmentRows.map(enrollment => {
+                        const classRow = data.classes.find(c => String(c.id) === String(enrollment.class_id));
+                        return (
+                          <div key={String(enrollment.id)} style={{ padding: "12px", borderRadius: "10px", background: "white", border: "1px solid var(--border)", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "4px" }}>
+                              <strong style={{ fontSize: "14px", color: "var(--foreground)" }}>{String(classRow?.class_name || "Lớp đã xóa")}</strong>
+                              <span style={{ fontSize: "10px", fontWeight: 700, color: "#10b981", background: "#ecfdf5", padding: "2px 6px", borderRadius: "4px" }}>{String(classRow?.class_code || "-")}</span>
+                            </div>
+                            <div style={{ display: "flex", gap: "10px", fontSize: "11px", color: "var(--text-secondary)" }}>
+                              <span>CC: <strong>{enrollment.attendance_score ?? "-"}</strong></span>
+                              <span>BT: <strong>{enrollment.assignment_score ?? "-"}</strong></span>
+                              <span>ĐA: <strong>{enrollment.project_score ?? "-"}</strong></span>
+                              <span style={{ color: "var(--accent)", fontWeight: 700 }}>Final: {enrollment.final_score ?? "-"}</span>
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              </div>
+              
+              <div style={{ padding: "20px 40px", background: "#f8fafc", borderTop: "1px solid #e2e8f0", display: "flex", justifyContent: "flex-end" }}>
+                <button className="primary-button" onClick={() => startEdit(selectedStudentForDetail)}>Chỉnh sửa hồ sơ</button>
               </div>
             </div>
           </div>
