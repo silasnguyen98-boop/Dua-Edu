@@ -3383,16 +3383,20 @@ export default function Home() {
                       : u.role === "student"
                   );
 
-                  return filteredAccounts.length === 0 ? (
-                  <div style={{ padding: "48px 24px", textAlign: "center", color: "var(--text-secondary)" }}>
-                    {isLoading ? (
-                      <span>Đang tải...</span>
-                    ) : (
-                      <span>Chưa có người dùng nào. Thêm tài khoản đầu tiên bên trên!</span>
-                    )}
-                  </div>
-                ) : (
-                  <div style={{ display: "grid" }}>
+                  if (filteredAccounts.length === 0) {
+                    return (
+                      <div style={{ padding: "48px 24px", textAlign: "center", color: "var(--text-secondary)" }}>
+                        {isLoading ? (
+                          <span>Đang tải...</span>
+                        ) : (
+                          <span>Chưa có người dùng nào. Thêm tài khoản đầu tiên bên trên!</span>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div style={{ display: "grid" }}>
                     {filteredAccounts.map((user, idx) => {
                       const roleInfo = roleMap[user.role] || { label: user.role || "—", color: "#64748b", bg: "#f8fafc" };
                       const initials = (user.username || user.email || "?").slice(0, 2).toUpperCase();
@@ -3461,8 +3465,9 @@ export default function Home() {
                         </div>
                       );
                     })}
-                  </div>
-                )}
+                    </div>
+                  );
+                })()}
               </div>
 
             </div>
