@@ -3122,33 +3122,11 @@ export default function Home() {
                           <tr key={enrollment.id}>
                             <td>{enrollment.name}</td>
                             <td>{enrollment.email}</td>
-                            <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>
-                              <input 
-                                type="number" step="0.1" defaultValue={enrollment.attendanceScore ?? ""}
-                                onBlur={(e) => void updateEnrollmentProjectField(enrollment.id, "attendance_score", Number(e.target.value))}
-                                style={{ width: "50px", border: "1px solid transparent", background: "transparent", textAlign: "center" }}
-                              />
-                            </td>
-                            <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>
-                              <input 
-                                type="number" step="0.1" defaultValue={enrollment.assignmentScore ?? ""}
-                                onBlur={(e) => void updateEnrollmentProjectField(enrollment.id, "assignment_score", Number(e.target.value))}
-                                style={{ width: "50px", border: "1px solid transparent", background: "transparent", textAlign: "center" }}
-                              />
-                            </td>
-                            <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>
-                              <input 
-                                type="number" step="0.1" defaultValue={enrollment.projectScore ?? ""}
-                                onBlur={(e) => void updateEnrollmentProjectField(enrollment.id, "project_score", Number(e.target.value))}
-                                style={{ width: "50px", border: "1px solid transparent", background: "transparent", textAlign: "center" }}
-                              />
-                            </td>
+                            <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>{formatValue(enrollment.attendanceScore)}</td>
+                            <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>{formatValue(enrollment.assignmentScore)}</td>
+                            <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>{formatValue(enrollment.projectScore)}</td>
                             <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px", color: "var(--accent)" }}>
-                              <input 
-                                type="number" step="0.1" defaultValue={enrollment.finalScore ?? ""}
-                                onBlur={(e) => void updateEnrollmentProjectField(enrollment.id, "final_score", Number(e.target.value))}
-                                style={{ width: "50px", border: "1px solid transparent", background: "transparent", textAlign: "center", fontWeight: 700, color: "var(--accent)" }}
-                              />
+                              <strong>{formatValue(enrollment.finalScore)}</strong>
                             </td>
                             <td style={{ textAlign: "center", borderLeft: "1px solid var(--border)" }}>
                               {(enrollment as any).certificate === "Completion" ? (
