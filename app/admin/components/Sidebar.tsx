@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { logoUrl } from "../constants";
 import type { SidebarGroup, ViewName, TableConfig, DataState } from "../types";
 
 interface SidebarProps {
@@ -36,8 +37,7 @@ export function Sidebar({
     <aside className="sidebar">
       <div className="sidebar-logo">
         <div style={{ display: "flex", alignItems: "center", gap: "10px", padding: "0 10px" }}>
-          <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 800 }}>D</div>
-          <span style={{ fontSize: "18px", fontWeight: 800, color: "var(--foreground)", letterSpacing: "-0.02em" }}>Dua Edu</span>
+          <img src={logoUrl} alt="Dua Edu Logo" style={{ width: "120px", height: "auto", objectFit: "contain" }} />
         </div>
       </div>
 
