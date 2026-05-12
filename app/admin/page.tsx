@@ -160,6 +160,9 @@ export default function Home() {
               onRefresh={admin.loadAllTables}
               attendanceSessionCount={admin.attendanceSessionCount}
               attendanceError={admin.attendanceError}
+              attendanceMode={admin.attendanceMode}
+              setAttendanceMode={admin.setAttendanceMode}
+              attendanceRecords={admin.attendanceRecords}
             />
           )}
 
