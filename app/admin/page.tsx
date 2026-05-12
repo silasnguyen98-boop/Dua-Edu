@@ -3175,28 +3175,37 @@ export default function Home() {
                         </div>
                         <div style={{ display: "flex", alignItems: "flex-end", gap: "12px", height: "100px", marginTop: "16px", padding: "0 10px" }}>
                           {(() => {
-                            const recent = classDashboardMetrics.sessionRows.filter(r => r.isMarked).slice(-3);
-                            return recent.map((r, i) => (
-                              <div key={r.sessionNumber} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
-                                <div style={{ 
-                                  width: "100%", 
-                                  background: r.sessionNumber === selectedAttendanceSession ? "#6366f1" : "#e2e8f0",
-                                  height: `${r.attendanceRate}%`,
-                                  minHeight: "4px",
-                                  borderRadius: "4px 4px 0 0",
-                                  position: "relative",
-                                  transition: "all 0.3s ease"
-                                }}>
-                                  <span style={{ 
-                                    position: "absolute", top: "-20px", left: "50%", transform: "translateX(-50%)",
-                                    fontSize: "10px", fontWeight: 700, color: r.sessionNumber === selectedAttendanceSession ? "#6366f1" : "var(--text-secondary)"
+                            const current = selectedAttendanceSession;
+                            const range = [current - 1, current, current + 1].filter(n => 
+                              n >= 1 && n <= attendanceSessionCount
+                            );
+                            
+                            return range.map((n) => {
+                              const r = classDashboardMetrics.sessionRows.find(sr => sr.sessionNumber === n);
+                              if (!r) return null;
+                              
+                              return (
+                                <div key={n} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                                  <div style={{ 
+                                    width: "100%", 
+                                    background: n === current ? "#6366f1" : "#e2e8f0",
+                                    height: `${r.attendanceRate}%`,
+                                    minHeight: "4px",
+                                    borderRadius: "4px 4px 0 0",
+                                    position: "relative",
+                                    transition: "all 0.3s ease"
                                   }}>
-                                    {r.attendanceRate}%
-                                  </span>
+                                    <span style={{ 
+                                      position: "absolute", top: "-20px", left: "50%", transform: "translateX(-50%)",
+                                      fontSize: "10px", fontWeight: 700, color: n === current ? "#6366f1" : "var(--text-secondary)"
+                                    }}>
+                                      {r.attendanceRate}%
+                                    </span>
+                                  </div>
+                                  <span style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-secondary)" }}>B.{n}</span>
                                 </div>
-                                <span style={{ fontSize: "10px", fontWeight: 600, color: "var(--text-secondary)" }}>B.{r.sessionNumber}</span>
-                              </div>
-                            ));
+                              );
+                            });
                           })()}
                         </div>
                       </article>
