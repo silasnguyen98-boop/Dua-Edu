@@ -30,13 +30,16 @@ export function BarChart({ emptyText, items }: { emptyText: string; items: Chart
   );
 }
 
-export function PieChart({ emptyText, items }: { emptyText: string; items: ChartItem[] }) {
+export function PieChart({ emptyText, items, centerLabel, centerValue }: { emptyText: string; items: ChartItem[]; centerLabel?: string; centerValue?: string | number }) {
   let cursor = 0;
   const total = items.reduce((sum, item) => sum + item.value, 0);
-  const segments = items.map((item, index) => {
+  
+  // Filter out zero-value items for segments to avoid potential gradient artifacts, but keep for legend
+  const activeItems = items.filter(item => item.value > 0);
+  const segments = activeItems.map((item, index) => {
     const start = cursor;
     cursor += total ? (item.value / total) * 100 : 0;
-    const end = index === items.length - 1 ? 100 : cursor;
+    const end = index === activeItems.length - 1 ? 100 : cursor;
     return `${item.color} ${start}% ${end}%`;
   });
 
@@ -50,16 +53,19 @@ export function PieChart({ emptyText, items }: { emptyText: string; items: Chart
         aria-label="Biểu đồ tròn"
         className="pie-chart"
         role="img"
-        style={{ background: `conic-gradient(${segments.join(", ")})` }}
+        style={{ background: total > 0 ? `conic-gradient(${segments.join(", ")})` : "#f1f5f9" }}
       >
-        <span>{items.length}</span>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", lineHeight: 1 }}>
+          <strong style={{ fontSize: "24px" }}>{centerValue}</strong>
+          {centerLabel && <small style={{ fontSize: "10px", color: "var(--text-secondary)", marginTop: "4px" }}>{centerLabel}</small>}
+        </div>
       </div>
       <div className="pie-legend">
         {items.map((item) => (
           <div className="legend-row" key={item.id}>
             <span className="legend-dot" style={{ background: item.color }} />
-            <span>{item.label}</span>
-            <strong>{item.percent}%</strong>
+            <span style={{ fontSize: "12px" }}>{item.label}</span>
+            <strong style={{ fontSize: "12px" }}>{item.percent}%</strong>
           </div>
         ))}
       </div>

@@ -3217,13 +3217,18 @@ export default function Home() {
                             <h3>Cơ cấu buổi {selectedAttendanceSession}</h3>
                           </div>
                         </div>
-                        <PieChart emptyText="Chưa có dữ liệu" items={[
-                          { id: "present", label: "Có mặt", value: classDashboardMetrics.selectedSession.present, percent: Math.round((classDashboardMetrics.selectedSession.present / (classDashboardMetrics.totalStudents || 1)) * 100), color: "#0f766e" },
-                          { id: "late", label: "Đi muộn", value: classDashboardMetrics.selectedSession.late, percent: Math.round((classDashboardMetrics.selectedSession.late / (classDashboardMetrics.totalStudents || 1)) * 100), color: "#b45309" },
-                          { id: "absent", label: "Vắng", value: classDashboardMetrics.selectedSession.absent, percent: Math.round((classDashboardMetrics.selectedSession.absent / (classDashboardMetrics.totalStudents || 1)) * 100), color: "#b91c1c" },
-                          { id: "excused", label: "Có phép", value: classDashboardMetrics.selectedSession.excused, percent: Math.round((classDashboardMetrics.selectedSession.excused / (classDashboardMetrics.totalStudents || 1)) * 100), color: "#0369a1" },
-                          { id: "unmarked", label: "Chưa điểm danh", value: classDashboardMetrics.selectedSession.unmarked, percent: Math.round((classDashboardMetrics.selectedSession.unmarked / (classDashboardMetrics.totalStudents || 1)) * 100), color: "#64748b" },
-                        ].filter(item => item.value > 0)} />
+                        <PieChart 
+                          emptyText="Chưa có dữ liệu" 
+                          centerValue={selectedAttendanceSession}
+                          centerLabel="Buổi"
+                          items={[
+                            { id: "present", label: "Có mặt", value: classDashboardMetrics.selectedSession.present, percent: Math.round((classDashboardMetrics.selectedSession.present / (classDashboardMetrics.totalStudents || 1)) * 100), color: "#0f766e" },
+                            { id: "late", label: "Đi muộn", value: classDashboardMetrics.selectedSession.late, percent: Math.round((classDashboardMetrics.selectedSession.late / (classDashboardMetrics.totalStudents || 1)) * 100), color: "#b45309" },
+                            { id: "absent", label: "Vắng", value: classDashboardMetrics.selectedSession.absent, percent: Math.round((classDashboardMetrics.selectedSession.absent / (classDashboardMetrics.totalStudents || 1)) * 100), color: "#b91c1c" },
+                            { id: "excused", label: "Có phép", value: classDashboardMetrics.selectedSession.excused, percent: Math.round((classDashboardMetrics.selectedSession.excused / (classDashboardMetrics.totalStudents || 1)) * 100), color: "#0369a1" },
+                            { id: "unmarked", label: "Chưa điểm danh", value: classDashboardMetrics.selectedSession.unmarked, percent: Math.round((classDashboardMetrics.selectedSession.unmarked / (classDashboardMetrics.totalStudents || 1)) * 100), color: "#64748b" },
+                          ]} 
+                        />
                       </article>
 
                       {classDashboardMetrics.chronicAbsenteesInSession.length > 0 && (
