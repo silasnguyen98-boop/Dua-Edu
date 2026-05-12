@@ -3544,7 +3544,7 @@ export default function Home() {
                   </div>
                   <div>
                     <p style={{ margin: 0, fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#6366f1" }}>Tài khoản hệ thống</p>
-                    <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "var(--foreground)" }}>Thêm người dùng mới</h3>
+                    <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "var(--foreground)" }}>{adminForm.id ? "Chỉnh sửa người dùng" : "Thêm người dùng mới"}</h3>
                   </div>
                 </div>
 
@@ -3554,8 +3554,22 @@ export default function Home() {
                     setIsSaving(true); setError(""); setMessage("");
                     const { data: { session } } = await supabase.auth.getSession();
                     if (!session) return;
-                    await createUser(session.access_token, adminForm.email, adminForm.password, adminForm.username, adminForm.role);
-                    setMessage(`✓ Tạo tài khoản "${adminForm.username}" (${adminForm.role}) thành công! Mật khẩu: ${adminForm.password}`);
+                    
+                    if (adminForm.id) {
+                      // Update existing user
+                      await updateUser(session.access_token, adminForm.id, {
+                        email: adminForm.email,
+                        username: adminForm.username,
+                        role: adminForm.role,
+                        password: adminForm.password || undefined
+                      });
+                      setMessage(`✓ Cập nhật tài khoản "${adminForm.username}" thành công!`);
+                    } else {
+                      // Create new user
+                      await createUser(session.access_token, adminForm.email, adminForm.password, adminForm.username, adminForm.role);
+                      setMessage(`✓ Tạo tài khoản "${adminForm.username}" (${adminForm.role}) thành công! Mật khẩu: ${adminForm.password}`);
+                    }
+                    
                     setAdminForm({ email: "", password: "", username: "", role: "admin", id: "" });
                     await loadAdmins();
                   } catch(err: any) {
@@ -3613,7 +3627,7 @@ export default function Home() {
                     <div style={{ display: "flex", gap: "10px" }}>
                       <div style={{ position: "relative", flex: 1 }}>
                         <input
-                          type="text" required minLength={6} placeholder="Ít nhất 6 ký tự"
+                          type="text" required={!adminForm.id} minLength={6} placeholder={adminForm.id ? "Để trống nếu không đổi mật khẩu" : "Ít nhất 6 ký tự"}
                           value={adminForm.password}
                           onChange={(e) => setAdminForm(prev => ({...prev, password: e.target.value}))}
                           style={{ width: "100%", padding: "10px 14px", borderRadius: "10px", border: "1px solid var(--border)", background: "var(--background)", fontSize: "14px", outline: "none", boxSizing: "border-box", fontFamily: adminForm.password ? "monospace" : "inherit", color: "var(--foreground)" }}
@@ -3630,12 +3644,23 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <button
-                    type="submit" disabled={isSaving}
-                    style={{ padding: "11px 28px", borderRadius: "10px", border: "none", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff", fontSize: "14px", fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", opacity: isSaving ? 0.7 : 1, transition: "opacity 0.2s" }}
-                  >
-                    {isSaving ? "Đang tạo..." : "Tạo tài khoản →"}
-                  </button>
+                  <div style={{ display: "flex", gap: "12px" }}>
+                    <button
+                      type="submit" disabled={isSaving}
+                      style={{ padding: "11px 28px", borderRadius: "10px", border: "none", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff", fontSize: "14px", fontWeight: 600, cursor: isSaving ? "not-allowed" : "pointer", opacity: isSaving ? 0.7 : 1, transition: "opacity 0.2s" }}
+                    >
+                      {isSaving ? "Đang xử lý..." : adminForm.id ? "Cập nhật tài khoản →" : "Tạo tài khoản →"}
+                    </button>
+                    {adminForm.id && (
+                      <button
+                        type="button"
+                        onClick={() => setAdminForm({ email: "", password: "", username: "", role: "admin", id: "" })}
+                        style={{ padding: "11px 28px", borderRadius: "10px", border: "1px solid var(--border)", background: "transparent", color: "var(--text-secondary)", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
+                      >
+                        Huỷ chỉnh sửa
+                      </button>
+                    )}
+                  </div>
                 </form>
               </div>
 
@@ -3701,23 +3726,37 @@ export default function Home() {
                             </span>
                           </div>
 
-                          {/* Delete */}
-                          <button
-                            style={{ padding: "7px 14px", borderRadius: "8px", border: "1px solid #fecaca", background: "transparent", fontSize: "12px", fontWeight: 600, color: "#dc2626", cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s", flexShrink: 0 }}
-                            onClick={async () => {
-                              if (confirm(`Xoá tài khoản "${user.username || user.email}" vĩnh viễn?`)) {
-                                try {
-                                  const { data: { session } } = await supabase.auth.getSession();
-                                  if (!session) return;
-                                  await deleteUser(session.access_token, user.id);
-                                  await loadAdmins();
-                                  setMessage("Đã xoá tài khoản thành công.");
-                                } catch(err: any) { setError(err.message); }
-                              }
-                            }}
-                          >
-                            Xoá
-                          </button>
+                           {/* Actions */}
+                          <div style={{ display: "flex", gap: "8px" }}>
+                            <button
+                              style={{ padding: "7px 14px", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--surface-soft)", fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", cursor: "pointer", whiteSpace: "nowrap" }}
+                              onClick={() => setAdminForm({
+                                id: user.id,
+                                email: user.email || "",
+                                username: user.username || "",
+                                role: user.role as UserRole,
+                                password: ""
+                              })}
+                            >
+                              Sửa
+                            </button>
+                            <button
+                              style={{ padding: "7px 14px", borderRadius: "8px", border: "1px solid #fecaca", background: "transparent", fontSize: "12px", fontWeight: 600, color: "#dc2626", cursor: "pointer", whiteSpace: "nowrap" }}
+                              onClick={async () => {
+                                if (confirm(`Xoá tài khoản "${user.username || user.email}" vĩnh viễn?`)) {
+                                  try {
+                                    const { data: { session } } = await supabase.auth.getSession();
+                                    if (!session) return;
+                                    await deleteUser(session.access_token, user.id);
+                                    await loadAdmins();
+                                    setMessage("Đã xoá tài khoản thành công.");
+                                  } catch(err: any) { setError(err.message); }
+                                }
+                              }}
+                            >
+                              Xoá
+                            </button>
+                          </div>
                         </div>
                       );
                     })}
