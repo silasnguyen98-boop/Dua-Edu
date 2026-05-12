@@ -3917,7 +3917,7 @@ export default function Home() {
         )}
 
         {isDataView && (
-        <section className="management-grid">
+        <section className={`management-grid ${isAssistantUser && activeTable === "students" ? "full-width" : ""}`}>
           {!(isAssistantUser && activeTable === "students") && (
           <form className="editor" onSubmit={(event) => void saveRow(event)}>
             <div className="section-heading">
