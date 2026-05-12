@@ -47,9 +47,9 @@ export function ScoreView({
             </label>
             {type === "assignment" && (
               <label style={{ width: "180px" }}>
-                <span>Buổi bài tập</span>
+                <span>Số bài tập</span>
                 <select onChange={(e) => setSelectedSession(Number(e.target.value))} value={selectedSession}>
-                  {Array.from({ length: sessionCount }, (_, i) => i + 1).map(n => <option key={n} value={n}>Buổi {n}</option>)}
+                  {Array.from({ length: sessionCount }, (_, i) => i + 1).map(n => <option key={n} value={n}>Bài tập {n}</option>)}
                 </select>
               </label>
             )}

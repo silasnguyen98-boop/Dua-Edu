@@ -309,8 +309,10 @@ export function useAdmin(): UseAdminReturn {
 
   const attendanceSessionCount = useMemo(() => {
     const totalSessions = Number(selectedAttendanceClass?.totalSessions ?? 0);
-    return Number.isFinite(totalSessions) && totalSessions > 0 ? Math.floor(totalSessions) : 1;
-  }, [selectedAttendanceClass]);
+    const totalAssignments = Number(selectedAttendanceClass?.totalAssignments ?? 0);
+    const count = activeView === "assignmentScore" ? totalAssignments : totalSessions;
+    return Number.isFinite(count) && count > 0 ? Math.floor(count) : 1;
+  }, [selectedAttendanceClass, activeView]);
 
   const classDashboardMetrics = useDashboardMetrics({
     selectedAttendanceClass,
