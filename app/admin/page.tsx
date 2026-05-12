@@ -2930,34 +2930,57 @@ export default function Home() {
         {isClassDashboardView && (
           <section className="analytics-grid" aria-label="Dashboard lớp học">
             <article className="analytics-card detail-card wide" style={{ paddingTop: "24px" }}>
-              <div className="attendance-toolbar" style={{ alignItems: "flex-end", marginBottom: "22px", gap: "12px" }}>
-                <label style={{ flex: "1 1 300px" }}>
-                  <span>Lớp học</span>
-                  <select
-                    onChange={(event) => {
-                      setSelectedAttendanceClassId(event.target.value || null);
-                      setSelectedAttendanceSession(1);
-                    }}
-                    value={selectedAttendanceClassId ?? ""}
-                  >
-                    <option value="">Chọn lớp học</option>
-                    {visibleClassItems.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.classCode} - {item.className}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+              <div className="attendance-toolbar" style={{ alignItems: "flex-end", marginBottom: "24px", gap: "16px", display: "flex", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", gap: "16px", flex: 1, alignItems: "flex-end" }}>
+                  <label style={{ flex: "1 1 300px", maxWidth: "400px" }}>
+                    <span>Lớp học</span>
+                    <select
+                      onChange={(event) => {
+                        setSelectedAttendanceClassId(event.target.value || null);
+                        setSelectedAttendanceSession(1);
+                      }}
+                      value={selectedAttendanceClassId ?? ""}
+                    >
+                      <option value="">Chọn lớp học</option>
+                      {visibleClassItems.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.classCode} - {item.className}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-                <div style={{ display: "flex", gap: "8px", background: "var(--surface-soft)", padding: "4px", borderRadius: "10px", border: "1px solid var(--border)" }}>
+                  {classDashboardMode === "session" && (
+                    <label style={{ width: "180px" }}>
+                      <span>Buổi học</span>
+                      <select
+                        onChange={(event) => setSelectedAttendanceSession(Number(event.target.value))}
+                        value={selectedAttendanceSession}
+                      >
+                        {classDashboardMetrics.sessionRows.length > 0 ? (
+                          classDashboardMetrics.sessionRows.map((row) => (
+                            <option key={row.sessionNumber} value={row.sessionNumber}>
+                              Buổi {row.sessionNumber}
+                            </option>
+                          ))
+                        ) : (
+                          <option value="">Chưa có dữ liệu</option>
+                        )}
+                      </select>
+                    </label>
+                  )}
+                </div>
+
+                <div style={{ display: "flex", gap: "4px", background: "var(--surface-soft)", padding: "5px", borderRadius: "12px", border: "1px solid var(--border)", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}>
                   <button
                     onClick={() => setClassDashboardMode("session")}
                     style={{
-                      padding: "6px 16px", borderRadius: "8px", border: "none", fontSize: "13px", fontWeight: 600,
+                      padding: "10px 24px", borderRadius: "9px", border: "none", fontSize: "14px", fontWeight: 700,
                       background: classDashboardMode === "session" ? "white" : "transparent",
-                      color: classDashboardMode === "session" ? "var(--accent-dark)" : "var(--text-secondary)",
-                      boxShadow: classDashboardMode === "session" ? "var(--shadow-sm)" : "none",
-                      cursor: "pointer"
+                      color: classDashboardMode === "session" ? "#4f46e5" : "var(--text-secondary)",
+                      boxShadow: classDashboardMode === "session" ? "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)" : "none",
+                      cursor: "pointer",
+                      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
                     }}
                   >
                     Theo buổi
@@ -2965,32 +2988,17 @@ export default function Home() {
                   <button
                     onClick={() => setClassDashboardMode("overall")}
                     style={{
-                      padding: "6px 16px", borderRadius: "8px", border: "none", fontSize: "13px", fontWeight: 600,
+                      padding: "10px 24px", borderRadius: "9px", border: "none", fontSize: "14px", fontWeight: 700,
                       background: classDashboardMode === "overall" ? "white" : "transparent",
-                      color: classDashboardMode === "overall" ? "var(--accent-dark)" : "var(--text-secondary)",
-                      boxShadow: classDashboardMode === "overall" ? "var(--shadow-sm)" : "none",
-                      cursor: "pointer"
+                      color: classDashboardMode === "overall" ? "#4f46e5" : "var(--text-secondary)",
+                      boxShadow: classDashboardMode === "overall" ? "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)" : "none",
+                      cursor: "pointer",
+                      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
                     }}
                   >
                     Toàn khoá
                   </button>
                 </div>
-
-                {classDashboardMode === "session" && (
-                  <label style={{ flex: "0 1 200px" }}>
-                    <span>Buổi học</span>
-                    <select
-                      onChange={(event) => setSelectedAttendanceSession(Number(event.target.value))}
-                      value={selectedAttendanceSession}
-                    >
-                      {Array.from({ length: attendanceSessionCount }, (_, index) => index + 1).map((sessionNumber) => (
-                        <option key={sessionNumber} value={sessionNumber}>
-                          Buổi {sessionNumber}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
               </div>
 
               {attendanceError && <div className="notice error">{attendanceError}</div>}
