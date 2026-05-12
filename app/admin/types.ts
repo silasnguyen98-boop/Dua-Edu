@@ -240,5 +240,5 @@ export interface UseAdminReturn {
   tableConfigs: TableConfig[];
   certificateStatusOptions: any[];
   attendanceRecordsByEnrollment: Map<string, AttendanceRecord>;
-  assignmentRecordsByEnrollment: Map<string, AssignmentRecord>;
+  assignmentRecordsByEnrollment: Map<string, Record<number, AssignmentRecord>>;
 }
