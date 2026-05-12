@@ -5057,6 +5057,7 @@ export default function Home() {
               </div>
             </div>
           </div>
+        )}
         {showCertGuide && (
           <div className="modal-overlay" onClick={() => setShowCertGuide(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "550px", padding: "0", borderRadius: "20px", overflow: "hidden" }}>
