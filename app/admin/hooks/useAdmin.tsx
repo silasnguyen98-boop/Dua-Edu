@@ -595,13 +595,13 @@ export function useAdmin(): UseAdminReturn {
 
         const { data: rows, error: tableError } = await supabase
           .from(config.name)
-          .select(selectQuery)
+          .select(selectQuery as any)
           .order("created_at", { ascending: false });
 
         return {
           error: tableError ? `${config.label}: ${tableError.message}` : "",
           name: config.name,
-          rows: (rows ?? []) as Row[],
+          rows: (rows as any ?? []) as Row[],
         };
       }),
     );
