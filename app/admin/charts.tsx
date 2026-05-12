@@ -88,6 +88,10 @@ export function LineChart({ items }: { items: { label: string; value: number }[]
 
   const d = `M ${points.map(p => `${p.x},${p.y}`).join(" L ")}`;
 
+  const values = items.map(item => item.value);
+  const maxVal = Math.max(...values);
+  const minVal = Math.min(...values);
+
   return (
     <div className="line-chart-container" style={{ width: "100%", overflowX: "auto", padding: "10px 0" }}>
       <svg height={height} style={{ overflow: "visible" }} viewBox={`0 0 ${width} ${height}`} width="100%">
@@ -104,13 +108,32 @@ export function LineChart({ items }: { items: { label: string; value: number }[]
         {/* Line */}
         <path d={d} fill="none" stroke="#6366f1" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
         {/* Points */}
-        {points.map((p, i) => (
-          <g key={i}>
-            <circle cx={p.x} cy={p.y} fill="white" r="4" stroke="#6366f1" strokeWidth="2" />
-            <text fill="#64748b" fontSize="10" fontWeight="600" textAnchor="middle" x={p.x} y={height}>{items[i].label}</text>
-          </g>
-        ))}
+        {points.map((p, i) => {
+          const isMax = items[i].value === maxVal && maxVal !== minVal;
+          const isMin = items[i].value === minVal && maxVal !== minVal;
+          const pointColor = isMax ? "#10b981" : isMin ? "#ef4444" : "#6366f1";
+          
+          return (
+            <g key={i}>
+              <circle cx={p.x} cy={p.y} fill="white" r="5" stroke={pointColor} strokeWidth="3" />
+              { (isMax || isMin) && (
+                <text fill={pointColor} fontSize="10" fontWeight="800" textAnchor="middle" x={p.x} y={p.y - 10}>
+                  {items[i].value}%
+                </text>
+              )}
+              <text fill="#64748b" fontSize="10" fontWeight="600" textAnchor="middle" x={p.x} y={height}>{items[i].label}</text>
+            </g>
+          );
+        })}
       </svg>
+      <div style={{ display: "flex", gap: "16px", marginTop: "12px", justifyContent: "center", fontSize: "11px", fontWeight: 600 }}>
+        <span style={{ display: "flex", alignItems: "center", gap: "4px", color: "#10b981" }}>
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#10b981" }} /> Cao nhất
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: "4px", color: "#ef4444" }}>
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ef4444" }} /> Thấp nhất
+        </span>
+      </div>
     </div>
   );
 }
