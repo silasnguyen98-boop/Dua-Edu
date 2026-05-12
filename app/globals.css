@@ -214,7 +214,77 @@ p { color: var(--muted); line-height: 1.6; }
 }
 
 .topbar-actions {
-  display: flex; gap: 12px; flex-wrap: wrap;
+  display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap;
+}
+
+.admin-account-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 230px;
+  max-width: 360px;
+  padding: 7px 8px;
+  border: 1px solid #b7d2c9;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 35, 29, 0.08);
+}
+
+.admin-account-avatar {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #059669;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.admin-account-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: grid;
+  gap: 2px;
+}
+
+.admin-account-copy strong {
+  overflow: hidden;
+  color: #10231d;
+  font-size: 13px;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-account-copy span {
+  overflow: hidden;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-account-logout {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: #fff1f2;
+  color: #e11d48;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.admin-account-logout:hover {
+  background: #ffe4e6;
+  transform: translateY(-1px);
 }
 
 /* Cards */

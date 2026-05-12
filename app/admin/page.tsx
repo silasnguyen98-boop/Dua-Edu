@@ -60,6 +60,13 @@ import type {
   ViewName,
 } from "@/app/admin/types";
 
+const roleLabels: Record<string, string> = {
+  admin: "Admin",
+  operation: "Operation",
+  assistant: "Assistant",
+  teacher: "Teacher",
+};
+
 export default function Home() {
   const [activeView, setActiveView] = useState<ViewName>(getInitialView);
   const [openSidebarGroup, setOpenSidebarGroup] = useState<SidebarGroup>(() =>
@@ -114,6 +121,7 @@ export default function Home() {
   const [studentAccountForm, setStudentAccountForm] = useState({ email: "", full_name: "" });
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [currentAccount, setCurrentAccount] = useState<{ email: string; name: string; role: string } | null>(null);
   const [isAssistantView, setIsAssistantView] = useState(false);
   const [isAdminView, setIsAdminView] = useState(false);
   const [accountTab, setAccountTab] = useState<"staff" | "student">("staff");
@@ -604,17 +612,27 @@ export default function Home() {
       if (!session) {
         setIsAuthenticated(false);
         setCurrentUserRole(null);
+        setCurrentAccount(null);
         if (event === "SIGNED_OUT" || event === "INITIAL_SESSION") {
           router.push("/login");
         }
         return;
       }
 
-      const role = session.user.user_metadata?.role?.trim() || "student";
+      const metadata = session.user.user_metadata ?? {};
+      const appMetadata = session.user.app_metadata ?? {};
+      const role = String(metadata.role || appMetadata.role || "student").trim();
       if (role === "student") {
         router.push("/user");
         return;
       }
+
+      const email = session.user.email ?? "";
+      setCurrentAccount({
+        email,
+        name: String(metadata.username || metadata.full_name || metadata.name || email.split("@")[0] || "Người dùng"),
+        role,
+      });
       setCurrentUserRole(role);
 
       if (role === "assistant") {
@@ -2083,12 +2101,6 @@ export default function Home() {
           <img alt="Dua-Edu" className="brand-logo" src={logoUrl} />
           <div>
             <h1>Quản trị đào tạo</h1>
-            <button
-              onClick={() => supabase.auth.signOut()}
-              style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--text-secondary)", fontSize: "12px", padding: 0, marginTop: "4px" }}
-            >
-              Đăng xuất
-            </button>
           </div>
         </div>
 
@@ -2341,6 +2353,44 @@ export default function Home() {
                 <button className="secondary-button" onClick={exportData} type="button">
                   Export data
                 </button>
+            )}
+            {currentAccount && (
+              <div className="admin-account-card" aria-label="Thông tin đăng nhập">
+                <div className="admin-account-avatar">
+                  {(currentAccount.name || currentAccount.email || "?").slice(0, 1).toUpperCase()}
+                </div>
+                <div className="admin-account-copy">
+                  <strong>{currentAccount.name}</strong>
+                  <span>
+                    {roleLabels[currentAccount.role] || currentAccount.role}
+                    {currentAccount.email ? ` · ${currentAccount.email}` : ""}
+                  </span>
+                </div>
+                <button
+                  aria-label="Đăng xuất"
+                  className="admin-account-logout"
+                  onClick={() => void supabase.auth.signOut()}
+                  title="Đăng xuất"
+                  type="button"
+                >
+                  <svg aria-hidden="true" fill="none" height="18" viewBox="0 0 24 24" width="18">
+                    <path
+                      d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                    />
+                    <path
+                      d="m16 17 5-5-5-5M21 12H9"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                    />
+                  </svg>
+                </button>
+              </div>
             )}
           </div>
         </header>
