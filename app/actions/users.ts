@@ -110,9 +110,12 @@ const ensurePublicUserProfile = async (adminClient: ReturnType<typeof getSupabas
     if (Object.keys(updates).length > 0) {
       const { error: updateError } = await adminClient
         .from("users")
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update(updates)
         .eq("id", existing.id);
-      if (updateError) throw new Error(updateError.message);
+      if (updateError) {
+        console.error("Lỗi cập nhật bảng users:", updateError);
+        throw new Error(`Không thể cập nhật bảng users: ${updateError.message}`);
+      }
     }
 
     return existing.id as string;
