@@ -10,8 +10,17 @@ async function isStudentSession(session: Session | null) {
   if (!session) return false;
 
   const metadata = session.user.user_metadata ?? {};
-  const role = String(metadata.role || "").trim().toLowerCase();
+  const appMetadata = session.user.app_metadata ?? {};
+  const role = String(metadata.role || appMetadata.role || "").trim().toLowerCase();
   if (role === "student" || metadata.student_id) {
+    return true;
+  }
+
+  if (["admin", "operation", "assistant", "teacher"].includes(role)) {
+    return false;
+  }
+
+  if (!role) {
     return true;
   }
 

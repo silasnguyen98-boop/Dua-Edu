@@ -87,8 +87,17 @@ const toNumber = (value?: number | null) => (typeof value === "number" && Number
 
 async function canAccessStudentPortal(authUser: User) {
   const metadata = authUser.user_metadata ?? {};
-  const role = String(metadata.role || "").trim().toLowerCase();
+  const appMetadata = authUser.app_metadata ?? {};
+  const role = String(metadata.role || appMetadata.role || "").trim().toLowerCase();
   if (role === "student" || metadata.student_id) {
+    return true;
+  }
+
+  if (["admin", "operation", "assistant", "teacher"].includes(role)) {
+    return false;
+  }
+
+  if (!role) {
     return true;
   }
 
