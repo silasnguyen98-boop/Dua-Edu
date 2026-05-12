@@ -2,6 +2,7 @@
 
 import React from "react";
 import { RelationPicker } from "./RelationPicker";
+import { formatLabel } from "../helpers";
 
 interface DataTableSectionProps {
   activeTable: string;
@@ -75,6 +76,14 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
   setOpenRelationPicker,
   getRelationLabel,
 }) => {
+  const columns = React.useMemo(
+    () =>
+      (activeConfig.columns ?? []).map((column: any) =>
+        typeof column === "string" ? { key: column, label: formatLabel(column) } : column,
+      ),
+    [activeConfig.columns],
+  );
+
   const paginatedData = React.useMemo(() => {
     let filtered = data[activeTable] || [];
     if (search.trim()) {
@@ -250,7 +259,7 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
             <table>
               <thead>
                 <tr>
-                  {activeConfig.columns.map((column: any) => (
+                  {columns.map((column: any) => (
                     <th key={column.key}>{column.label}</th>
                   ))}
                   <th>Hành động</th>
@@ -260,7 +269,7 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
                 {paginatedData.length ? (
                   paginatedData.map((row: any) => (
                     <tr className={editingRow?.id === row.id ? "editing" : ""} key={row.id}>
-                      {activeConfig.columns.map((column: any) => (
+                      {columns.map((column: any) => (
                         <td className={column.key === "score" || column.key === "project_score" || column.key === "attendance_score" || column.key === "assignment_score" ? getScoreClass(row[column.key]) : ""} key={column.key}>
                           {getFieldValue(row, column)}
                         </td>
@@ -296,7 +305,7 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={activeConfig.columns.length + 1}>
+                    <td colSpan={columns.length + 1}>
                       {data[activeTable].length
                         ? `Không tìm thấy ${activeConfig.label.toLowerCase()} phù hợp.`
                         : "Chưa có dữ liệu."}
