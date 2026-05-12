@@ -12,6 +12,7 @@ import {
   getMyAssignedClassIds,
   removeAssistantSafe,
 } from "@/app/actions/assistants";
+import { bulkImportAction } from "@/app/actions/import";
 
 type FieldType = "text" | "email" | "number" | "date" | "time" | "datetime-local" | "textarea" | "select";
 
@@ -1834,10 +1835,13 @@ export default function Home() {
         return;
       }
 
-      const { error: importError } = await supabase.from(activeTable).insert(importData.payload);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Vui lòng đăng nhập lại.");
 
-      if (importError) {
-        throw new Error(importError.message);
+      const result = await bulkImportAction(session.access_token, activeTable, importData.payload);
+
+      if (!result.ok) {
+        throw new Error(result.error);
       }
 
       setMessage(
