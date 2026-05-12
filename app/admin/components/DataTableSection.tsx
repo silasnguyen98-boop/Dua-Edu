@@ -81,10 +81,24 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
   const columns = React.useMemo(
     () =>
       (activeConfig.columns ?? []).map((column: any) =>
-        typeof column === "string" ? { key: column, label: formatLabel(column) } : column,
+        typeof column === "string"
+          ? { key: column, label: column === "account" ? "Tài khoản" : formatLabel(column) }
+          : column,
       ),
     [activeConfig.columns],
   );
+
+  const getStudentAccount = (row: any) => {
+    const email = String(row.email ?? "").toLowerCase();
+    const studentId = String(row.id ?? "");
+
+    return adminUsers.find((item: any) => {
+      if (item.role !== "student") return false;
+      const itemEmail = String(item.email ?? "").toLowerCase();
+      const itemStudentId = String(item.student_id ?? "");
+      return (email && itemEmail === email) || (studentId && itemStudentId === studentId);
+    });
+  };
 
   const paginatedData = React.useMemo(() => {
     let filtered = data[activeTable] || [];
@@ -106,17 +120,35 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
   const renderCellValue = (row: any, column: any) => {
     const value = getFieldValue(row, column);
 
-    if (activeTable === "students" && column.key === "email") {
-      const email = String(row.email ?? "");
-      const account = adminUsers.find((item: any) => String(item.email ?? "").toLowerCase() === email.toLowerCase() && item.role === "student");
+    if (activeTable === "students" && column.key === "account") {
+      const account = getStudentAccount(row);
 
       return (
-        <div className="student-account-cell">
-          <span>{value}</span>
-          {account ? (
-            <span className="account-badge active">Da cap</span>
+        <div className="student-account-actions">
+          {!account ? (
+            isAssistantUser ? (
+              <span className="account-badge pending">Chưa cấp</span>
+            ) : (
+              <button
+                className="secondary-button compact-button"
+                disabled={isSaving || !row.email}
+                onClick={() => void createStudentLoginAccount({
+                  email: String(row.email ?? ""),
+                  full_name: String(row.full_name ?? ""),
+                  student_id: String(row.id ?? ""),
+                })}
+                type="button"
+              >
+                Cấp tài khoản
+              </button>
+            )
+          ) : account.last_sign_in_at ? (
+            <span className="account-badge active">Đã đăng nhập</span>
           ) : (
-            <span className="account-badge pending">Chua cap</span>
+            <div className="student-password-cell">
+              <span className="account-badge pending">Chưa đăng nhập</span>
+              {account.initial_password ? <code>{account.initial_password}</code> : null}
+            </div>
           )}
         </div>
       );
@@ -127,46 +159,6 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
 
   return (
     <>
-      {activeTable === "students" && !isAssistantUser && (
-        <section className="student-account-panel">
-          <div>
-            <p className="eyebrow">Tài khoản học viên</p>
-            <h3>Cấp tài khoản student</h3>
-            <p>Tạo tài khoản đăng nhập bằng tên và email. Mật khẩu được random 6 ký tự và chỉ hiển thị khi học viên chưa đăng nhập.</p>
-          </div>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              void createStudentLoginAccount(studentAccountForm);
-            }}
-          >
-            <label>
-              <span>Tên học viên</span>
-              <input
-                onChange={(event) => setStudentAccountForm((current: any) => ({ ...current, full_name: event.target.value }))}
-                placeholder="Nguyễn Văn A"
-                required
-                type="text"
-                value={studentAccountForm.full_name}
-              />
-            </label>
-            <label>
-              <span>Email</span>
-              <input
-                onChange={(event) => setStudentAccountForm((current: any) => ({ ...current, email: event.target.value }))}
-                placeholder="student@email.com"
-                required
-                type="email"
-                value={studentAccountForm.email}
-              />
-            </label>
-            <button className="primary-button" disabled={isSaving} type="submit">
-              {isSaving ? "Đang cấp..." : "Cấp tài khoản"}
-            </button>
-          </form>
-        </section>
-      )}
-
       <section className={(isAssistantUser && activeTable === "students") || activeTable === "certificates" ? "full-width-panel" : "management-grid"}>
         {!(isAssistantUser && activeTable === "students") && activeTable !== "certificates" && (
           <form className="editor" onSubmit={saveRow}>

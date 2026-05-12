@@ -42,7 +42,7 @@ export const tableConfigs: TableConfig[] = [
     name: "students",
     label: "Học viên",
     description: "Quản lý thông tin học viên và liên hệ.",
-    columns: ["full_name", "email", "phone", "note", "created_at"],
+    columns: ["full_name", "email", "phone", "account"],
     searchFields: ["full_name", "email", "phone"],
     fields: [
       { name: "full_name", label: "Họ tên", type: "text", required: true },
