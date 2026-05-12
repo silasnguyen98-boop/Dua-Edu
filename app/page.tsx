@@ -496,6 +496,7 @@ export default function Home() {
   const [assignedClassIds, setAssignedClassIds] = useState<string[]>([]);
   const [classAssistants, setClassAssistants] = useState<ClassAssistant[]>([]);
   const [showAssignModal, setShowAssignModal] = useState<string | null>(null); // classId
+  const loadIdRef = useRef(0);
 
   const genPassword = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$";
@@ -957,32 +958,18 @@ export default function Home() {
   }, [currentPage, totalPages]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) {
-        router.push("/login");
-      } else {
-        // Fetch current user role from metadata
-        const role = session.user.user_metadata?.role ?? null;
-        setCurrentUserRole(role);
-        // If assistant, fetch their assigned class IDs to filter data
-        if (role === "assistant") {
-          const ids = await getMyAssignedClassIds(session.access_token);
-          setAssignedClassIds(ids);
-          setOpenSidebarGroup("academic");
-          if (!isAssistantAllowedView(getInitialView())) {
-            setActiveView("classManagement");
-          }
-        }
-        setIsAuthenticated(true);
-      }
-    });
-
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) {
-        router.push("/login");
-      } else {
+        if (event === "SIGNED_OUT") {
+          router.push("/login");
+        }
+        return;
+      }
+
+      // Handle session initialization and sign in
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
         void (async () => {
           const role = session.user.user_metadata?.role ?? null;
           setCurrentUserRole(role);
@@ -1003,7 +990,14 @@ export default function Home() {
   }, [activeView, router]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (isAuthenticated !== true) return;
+    // If assistant, wait for assigned IDs before first load
+    if (isAssistantUser && assignedClassIds.length === 0) {
+      // Still load if we want to show empty state, but usually we wait for the fetch
+      // But if they actually have 0 classes, we'll wait forever? 
+      // Actually, the auth effect sets it to [] even if 0.
+      // So we just need to ensure loadAllTables is robust.
+    }
     void loadAllTables();
   }, [isAuthenticated, isAssistantUser, assignedClassIds]);
 
@@ -1151,6 +1145,7 @@ export default function Home() {
   }, []);
 
   async function loadAllTables() {
+    const currentLoadId = ++loadIdRef.current;
     setIsLoading(true);
     setError("");
 
@@ -1206,7 +1201,10 @@ export default function Home() {
 
     await loadAttendanceRecords(assistantEnrollmentIds);
     await loadAssignmentRecords(assistantEnrollmentIds);
-    setIsLoading(false);
+
+    if (currentLoadId === loadIdRef.current) {
+      setIsLoading(false);
+    }
   }
 
   async function loadAttendanceRecords(allowedEnrollmentIds?: Set<string> | null) {
