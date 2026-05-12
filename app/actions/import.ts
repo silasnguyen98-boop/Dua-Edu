@@ -57,14 +57,27 @@ export async function bulkImportAction(
     }
 
     // 2. Perform import using admin client (service role)
+    // Use upsert if the table has an email field to handle duplicates gracefully
+    const hasEmail = payload.length > 0 && "email" in payload[0];
     const adminClient = getSupabaseAdmin();
-    const { data, error: importError } = await adminClient
-      .from(tableName)
-      .insert(payload)
-      .select();
-
-    if (importError) {
-      throw new Error(importError.message);
+    
+    let query = adminClient.from(tableName);
+    
+    if (hasEmail) {
+      // @ts-ignore - Supabase types can be tricky with dynamic table names
+      const { data, error: importError } = await query
+        .upsert(payload, { onConflict: "email", ignoreDuplicates: false })
+        .select();
+      
+      if (importError) throw new Error(importError.message);
+      return { ok: true, data };
+    } else {
+      const { data, error: importError } = await query
+        .insert(payload)
+        .select();
+        
+      if (importError) throw new Error(importError.message);
+      return { ok: true, data };
     }
 
     return { ok: true, data };
