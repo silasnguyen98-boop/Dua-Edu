@@ -929,7 +929,7 @@ export function useAdmin() {
   function normalizeImportValue(field: FieldConfig, value: any) {
     if (value == null || value === "") return null;
     if (field.type === "number") return isNaN(Number(value)) ? null : Number(value);
-    if (field.type === "date") return typeof value === "number" ? XLSX.SSF.parse_date_code(value) : String(value).slice(0, 10);
+    if (field.type === "date") return typeof value === "number" ? String(value) : String(value).slice(0, 10);
     return String(value).trim();
   }
 
