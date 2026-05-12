@@ -3036,7 +3036,8 @@ export default function Home() {
                     ))}
                   </div>
 
-                  <div className="class-dashboard-grid">
+                  {classDashboardMode === "overall" && (
+                    <div className="class-dashboard-grid">
                     <article className="class-dashboard-panel">
                       <div className="section-heading compact">
                         <div>
@@ -3146,7 +3147,8 @@ export default function Home() {
                         <span><i className="unmarked" />Chưa điểm danh</span>
                       </div>
                     </article>
-                  </div>
+                    </div>
+                  )}
                 </>
               ) : (
                 <p className="empty-chart">Chưa có lớp để hiển thị dashboard.</p>
