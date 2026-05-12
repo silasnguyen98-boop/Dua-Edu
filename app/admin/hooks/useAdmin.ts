@@ -24,6 +24,7 @@ import { bulkImportAction } from "@/app/actions/import";
 import { useDashboardMetrics } from "./useDashboardMetrics";
 import {
   attendanceStatusOptions,
+  certificateStatusOptions,
   chartColors,
   emptyData,
   enrollmentStatusOptions,
@@ -78,6 +79,7 @@ export function useAdmin() {
   const [relationQueries, setRelationQueries] = useState<Record<string, string>>({});
   const [openRelationPicker, setOpenRelationPicker] = useState<string | null>(null);
   const [updatingEnrollmentId, setUpdatingEnrollmentId] = useState<string | null>(null);
+  const [updatingCertificateEnrollmentId, setUpdatingCertificateEnrollmentId] = useState<string | null>(null);
   const [classStatusFilter, setClassStatusFilter] = useState("all");
   const [classDetailSortField, setClassDetailSortField] = useState<string>("name");
   const [classDetailSortDir, setClassDetailSortDir] = useState<"asc" | "desc">("asc");
@@ -164,6 +166,7 @@ export function useAdmin() {
     const courseById = new Map(data.courses.map((item) => [String(item.id), item]));
     const studentById = new Map(data.students.map((item) => [String(item.id), item]));
     const teacherById = new Map(data.teachers.map((item) => [String(item.id), item]));
+    const certificateByEnrollmentId = new Map(data.certificates.map((item) => [String(item.enrollment_id), item]));
     const courseEnrollments = new Map<string, number>();
     const teacherEnrollments = new Map<string, number>();
     const classEnrollments = new Map<string, number>();
@@ -225,9 +228,14 @@ export function useAdmin() {
           enrollmentCount: classEnrollments.get(classId) ?? 0,
           enrollments: (classEnrollmentRows.get(classId) ?? []).map((enrollment) => {
             const student = enrollment.student_id ? studentById.get(String(enrollment.student_id)) : undefined;
+            const certificate = certificateByEnrollmentId.get(String(enrollment.id ?? ""));
             return {
               attendanceScore: enrollment.attendance_score != null ? Number(enrollment.attendance_score) : null,
               assignmentScore: enrollment.assignment_score != null ? Number(enrollment.assignment_score) : null,
+              certificateCode: certificate?.certificate_code ? String(certificate.certificate_code) : "",
+              certificateId: certificate?.id ? String(certificate.id) : "",
+              certificateRecordStatus: certificate?.status ? String(certificate.status) : "",
+              certificateRecordType: certificate?.certificate_type ? String(certificate.certificate_type) : "",
               projectScore: enrollment.project_score != null ? Number(enrollment.project_score) : null,
               finalScore: enrollment.final_score != null ? Number(enrollment.final_score) : null,
               projectUrl: enrollment.project_url ? String(enrollment.project_url) : "",
@@ -326,9 +334,11 @@ export function useAdmin() {
         const assignScore = enrollment.assignmentScore != null ? Number(enrollment.assignmentScore) : 0;
         const projScore = enrollment.projectScore != null ? Number(enrollment.projectScore) : 0;
         const finalScore = enrollment.finalScore != null ? Number(enrollment.finalScore) : 0;
-        let certificate = "none";
-        if (attScore >= 4 && projScore > 0 && finalScore >= 4) certificate = "completion";
-        else if (attScore >= 2 && assignScore > 0) certificate = "participation";
+        let certificate = enrollment.certificateRecordType || "none";
+        if (certificate === "none") {
+          if (attScore >= 4 && projScore > 0 && finalScore >= 4) certificate = "completion";
+          else if (attScore >= 2 && assignScore > 0) certificate = "participation";
+        }
         return { ...enrollment, certificate };
       })
       .sort((a: any, b: any) => {
@@ -756,6 +766,26 @@ export function useAdmin() {
     setUpdatingEnrollmentId(null);
   }
 
+  async function updateCertificateStatus(enrollmentId: string, status: string) {
+    setUpdatingCertificateEnrollmentId(enrollmentId);
+    setError("");
+    setMessage("");
+
+    const { error: updateError } = await supabase
+      .from("certificates")
+      .update({ status })
+      .eq("enrollment_id", enrollmentId);
+
+    if (updateError) {
+      setError(updateError.message);
+    } else {
+      setMessage("Đã cập nhật trạng thái chứng chỉ.");
+      await loadAllTables();
+    }
+
+    setUpdatingCertificateEnrollmentId(null);
+  }
+
   async function updateAttendance(enrollmentId: string, session: number, status: string) {
     setIsSaving(true);
     if (!status) {
@@ -797,11 +827,13 @@ export function useAdmin() {
     setIsSaving(false);
   }
 
-  async function syncCertificates(targetId?: string) {
+  async function syncCertificates(targetId?: string, targetType?: "class" | "student") {
     setIsSaving(true);
     try {
       const enrollments = targetId 
-        ? (activeTable === "classes" ? data.enrollments.filter(e => e.class_id === targetId) : data.enrollments.filter(e => e.student_id === targetId))
+        ? (targetType === "class" || activeTable === "classes"
+          ? data.enrollments.filter(e => e.class_id === targetId)
+          : data.enrollments.filter(e => e.student_id === targetId))
         : data.enrollments;
       
       const certificateBatch = enrollments.map(e => {
@@ -1075,6 +1107,7 @@ export function useAdmin() {
     relationQueries, setRelationQueries,
     openRelationPicker, setOpenRelationPicker,
     updatingEnrollmentId, setUpdatingEnrollmentId,
+    updatingCertificateEnrollmentId, setUpdatingCertificateEnrollmentId,
     classStatusFilter, setClassStatusFilter,
     classDetailSortField, setClassDetailSortField,
     classDetailSortDir, setClassDetailSortDir,
@@ -1134,6 +1167,7 @@ export function useAdmin() {
     downloadTemplate,
     exportData,
     updateEnrollmentStatus,
+    updateCertificateStatus,
     updateAttendance,
     updateProjectScore,
     updateAssignmentScore,
@@ -1163,6 +1197,7 @@ export function useAdmin() {
     formatValue,
     formatLabel,
     tableConfigs,
+    certificateStatusOptions,
     attendanceRecordsByEnrollment,
     assignmentRecordsByEnrollment,
   };

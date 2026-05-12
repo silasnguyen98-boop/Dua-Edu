@@ -100,9 +100,11 @@ export default function Home() {
             <ClassDetailView
               selectedClass={admin.selectedClass}
               selectedClassEnrollments={admin.selectedClassEnrollments}
-              onSyncCertificates={(id, type) => void admin.syncCertificates(id)}
+              onSyncCertificates={(id, type) => void admin.syncCertificates(id, type)}
               onUpdateStatus={admin.updateEnrollmentStatus}
+              onUpdateCertificateStatus={admin.updateCertificateStatus}
               updatingEnrollmentId={admin.updatingEnrollmentId}
+              updatingCertificateEnrollmentId={admin.updatingCertificateEnrollmentId}
               classStatusFilter={admin.classStatusFilter}
               setClassStatusFilter={admin.setClassStatusFilter}
               isLoading={admin.isLoading}

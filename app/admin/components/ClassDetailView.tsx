@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { enrollmentStatusOptions } from "../constants";
+import { certificateStatusOptions, enrollmentStatusOptions } from "../constants";
 
 interface ClassDetailViewProps {
   selectedClass: any;
@@ -9,10 +9,12 @@ interface ClassDetailViewProps {
   isLoading: boolean;
   isSaving: boolean;
   updatingEnrollmentId: string | null;
+  updatingCertificateEnrollmentId: string | null;
   onSyncCertificates: (id: string, type: string) => void;
   onExportExcel: () => void;
   onBack: () => void;
   onUpdateStatus: (id: string, status: string) => void;
+  onUpdateCertificateStatus: (id: string, status: string) => void;
   formatValue: (val: any) => string;
   classStatusFilter: string;
   setClassStatusFilter: (status: string) => void;
@@ -24,10 +26,12 @@ export function ClassDetailView({
   isLoading,
   isSaving,
   updatingEnrollmentId,
+  updatingCertificateEnrollmentId,
   onSyncCertificates,
   onExportExcel,
   onBack,
   onUpdateStatus,
+  onUpdateCertificateStatus,
   formatValue,
   classStatusFilter,
   setClassStatusFilter,
@@ -130,6 +134,7 @@ export function ClassDetailView({
                 <th onClick={() => handleSort("projectScore")} style={{ cursor: "pointer", borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Đồ án</th>
                 <th onClick={() => handleSort("finalScore")} style={{ cursor: "pointer", borderLeft: "1px solid var(--border)", paddingLeft: "16px", color: "var(--accent)" }}>Tổng kết</th>
                 <th style={{ textAlign: "center" }}>Chứng chỉ</th>
+                <th>Trạng thái chứng chỉ</th>
                 <th style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Trạng thái</th>
               </tr>
             </thead>
@@ -148,6 +153,23 @@ export function ClassDetailView({
                       : enrollment.certificate === "participation" ? <span style={{ background: "#fef9c3", color: "#854d0e", padding: "4px 10px", borderRadius: "99px", fontSize: "11px", fontWeight: 700 }}>Tham gia</span>
                       : <span style={{ color: "#94a3b8", fontSize: "12px" }}>-</span>}
                     </td>
+                    <td>
+                      {enrollment.certificateId ? (
+                        <select
+                          className="status-select status-custom"
+                          disabled={updatingCertificateEnrollmentId === enrollment.id}
+                          onChange={(e) => onUpdateCertificateStatus(enrollment.id, e.target.value)}
+                          value={enrollment.certificateRecordStatus || "pending"}
+                        >
+                          {certificateStatusOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                          {enrollment.certificateRecordStatus && !certificateStatusOptions.some(opt => opt.value === enrollment.certificateRecordStatus) && (
+                            <option value={enrollment.certificateRecordStatus}>{enrollment.certificateRecordStatus}</option>
+                          )}
+                        </select>
+                      ) : (
+                        <span style={{ color: "#94a3b8", fontSize: "12px" }}>Chưa có chứng chỉ</span>
+                      )}
+                    </td>
                     <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>
                       <select className={`status-select ${getEnrollmentStatusClass(enrollment.status)}`} disabled={updatingEnrollmentId === enrollment.id} onChange={(e) => onUpdateStatus(enrollment.id, e.target.value)} value={enrollment.status}>
                         <option value="">Chưa có</option>
@@ -157,7 +179,7 @@ export function ClassDetailView({
                   </tr>
                 ))
               ) : (
-                <tr><td colSpan={8}>Không có ghi danh phù hợp.</td></tr>
+                <tr><td colSpan={9}>Không có ghi danh phù hợp.</td></tr>
               )}
             </tbody>
           </table>

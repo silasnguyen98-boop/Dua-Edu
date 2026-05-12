@@ -26,6 +26,13 @@ export const enrollmentStatusOptions = [
   { label: "Đã huỷ", value: "cancelled" },
 ];
 
+export const certificateStatusOptions = [
+  { label: "Chờ cấp", value: "pending" },
+  { label: "Đã cấp", value: "issued" },
+  { label: "Đã huỷ", value: "cancelled" },
+  { label: "Thu hồi", value: "revoked" },
+];
+
 export const attendanceStatusOptions = [
   { label: "Chưa điểm danh", value: "" },
   { label: "Có mặt", value: "present" },
