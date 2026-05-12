@@ -91,7 +91,6 @@ export function Sidebar({
                 type="button"
               >
                 <span>Dashboard lớp</span>
-                <strong>{visibleClassItems.length}</strong>
               </button>
               <button
                 className={activeView === "classManagement" || activeView === "classDetail" ? "active" : ""}
@@ -99,7 +98,6 @@ export function Sidebar({
                 type="button"
               >
                 <span>Quản lý lớp</span>
-                <strong>{data.classes.length}</strong>
               </button>
               <button
                 className={activeView === "class_sessions" ? "active" : ""}
@@ -107,7 +105,6 @@ export function Sidebar({
                 type="button"
               >
                 <span>Quản lý buổi học</span>
-                <strong>{data.class_sessions.length}</strong>
               </button>
               {isAssistantUser && (
                 <button
@@ -116,7 +113,6 @@ export function Sidebar({
                   type="button"
                 >
                   <span>Học viên</span>
-                  <strong>{data.students.length}</strong>
                 </button>
               )}
               {!isAssistantUser && (
@@ -126,7 +122,6 @@ export function Sidebar({
                   type="button"
                 >
                   <span>Phân công trợ giảng</span>
-                  <strong>{data.classes.length}</strong>
                 </button>
               )}
               <button
@@ -135,7 +130,6 @@ export function Sidebar({
                 type="button"
               >
                 <span>Điểm danh</span>
-                <strong>{data.classes.length}</strong>
               </button>
               <button
                 className={activeView === "assignmentScore" ? "active" : ""}
@@ -180,7 +174,6 @@ export function Sidebar({
                       type="button"
                     >
                       <span>{config.label}</span>
-                      <strong>{data[config.name].length}</strong>
                     </button>
                   ))}
                 </nav>
@@ -210,7 +203,6 @@ export function Sidebar({
                       type="button"
                     >
                       <span>{config.label}</span>
-                      <strong>{data[config.name].length}</strong>
                     </button>
                   ))}
                 </nav>
