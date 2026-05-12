@@ -3876,7 +3876,7 @@ export default function Home() {
           </div>
         )}
 
-        {isDataView && activeTable === "students" && (
+        {isDataView && activeTable === "students" && !isAssistantUser && (
           <section className="student-account-panel">
             <div>
               <p className="eyebrow">Tài khoản học viên</p>
