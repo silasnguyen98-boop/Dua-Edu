@@ -4,6 +4,29 @@ import { FormEvent, useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import type { Session } from "@supabase/supabase-js";
+
+async function isStudentSession(session: Session | null) {
+  if (!session) return false;
+
+  const metadata = session.user.user_metadata ?? {};
+  const role = String(metadata.role || "").trim().toLowerCase();
+  if (role === "student" || metadata.student_id) {
+    return true;
+  }
+
+  if (!session.user.email) {
+    return false;
+  }
+
+  const { data } = await supabase
+    .from("students")
+    .select("id")
+    .eq("email", session.user.email.toLowerCase())
+    .maybeSingle();
+
+  return Boolean(data?.id);
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -13,13 +36,12 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
-        const role = String(session.user.user_metadata?.role || "").trim().toLowerCase();
-        if (role === "student") {
-          window.location.href = "/user";
+        if (await isStudentSession(session)) {
+          router.replace("/user");
         } else {
-          router.push("/");
+          router.replace("/");
         }
       }
     });
@@ -30,7 +52,7 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -39,12 +61,11 @@ export default function LoginPage() {
       setError("Email hoặc mật khẩu không chính xác.");
       setLoading(false);
     } else {
-      const { data: { session } } = await supabase.auth.getSession();
-      const role = String(session?.user.user_metadata?.role || "").trim().toLowerCase();
-      if (role === "student") {
-        window.location.href = "/user";
+      const session = data.session;
+      if (await isStudentSession(session)) {
+        router.replace("/user");
       } else {
-        router.push("/");
+        router.replace("/");
       }
     }
   }
