@@ -2666,14 +2666,23 @@ export default function Home() {
                           <td>
                             <strong>{item.enrollmentCount}</strong>
                           </td>
-                          <td>
-                            <button
-                              className="secondary-button compact-button"
-                              onClick={() => openClassDetail(item.id)}
-                              type="button"
-                            >
-                              Xem
-                            </button>
+                          <td style={{ whiteSpace: "nowrap" }}>
+                            <div style={{ display: "flex", gap: "6px" }}>
+                              <button
+                                className="secondary-button compact-button"
+                                onClick={() => openClassDashboard(item.id)}
+                                type="button"
+                              >
+                                Dashboard
+                              </button>
+                              <button
+                                className="secondary-button compact-button"
+                                onClick={() => openClassDetail(item.id)}
+                                type="button"
+                              >
+                                Xem
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -3029,7 +3038,63 @@ export default function Home() {
                             </div>
                           );
                         })}
+                        <article className="class-dashboard-panel" style={{ gridColumn: "1 / -1" }}>
+                      <div className="section-heading compact">
+                        <div>
+                          <p className="eyebrow">Theo dõi</p>
+                          <h3>Tình trạng học viên</h3>
+                        </div>
                       </div>
+                      <div className="class-table">
+                        <table style={{ background: "transparent" }}>
+                          <thead>
+                            <tr>
+                              <th style={{ background: "transparent" }}>Học viên</th>
+                              <th style={{ background: "transparent" }}>Email</th>
+                              <th style={{ background: "transparent" }}>Trạng thái</th>
+                              <th style={{ background: "transparent" }}>Chuyên cần</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selectedAttendanceClass.enrollments.slice(0, 10).map((en) => {
+                              const attendRecords = attendanceRecords.filter(r => String(r.enrollment_id) === en.id);
+                              const absentCount = attendRecords.filter(r => r.status === "absent").length;
+                              return (
+                                <tr key={en.id}>
+                                  <td>{en.name}</td>
+                                  <td>{en.email}</td>
+                                  <td>
+                                    <span style={{ 
+                                      padding: "2px 8px", 
+                                      borderRadius: "99px", 
+                                      fontSize: "11px", 
+                                      fontWeight: 600,
+                                      background: en.status === "active" ? "#ecfdf5" : "#f1f5f9",
+                                      color: en.status === "active" ? "#059669" : "#64748b"
+                                    }}>
+                                      {en.status || "—"}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    {absentCount > 0 ? (
+                                      <span style={{ color: "#dc2626", fontWeight: 600 }}>Vắng {absentCount} buổi</span>
+                                    ) : (
+                                      <span style={{ color: "#059669" }}>Tốt</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                        {selectedAttendanceClass.enrollments.length > 10 && (
+                          <p style={{ textAlign: "center", fontSize: "13px", color: "var(--text-secondary)", marginTop: "12px" }}>
+                            Hiển thị 10 học viên tiêu biểu. Xem chi tiết tại tab Ghi danh.
+                          </p>
+                        )}
+                      </div>
+                    </article>
+                  </div>
                       <div className="attendance-legend">
                         <span><i className="present" />Có mặt</span>
                         <span><i className="late" />Muộn</span>

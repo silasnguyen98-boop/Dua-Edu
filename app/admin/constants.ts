@@ -27,6 +27,7 @@ export const enrollmentStatusOptions = [
 ];
 
 export const attendanceStatusOptions = [
+  { label: "Chưa điểm danh", value: "none" },
   { label: "Có mặt", value: "present" },
   { label: "Vắng", value: "absent" },
   { label: "Đi muộn", value: "late" },
