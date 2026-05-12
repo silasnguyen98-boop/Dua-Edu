@@ -504,6 +504,7 @@ export default function Home() {
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [isAssistantView, setIsAssistantView] = useState(false);
   const [isAdminView, setIsAdminView] = useState(false);
+  const [accountTab, setAccountTab] = useState<"staff" | "student">("staff");
 
   useEffect(() => {
     setIsAssistantView(currentUserRole === "assistant");
@@ -3811,8 +3812,29 @@ export default function Home() {
                     Làm mới
                   </button>
                 </div>
+                <div style={{ padding: "0 24px", background: "var(--background)", borderBottom: "1px solid var(--border)", display: "flex", gap: "24px" }}>
+                  <button 
+                    onClick={() => setAccountTab("staff")}
+                    style={{ padding: "14px 0", fontSize: "14px", fontWeight: 600, background: "none", border: "none", borderBottom: accountTab === "staff" ? "2px solid #6366f1" : "2px solid transparent", color: accountTab === "staff" ? "#6366f1" : "var(--text-secondary)", cursor: "pointer", transition: "all 0.2s" }}
+                  >
+                    Quản trị viên & GV
+                  </button>
+                  <button 
+                    onClick={() => setAccountTab("student")}
+                    style={{ padding: "14px 0", fontSize: "14px", fontWeight: 600, background: "none", border: "none", borderBottom: accountTab === "student" ? "2px solid #6366f1" : "2px solid transparent", color: accountTab === "student" ? "#6366f1" : "var(--text-secondary)", cursor: "pointer", transition: "all 0.2s" }}
+                  >
+                    Tài khoản học viên
+                  </button>
+                </div>
 
-                {adminUsers.length === 0 ? (
+                {(() => {
+                  const filteredAccounts = adminUsers.filter(u => 
+                    accountTab === "staff" 
+                      ? ["admin", "operation", "assistant", "teacher"].includes(u.role)
+                      : u.role === "student"
+                  );
+
+                  return filteredAccounts.length === 0 ? (
                   <div style={{ padding: "48px 24px", textAlign: "center", color: "var(--text-secondary)" }}>
                     {isLoading ? (
                       <span>Đang tải...</span>
@@ -3822,13 +3844,13 @@ export default function Home() {
                   </div>
                 ) : (
                   <div style={{ display: "grid" }}>
-                    {adminUsers.map((user, idx) => {
+                    {filteredAccounts.map((user, idx) => {
                       const roleInfo = roleMap[user.role] || { label: user.role || "—", color: "#64748b", bg: "#f8fafc" };
                       const initials = (user.username || user.email || "?").slice(0, 2).toUpperCase();
                       return (
                         <div
                           key={user.id}
-                          style={{ display: "flex", alignItems: "center", gap: "16px", padding: "14px 24px", borderBottom: idx < adminUsers.length - 1 ? "1px solid var(--border)" : "none", transition: "background 0.15s" }}
+                          style={{ display: "flex", alignItems: "center", gap: "16px", padding: "14px 24px", borderBottom: idx < filteredAccounts.length - 1 ? "1px solid var(--border)" : "none", transition: "background 0.15s" }}
                         >
                           {/* Avatar */}
                           <div style={{ width: 40, height: 40, borderRadius: "10px", background: `linear-gradient(135deg, ${roleInfo.color}22, ${roleInfo.color}44)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: 700, color: roleInfo.color, flexShrink: 0 }}>
