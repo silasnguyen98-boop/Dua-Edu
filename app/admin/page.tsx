@@ -3228,8 +3228,8 @@ export default function Home() {
                                 const record = attendanceRecords.find(
                                   (r) => String(r.enrollment_id) === enrollment.id && Number(r.session_number) === i + 1
                                 );
-                                const status = record?.status ? String(record.status) : "-";
-                                const shortStatus = status === "present" ? "✓" : status === "absent" ? "V" : status === "late" ? "M" : status === "excused" ? "P" : "-";
+                                const status = record?.status ? String(record.status) : "none";
+                                const shortStatus = status === "present" ? "✓" : status === "absent" ? "V" : status === "late" ? "M" : status === "excused" ? "P" : status === "none" ? "—" : "-";
 
                                 if (status === "present") presentCount++;
                                 if (status === "absent") absentCount++;
@@ -3274,7 +3274,7 @@ export default function Home() {
                             }
 
                             const record = attendanceRecordsByEnrollment.get(enrollment.id);
-                            const status = String(record?.status ?? "present");
+                            const status = String(record?.status ?? "none");
 
                             return (
                               <tr key={enrollment.id}>
