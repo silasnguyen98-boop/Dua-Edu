@@ -400,7 +400,7 @@ export function useAdmin() {
 
   const onLogout = async () => {
     await supabase.auth.signOut();
-    window.location.href = "https://student.duadata.net/auth/login";
+    window.location.href = "https://student.duadata.net/login";
   };
 
   const changeView = (view: ViewName) => {
