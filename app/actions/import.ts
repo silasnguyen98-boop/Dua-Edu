@@ -94,32 +94,45 @@ export async function bulkImportAction(
           }
         }
 
-        const existingEmails = new Set(
+        const existingEmailsSet = new Set(
           (existingRows ?? []).map(r => String(r.email || "").trim().toLowerCase())
         );
         
-        // Filter payload to exclude existing emails
-        const filteredPayload = cleanPayload.filter(p => {
-          const email = String(p.email || "").trim().toLowerCase();
-          return !email || !existingEmails.has(email);
-        });
+        const duplicatedInPayload: string[] = [];
+        const cleanPayloadInternal: any[] = [];
+        const seenInThisPayload = new Set<string>();
+
+        // We check for duplicates against DB and WITHIN the current batch
+        for (const item of cleanPayload) {
+          const email = String(item.email || "").trim().toLowerCase();
+          if (email && (existingEmailsSet.has(email) || seenInThisPayload.has(email))) {
+            duplicatedInPayload.push(email);
+          } else {
+            if (email) seenInThisPayload.add(email);
+            cleanPayloadInternal.push(item);
+          }
+        }
         
-        if (filteredPayload.length === 0) {
-          return { ok: true, data: [], skipped: payload.length };
+        if (cleanPayloadInternal.length === 0) {
+          return { ok: true, data: [], skipped: payload.length, duplicatedEmails: duplicatedInPayload };
         }
         
         // Insert the clean payload
         const { data, error: importError } = await adminClient
           .from(tableName)
-          .insert(filteredPayload)
+          .insert(cleanPayloadInternal)
           .select();
           
         if (importError) {
-          // If insert still fails, it might be a race condition or other constraint
-          throw new Error(importError.message);
+          throw new Error(`Lỗi ràng buộc dữ liệu. Email trùng phát hiện: ${duplicatedInPayload.slice(0, 5).join(", ")}${duplicatedInPayload.length > 5 ? "..." : ""}. Chi tiết lỗi: ${importError.message}`);
         }
         
-        return { ok: true, data, skipped: payload.length - filteredPayload.length };
+        return { 
+          ok: true, 
+          data, 
+          skipped: payload.length - cleanPayloadInternal.length,
+          duplicatedEmails: duplicatedInPayload 
+        };
       }
     }
 

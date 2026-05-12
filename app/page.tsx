@@ -1847,11 +1847,12 @@ export default function Home() {
       }
 
       const totalSkipped = (importData.duplicateCount || 0) + (result.skipped || 0);
+      const duplicateEmails = (result as any).duplicatedEmails || [];
 
       setMessage(
         `✓ Đã import ${result.data?.length || 0} dòng thành công.` +
           (totalSkipped > 0
-            ? ` (Đã tự động bỏ qua ${totalSkipped} email bị trùng lặp).`
+            ? ` (Bỏ qua ${totalSkipped} email trùng${duplicateEmails.length > 0 ? `: ${duplicateEmails.slice(0, 3).join(", ")}${duplicateEmails.length > 3 ? "..." : ""}` : ""}).`
             : ""),
       );
       await loadAllTables();
