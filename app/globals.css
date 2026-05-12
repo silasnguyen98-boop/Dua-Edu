@@ -6,6 +6,7 @@
   --background-end: #eef4f8;
   --foreground: #0f172a;
   --muted: #667085;
+  --text-secondary: #667085;
   --border: rgba(15, 23, 42, 0.09);
   --border-strong: rgba(15, 23, 42, 0.16);
   --surface: rgba(255, 255, 255, 0.92);
@@ -53,7 +54,8 @@ button {
 }
 
 /* Base Layouts */
-.admin-shell {
+.admin-shell,
+.admin-container {
   min-height: 100vh;
   display: grid;
   grid-template-columns: 310px 1fr;
@@ -92,7 +94,8 @@ button {
   box-shadow: none;
 }
 
-.workspace {
+.workspace,
+.admin-main {
   display: grid;
   gap: 22px;
   align-content: start;
@@ -100,6 +103,13 @@ button {
   max-width: 1800px;
   margin: 0 auto;
   width: 100%;
+  min-width: 0;
+}
+
+.admin-content {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
 }
 
 /* Typography */
@@ -120,7 +130,8 @@ p { color: var(--muted); line-height: 1.6; }
 }
 
 /* Nav Tabs */
-.sidebar-nav {
+.sidebar-nav,
+.sidebar-content {
   display: grid;
   align-content: start;
   gap: 12px;
@@ -130,6 +141,14 @@ p { color: var(--muted); line-height: 1.6; }
   overscroll-behavior: contain;
   padding: 18px 2px 28px;
   scrollbar-gutter: stable;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 8px 8px 18px;
+  border-bottom: 1px solid var(--border);
 }
 .nav-group { display: grid; gap: 8px; }
 .nav-group .eyebrow { margin-bottom: 0; }
@@ -340,6 +359,11 @@ p { color: var(--muted); line-height: 1.6; }
   border: 1px solid var(--border);
   border-radius: 16px;
   background: #ffffff;
+  min-width: 0;
+}
+
+.class-dashboard-panel.wide {
+  grid-column: 1 / -1;
 }
 
 .student-status-badge,
@@ -497,7 +521,13 @@ label { display: grid; gap: 8px; }
 label span { color: var(--foreground); font-size: 14px; font-weight: 600; }
 
 /* Tables */
-.table-wrap { overflow-x: auto; border-radius: 14px; border: 1px solid var(--border); background: var(--surface-solid); }
+.table-wrap,
+.class-table {
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-solid);
+}
 table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 800px; }
 th, td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--border); }
 th {
