@@ -112,9 +112,12 @@ export function ScoreView({
                 <th>Học viên</th>
                 <th style={{ width: "200px" }}>Email</th>
                 {isAssignment ? (
-                  Array.from({ length: sessionCount }, (_, i) => i + 1).map(n => (
-                    <th key={n} style={{ width: "80px", textAlign: "center" }}>BT {n}</th>
-                  ))
+                  <>
+                    {Array.from({ length: sessionCount }, (_, i) => i + 1).map(n => (
+                      <th key={n} style={{ width: "80px", textAlign: "center" }}>BT {n}</th>
+                    ))}
+                    <th style={{ width: "80px", textAlign: "center", backgroundColor: "var(--background-soft)", color: "var(--primary)", fontWeight: 700 }}>ĐTB</th>
+                  </>
                 ) : (
                   <th style={{ width: "120px", textAlign: "center" }}>Điểm đồ án</th>
                 )}
@@ -131,30 +134,35 @@ export function ScoreView({
                       <td><div style={{ fontWeight: 600 }}>{enrollment.name}</div></td>
                       <td>{enrollment.email}</td>
                       {isAssignment ? (
-                        Array.from({ length: sessionCount }, (_, i) => i + 1).map(n => (
-                          <td key={n} style={{ textAlign: "center" }}>
-                            <input 
-                              type="number" 
-                              min="0" 
-                              max="10" 
-                              step="0.1"
-                              defaultValue={scoresMap[n]?.score ?? ""}
-                              onBlur={(e) => {
-                                const val = parseFloat(e.target.value);
-                                if (!isNaN(val)) onUpdateScore(enrollment.id, n, val);
-                              }}
-                              disabled={isSaving}
-                              style={{ 
-                                padding: "6px 8px", 
-                                borderRadius: "6px", 
-                                border: "1px solid var(--border)", 
-                                width: "60px",
-                                textAlign: "center",
-                                fontSize: "13px"
-                              }}
-                            />
+                        <>
+                          {Array.from({ length: sessionCount }, (_, i) => i + 1).map(n => (
+                            <td key={n} style={{ textAlign: "center" }}>
+                              <input 
+                                type="number" 
+                                min="0" 
+                                max="10" 
+                                step="0.1"
+                                defaultValue={scoresMap[n]?.score ?? ""}
+                                onBlur={(e) => {
+                                  const val = parseFloat(e.target.value);
+                                  if (!isNaN(val)) onUpdateScore(enrollment.id, n, val);
+                                }}
+                                disabled={isSaving}
+                                style={{ 
+                                  padding: "6px 8px", 
+                                  borderRadius: "6px", 
+                                  border: "1px solid var(--border)", 
+                                  width: "60px",
+                                  textAlign: "center",
+                                  fontSize: "13px"
+                                }}
+                              />
+                            </td>
+                          ))}
+                          <td style={{ textAlign: "center", backgroundColor: "var(--background-soft)", fontWeight: 700, color: "var(--primary)" }}>
+                            {enrollment.assignmentScore != null ? Number(enrollment.assignmentScore).toFixed(1) : "-"}
                           </td>
-                        ))
+                        </>
                       ) : (
                         <td style={{ textAlign: "center" }}>
                           <input 
