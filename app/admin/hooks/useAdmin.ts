@@ -898,6 +898,21 @@ export function useAdmin() {
 
   function getFieldValue(row: Row, column: any) {
     const val = row[column.key];
+
+    if (activeTable === "students" && column.key === "email") {
+      const account = adminUsers.find(u => u.email === val);
+      return (
+        <div className="student-account-cell">
+          <span>{val}</span>
+          {account ? (
+            <span className="account-badge active">✓ Đã cấp</span>
+          ) : (
+            <span className="account-badge pending">Chưa cấp</span>
+          )}
+        </div>
+      );
+    }
+
     if (column.key === "score" || column.key === "project_score" || column.key === "attendance_score" || column.key === "assignment_score") {
       return val != null ? Number(val).toFixed(1) : "-";
     }
