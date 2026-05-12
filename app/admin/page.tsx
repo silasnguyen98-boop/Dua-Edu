@@ -127,6 +127,7 @@ export default function Home() {
   const [isAdminView, setIsAdminView] = useState(false);
   const [accountTab, setAccountTab] = useState<"staff" | "student">("staff");
   const [classDashboardMode, setClassDashboardMode] = useState<"session" | "overall">("session");
+  const [sessionDetailStatus, setSessionDetailStatus] = useState<string | null>(null);
 
   useEffect(() => {
     setIsAssistantView(currentUserRole === "assistant");
@@ -3069,19 +3070,32 @@ export default function Home() {
 
                   <div className="class-dashboard-stats">
                     {(classDashboardMode === "session" ? [
-                      { color: "#0f766e", label: "Có mặt", value: classDashboardMetrics.selectedSession.present },
-                      { color: "#b91c1c", label: "Vắng", value: classDashboardMetrics.selectedSession.absent },
-                      { color: "#b45309", label: "Đi muộn", value: classDashboardMetrics.selectedSession.late },
-                      { color: "#0369a1", label: "Có phép", value: classDashboardMetrics.selectedSession.excused },
-                      { color: "#64748b", label: "Chưa điểm danh", value: classDashboardMetrics.selectedSession.unmarked },
+                      { color: "#0f766e", status: "present", label: "Có mặt", value: classDashboardMetrics.selectedSession.present },
+                      { color: "#b91c1c", status: "absent", label: "Vắng", value: classDashboardMetrics.selectedSession.absent },
+                      { color: "#b45309", status: "late", label: "Đi muộn", value: classDashboardMetrics.selectedSession.late },
+                      { color: "#0369a1", status: "excused", label: "Có phép", value: classDashboardMetrics.selectedSession.excused },
+                      { color: "#64748b", status: "unmarked", label: "Chưa điểm danh", value: classDashboardMetrics.selectedSession.unmarked },
                     ] : [
-                      { color: "#0f766e", label: "Tổng lượt có mặt", value: classDashboardMetrics.statusCounts.present },
-                      { color: "#b91c1c", label: "Tổng lượt vắng", value: classDashboardMetrics.statusCounts.absent },
-                      { color: "#b45309", label: "Tổng lượt muộn", value: classDashboardMetrics.statusCounts.late },
-                      { color: "#0369a1", label: "Tổng lượt phép", value: classDashboardMetrics.statusCounts.excused },
+                      { color: "#0f766e", status: null, label: "Tổng lượt có mặt", value: classDashboardMetrics.statusCounts.present },
+                      { color: "#b91c1c", status: null, label: "Tổng lượt vắng", value: classDashboardMetrics.statusCounts.absent },
+                      { color: "#b45309", status: null, label: "Tổng lượt muộn", value: classDashboardMetrics.statusCounts.late },
+                      { color: "#0369a1", status: null, label: "Tổng lượt phép", value: classDashboardMetrics.statusCounts.excused },
                     ]).map((item) => (
                       <article className="class-dashboard-stat" key={item.label}>
-                        <span>{item.label}</span>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <span>{item.label}</span>
+                          {classDashboardMode === "session" && item.value > 0 && (
+                            <button 
+                              onClick={() => setSessionDetailStatus(sessionDetailStatus === item.status ? null : item.status)}
+                              style={{ 
+                                background: "none", border: "none", color: "#6366f1", fontSize: "11px", fontWeight: 700, 
+                                cursor: "pointer", padding: "2px 6px", borderRadius: "4px", background: "#f5f3ff" 
+                              }}
+                            >
+                              {sessionDetailStatus === item.status ? "Đóng" : "Chi tiết"}
+                            </button>
+                          )}
+                        </div>
                         <strong style={{ color: item.color }}>{item.value}</strong>
                         <small>
                           {classDashboardMetrics.totalStudents
@@ -3091,6 +3105,60 @@ export default function Home() {
                       </article>
                     ))}
                   </div>
+
+                  {classDashboardMode === "session" && (
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "24px", marginTop: "24px" }}>
+                      <article className="class-dashboard-panel" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                         <div className="section-heading compact" style={{ width: "100%" }}>
+                          <div>
+                            <p className="eyebrow">Thống kê</p>
+                            <h3>Cơ cấu buổi {selectedAttendanceSession}</h3>
+                          </div>
+                        </div>
+                        <PieChart emptyText="Chưa có dữ liệu" items={[
+                          { id: "present", label: "Có mặt", value: classDashboardMetrics.selectedSession.present, percent: Math.round((classDashboardMetrics.selectedSession.present / (classDashboardMetrics.totalStudents || 1)) * 100), color: "#0f766e" },
+                          { id: "late", label: "Đi muộn", value: classDashboardMetrics.selectedSession.late, percent: Math.round((classDashboardMetrics.selectedSession.late / (classDashboardMetrics.totalStudents || 1)) * 100), color: "#b45309" },
+                          { id: "absent", label: "Vắng", value: classDashboardMetrics.selectedSession.absent, percent: Math.round((classDashboardMetrics.selectedSession.absent / (classDashboardMetrics.totalStudents || 1)) * 100), color: "#b91c1c" },
+                          { id: "excused", label: "Có phép", value: classDashboardMetrics.selectedSession.excused, percent: Math.round((classDashboardMetrics.selectedSession.excused / (classDashboardMetrics.totalStudents || 1)) * 100), color: "#0369a1" },
+                          { id: "unmarked", label: "Chưa điểm danh", value: classDashboardMetrics.selectedSession.unmarked, percent: Math.round((classDashboardMetrics.selectedSession.unmarked / (classDashboardMetrics.totalStudents || 1)) * 100), color: "#64748b" },
+                        ].filter(item => item.value > 0)} />
+                      </article>
+
+                      {sessionDetailStatus && (
+                        <article className="class-dashboard-panel">
+                          <div className="section-heading compact">
+                            <div>
+                              <p className="eyebrow">Chi tiết</p>
+                              <h3>Danh sách {
+                                sessionDetailStatus === "present" ? "Có mặt" :
+                                sessionDetailStatus === "absent" ? "Vắng" :
+                                sessionDetailStatus === "late" ? "Đi muộn" :
+                                sessionDetailStatus === "excused" ? "Có phép" : "Chưa điểm danh"
+                              }</h3>
+                            </div>
+                          </div>
+                          <div className="class-table" style={{ maxHeight: "300px", overflowY: "auto" }}>
+                            <table style={{ background: "transparent" }}>
+                              <tbody>
+                                {selectedAttendanceClass.enrollments.filter(en => {
+                                  const record = attendanceRecords.find(r => String(r.enrollment_id) === en.id && r.session_number === selectedAttendanceSession);
+                                  const status = record?.status || "unmarked";
+                                  return status === sessionDetailStatus;
+                                }).map(en => (
+                                  <tr key={en.id}>
+                                    <td style={{ padding: "8px 0" }}>
+                                      <div style={{ fontWeight: 600, fontSize: "13px" }}>{en.name}</div>
+                                      <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>{en.email}</div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </article>
+                      )}
+                    </div>
+                  )}
 
                   {classDashboardMode === "overall" && (
                     <div className="class-dashboard-grid">
