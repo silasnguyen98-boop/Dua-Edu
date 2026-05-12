@@ -998,6 +998,12 @@ export function useAdmin() {
       const cls = data.classes.find(c => c.id === val);
       return cls ? `${cls.class_name} (${cls.class_code})` : val;
     }
+    if (activeTable === "certificates" && column.key === "certificate_type") {
+      if (val === "participation") return "Tham gia";
+      if (val === "completion") return "Hoàn thành";
+      return val;
+    }
+
     if (activeTable === "certificates" && (column.key === "student_name" || column.key === "student_email")) {
       const enrollment = data.enrollments.find(e => e.id === row.enrollment_id);
       if (!enrollment) return "-";
