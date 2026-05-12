@@ -3384,24 +3384,26 @@ export default function Home() {
                       </article>
 
                       <article className="class-dashboard-panel">
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", marginBottom: "20px" }}>
-                          <div style={{ minWidth: 0 }}>
-                            <p className="eyebrow" style={{ margin: 0, fontSize: "11px" }}>Phân tích</p>
-                            <h3 style={{ margin: "2px 0 0", fontSize: "16px", whiteSpace: "nowrap" }}>Phân loại học viên</h3>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", gap: "10px" }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <p style={{ margin: 0, fontSize: "10px", fontWeight: 700, color: "#10b981", textTransform: "uppercase", letterSpacing: "0.05em" }}>Phân tích</p>
+                            <h3 style={{ margin: "2px 0 0", fontSize: "16px", fontWeight: 700, color: "var(--foreground)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Phân loại học viên</h3>
                           </div>
-                          <select 
-                            value={segmentCriteria} 
-                            onChange={(e) => setSegmentCriteria(e.target.value as any)}
-                            style={{ 
-                              padding: "6px 12px", borderRadius: "8px", border: "1px solid var(--border)", 
-                              fontSize: "12px", fontWeight: 600, background: "white", cursor: "pointer",
-                              outline: "none", boxShadow: "0 1px 2px rgba(0,0,0,0.05)", flexShrink: 0
-                            }}
-                          >
-                            <option value="attendance">Theo chuyên cần</option>
-                            <option value="assignment">Theo bài tập</option>
-                            <option value="project">Theo đồ án</option>
-                          </select>
+                          <div style={{ flexShrink: 0 }}>
+                            <select 
+                              value={segmentCriteria} 
+                              onChange={(e) => setSegmentCriteria(e.target.value as any)}
+                              style={{ 
+                                padding: "6px 12px", borderRadius: "8px", border: "1px solid var(--border)", 
+                                fontSize: "13px", fontWeight: 600, background: "white", cursor: "pointer",
+                                outline: "none", boxShadow: "0 1px 2px rgba(0,0,0,0.05)", width: "160px"
+                              }}
+                            >
+                              <option value="attendance">Theo chuyên cần</option>
+                              <option value="assignment">Theo bài tập</option>
+                              <option value="project">Theo đồ án</option>
+                            </select>
+                          </div>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                           {(() => {
