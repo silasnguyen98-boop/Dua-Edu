@@ -964,28 +964,31 @@ export default function Home() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) {
-        if (event === "SIGNED_OUT") {
-          router.push("/login");
-        }
+        setIsAuthenticated(false);
+        setCurrentUserRole(null);
+        router.push("/login");
         return;
       }
 
-      // Handle session initialization and sign in
-      if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
-        void (async () => {
-          const role = session.user.user_metadata?.role ?? null;
-          setCurrentUserRole(role);
-          if (role === "assistant") {
+      void (async () => {
+        const role = session.user.user_metadata?.role?.trim() || "student";
+        setCurrentUserRole(role);
+
+        if (role === "assistant") {
+          try {
             const ids = await getMyAssignedClassIds(session.access_token);
             setAssignedClassIds(ids);
-            setOpenSidebarGroup("academic");
-            if (!isAssistantAllowedView(activeView)) {
-              setActiveView("classManagement");
-            }
+          } catch {
+            setAssignedClassIds([]);
           }
-          setIsAuthenticated(true);
-        })();
-      }
+          setOpenSidebarGroup("academic");
+          if (!isAssistantAllowedView(activeView)) {
+            setActiveView("classManagement");
+          }
+        }
+
+        setIsAuthenticated(true);
+      })();
     });
 
     return () => subscription.unsubscribe();
@@ -2806,7 +2809,6 @@ export default function Home() {
                       <th>Thời gian học</th>
                       <th>Sĩ số</th>
                       <th>Danh sách</th>
-                      {currentUserRole !== "assistant" && <th>Trợ giảng</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -2850,23 +2852,11 @@ export default function Home() {
                               Xem
                             </button>
                           </td>
-                          {currentUserRole !== "assistant" && (
-                            <td>
-                              <button
-                                className="secondary-button compact-button"
-                                style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)", color: "#fff", border: "none" }}
-                                onClick={() => void openAssignAssistantModal(item.id)}
-                                type="button"
-                              >
-                                Phân công
-                              </button>
-                            </td>
-                          )}
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={currentUserRole !== "assistant" ? 12 : 11}>
+                        <td colSpan={11}>
                           {currentUserRole === "assistant" && assignedClassIds.length === 0
                             ? "Bạn chưa được phân công lớp nào. Liên hệ Admin để được cấp quyền."
                             : "Chưa có dữ liệu lớp hoặc ghi danh."}
