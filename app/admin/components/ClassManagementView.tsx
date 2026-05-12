@@ -85,13 +85,6 @@ export function ClassManagementView({
                       <div style={{ display: "flex", gap: "6px" }}>
                         <button
                           className="secondary-button compact-button"
-                          onClick={() => onOpenDashboard(item.id)}
-                          type="button"
-                        >
-                          Dashboard
-                        </button>
-                        <button
-                          className="secondary-button compact-button"
                           onClick={() => onOpenDetail(item.id)}
                           type="button"
                         >
