@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import React, { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 import { supabase } from "@/lib/supabase/client";
