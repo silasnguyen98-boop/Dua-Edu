@@ -48,18 +48,20 @@ export function AttendanceView({
     }
   };
 
-  // Calculate score: (Present=1, Excused=1, Late=0.5, Absent=0)
+  // Calculate score: (V:1, P:0.75, M:0.5, X:0.25, Unmarked:0)
   const calculateAttendanceScore = (enrollmentId: string) => {
     const studentRecords = attendanceRecords.filter(r => String(r.enrollment_id) === String(enrollmentId));
     if (attendanceSessionCount === 0) return 0;
     
     let totalPoints = 0;
     studentRecords.forEach(r => {
-      if (r.status === "present" || r.status === "excused") totalPoints += 1;
+      if (r.status === "present") totalPoints += 1;
+      else if (r.status === "excused") totalPoints += 0.75;
       else if (r.status === "late") totalPoints += 0.5;
+      else if (r.status === "absent") totalPoints += 0.25;
     });
     
-    return Number(((totalPoints / attendanceSessionCount) * 10).toFixed(1));
+    return Number(((totalPoints / attendanceSessionCount) * 10).toFixed(2));
   };
 
   return (

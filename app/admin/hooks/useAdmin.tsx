@@ -810,10 +810,12 @@ export function useAdmin() {
 
     let totalPoints = 0;
     records.forEach(r => {
-      if (r.status === "present" || r.status === "excused") totalPoints += 1;
+      if (r.status === "present") totalPoints += 1;
+      else if (r.status === "excused") totalPoints += 0.75;
       else if (r.status === "late") totalPoints += 0.5;
+      else if (r.status === "absent") totalPoints += 0.25;
     });
-    const score = Number(((totalPoints / totalSessions) * 10).toFixed(1));
+    const score = Number(((totalPoints / totalSessions) * 10).toFixed(2));
     await supabase.from("enrollments").update({ attendance_score: score }).eq("id", enrollmentId);
   }
 
