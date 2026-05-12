@@ -1,11 +1,33 @@
 import { storageKeys, tableConfigs } from "./constants";
 import type { FieldConfig, FormState, Row, SidebarGroup, TableName, ViewName } from "./types";
 
-export const formatLabel = (value: string) =>
-  value
+export const formatLabel = (value: string) => {
+  const mapping: Record<string, string> = {
+    student_name: "Họ tên",
+    student_email: "Email",
+    certificate_type: "Loại",
+    certificate_code: "Mã chứng chỉ",
+    status: "Trạng thái",
+    issued_at: "Ngày cấp",
+    class_name: "Tên lớp",
+    class_code: "Mã lớp",
+    course_id: "Khóa học",
+    teacher_id: "Giảng viên",
+    enrollment_id: "ID Ghi danh",
+    full_name: "Họ tên",
+    course_type: "Loại khóa",
+    start_date: "Ngày bắt đầu",
+    total_sessions: "Số buổi",
+    study_time: "Giờ học",
+    schedule: "Lịch học",
+  };
+  if (mapping[value]) return mapping[value];
+  
+  return value
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+};
 
 export const formatValue = (value: Row[string]) => {
   if (value === null || value === undefined || value === "") {

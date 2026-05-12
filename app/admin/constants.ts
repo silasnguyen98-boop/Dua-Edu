@@ -182,8 +182,8 @@ export const tableConfigs: TableConfig[] = [
     name: "certificates",
     label: "Chứng chỉ",
     description: "Phát hành và theo dõi chứng chỉ sau khoá học.",
-    columns: ["enrollment_id", "certificate_type", "certificate_code", "status", "issued_at"],
-    searchFields: ["certificate_type", "certificate_code", "status"],
+    columns: ["student_name", "student_email", "certificate_type", "certificate_code", "status", "issued_at"],
+    searchFields: ["student_name", "student_email", "certificate_type", "certificate_code", "status"],
     fields: [
       {
         name: "enrollment_id",

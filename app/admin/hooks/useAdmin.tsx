@@ -848,53 +848,41 @@ export function useAdmin() {
         return `${classCode}-${type.slice(0, 4).toUpperCase()}-${suffix}`;
       };
 
-      const certificateBatch = enrollments.map(e => {
+      const certificateBatch: { enrollment: Row; certificate_type: string }[] = [];
+      enrollments.forEach(e => {
         const attScore = Number(e.attendance_score ?? 0);
         const projScore = Number(e.project_score ?? 0);
         const finalScore = Number(e.final_score ?? 0);
         const assignScore = Number(e.assignment_score ?? 0);
-        let type = "none";
-        if (attScore >= 4 && projScore > 0 && finalScore >= 4) type = "completion";
-        else if (attScore >= 2 && assignScore > 0) type = "participation";
-        return type !== "none" ? { enrollment: e, certificate_type: type } : null;
-      }).filter(Boolean);
+        
+        if (attScore >= 4 && projScore > 0 && finalScore >= 4) {
+          certificateBatch.push({ enrollment: e, certificate_type: "completion" });
+        }
+        if (attScore >= 2 && assignScore > 0) {
+          certificateBatch.push({ enrollment: e, certificate_type: "participation" });
+        }
+      });
 
       for (const cert of certificateBatch) {
-        const enrollment = cert!.enrollment;
+        const enrollment = cert.enrollment;
         const enrollmentId = String(enrollment.id ?? "");
-        const nextType = cert!.certificate_type;
+        const nextType = cert.certificate_type;
         const { data: existingCertificate, error: selectError } = await supabase
           .from("certificates")
-          .select("id,certificate_type,status")
+          .select("id")
           .eq("enrollment_id", enrollmentId)
+          .eq("certificate_type", nextType)
           .maybeSingle();
 
         if (selectError) throw selectError;
 
-        if (existingCertificate?.id) {
-          const shouldUpgrade =
-            existingCertificate.certificate_type !== nextType &&
-            (existingCertificate.certificate_type !== "completion" || nextType === "completion");
-          if (shouldUpgrade) {
-            const updatePayload: Record<string, string> = {
-              certificate_type: nextType,
-            };
-            if (nextType === "completion") {
-              updatePayload.issued_at = new Date().toISOString();
-            }
-
-            const { error: updateError } = await supabase
-              .from("certificates")
-              .update(updatePayload)
-              .eq("id", existingCertificate.id);
-            if (updateError) throw updateError;
-          }
-        } else {
+        if (!existingCertificate) {
           const { error: insertError } = await supabase.from("certificates").insert({
             enrollment_id: enrollmentId,
             certificate_type: nextType,
             certificate_code: createCertificateCode(enrollment, nextType),
-            status: "pending",
+            status: "draft",
+            issued_at: new Date().toISOString(),
           });
           if (insertError) throw insertError;
         }
@@ -958,7 +946,22 @@ export function useAdmin() {
       rows = rows.filter(r => String(r.class_id) === classSessionsFilterId).sort((a, b) => Number(a.session_number) - Number(b.session_number));
     }
     const q = search.trim().toLowerCase();
-    return q ? rows.filter(r => activeConfig.searchFields.some(f => String(r[f] ?? "").toLowerCase().includes(q))) : rows;
+    if (!q) return rows;
+
+    return rows.filter(r => {
+      return activeConfig.searchFields.some(f => {
+        let val = "";
+        if (activeTable === "certificates" && (f === "student_name" || f === "student_email")) {
+          const enrollment = data.enrollments.find(e => e.id === r.enrollment_id);
+          const student = enrollment ? data.students.find(s => s.id === enrollment.student_id) : null;
+          const studentValue = student ? (f === "student_name" ? student.full_name : student.email) : "";
+          val = String(studentValue ?? "");
+        } else {
+          val = String(r[f] ?? "");
+        }
+        return val.toLowerCase().includes(q);
+      });
+    });
   }, [activeTable, data, search, classSessionsFilterId, activeConfig]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
@@ -995,6 +998,14 @@ export function useAdmin() {
       const cls = data.classes.find(c => c.id === val);
       return cls ? `${cls.class_name} (${cls.class_code})` : val;
     }
+    if (activeTable === "certificates" && (column.key === "student_name" || column.key === "student_email")) {
+      const enrollment = data.enrollments.find(e => e.id === row.enrollment_id);
+      if (!enrollment) return "-";
+      const student = data.students.find(s => s.id === enrollment.student_id);
+      if (!student) return "-";
+      return column.key === "student_name" ? student.full_name : student.email;
+    }
+
     if (activeTable === "certificates" && column.key === "status") {
       return (
         <select
