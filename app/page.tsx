@@ -999,6 +999,10 @@ export default function Home() {
       }
 
       const role = session.user.user_metadata?.role?.trim() || "student";
+      if (role === "student") {
+        router.push("/user");
+        return;
+      }
       setCurrentUserRole(role);
 
       if (role === "assistant") {

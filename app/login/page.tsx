@@ -15,7 +15,11 @@ export default function LoginPage() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        router.push("/");
+        if (session.user.user_metadata?.role === "student") {
+          router.push("/user");
+        } else {
+          router.push("/");
+        }
       }
     });
   }, [router]);
@@ -34,7 +38,12 @@ export default function LoginPage() {
       setError("Email hoặc mật khẩu không chính xác.");
       setLoading(false);
     } else {
-      router.push("/");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user.user_metadata?.role === "student") {
+        router.push("/user");
+      } else {
+        router.push("/");
+      }
     }
   }
 
