@@ -1290,8 +1290,5 @@ export function useAdmin() {
     certificateStatusOptions,
     attendanceRecordsByEnrollment,
     assignmentRecordsByEnrollment,
-    attendanceMode,
-    setAttendanceMode,
-    attendanceRecords,
   };
 }
