@@ -12,7 +12,6 @@ import {
   deleteUser as deleteUserSafe,
   resetStudentPassword,
   updateUser as updateUserSafe,
-  type UserRole,
 } from "@/app/actions/users";
 import {
   getMyAssignedClassIds,
@@ -58,9 +57,12 @@ import type {
   SidebarGroup,
   TableName,
   ViewName,
+  UseAdminReturn,
+  AdminUser,
+  UserRole,
 } from "@/app/admin/types";
 
-export function useAdmin() {
+export function useAdmin(): UseAdminReturn {
   const [activeView, setActiveView] = useState<ViewName>(getInitialView);
   const [openSidebarGroup, setOpenSidebarGroup] = useState<SidebarGroup>(() =>
     getSidebarGroupForView(getInitialView())
@@ -100,9 +102,9 @@ export function useAdmin() {
   const previousDataTableRef = useRef<TableName | null>(null);
   const activeTable: TableName = isTableName(activeView) ? activeView : "students";
   
-  const [adminUsers, setAdminUsers] = useState<any[]>([]);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [adminForm, setAdminForm] = useState({ email: "", password: "", username: "", role: "admin" as UserRole, id: "" });
-  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<UserRole | null>(null);
   const [currentAccount, setCurrentAccount] = useState<{ email: string; name: string; role: string } | null>(null);
   const [accountTab, setAccountTab] = useState<"staff" | "student">("staff");
   const [classDashboardMode, setClassDashboardMode] = useState<"session" | "overall">("session");
@@ -1110,7 +1112,7 @@ export function useAdmin() {
         name: String(metadata.username || metadata.full_name || metadata.name || email.split("@")[0] || "Người dùng"),
         role,
       });
-      setCurrentUserRole(role);
+      setCurrentUserRole(role as UserRole);
 
       if (role === "assistant") {
         try {

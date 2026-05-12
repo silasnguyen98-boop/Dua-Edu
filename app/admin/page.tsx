@@ -1,6 +1,7 @@
 "use client";
 
 import { useAdmin } from "./hooks/useAdmin";
+import { type UseAdminReturn } from "./types";
 import { Sidebar } from "./components/Sidebar";
 import { Topbar } from "./components/Topbar";
 import { GeneralDashboard } from "./components/GeneralDashboard";
@@ -19,7 +20,7 @@ import { SessionDetailModal } from "./components/SessionDetailModal";
 import { AssignAssistantModal } from "./components/AssignAssistantModal";
 
 export default function Home() {
-  const admin = useAdmin();
+  const admin: UseAdminReturn = useAdmin();
 
   if (admin.isAuthenticated === null) return <div className="loading-screen"><div className="loader"></div></div>;
   if (!admin.isAuthenticated) return null;
@@ -298,7 +299,7 @@ export default function Home() {
       )}
 
       {admin.showCertGuide && (
-        <CertGuideModal onClose={() => admin.setShowCertGuide(false)} />
+        <CertGuideModal show={admin.showCertGuide} onClose={() => admin.setShowCertGuide(false)} />
       )}
 
       {admin.showAttendanceGuide && (
