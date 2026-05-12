@@ -1646,10 +1646,11 @@ export default function Home() {
     downloadWorkbook(`${activeConfig.name}-export.xlsx`, buildExcelRows(filteredRows));
   }
 
-  async function skipDuplicateStudentEmails(
+  async function skipDuplicateEmails(
     payload: Record<string, string | number | null>[],
   ) {
-    if (activeTable !== "students") {
+    const hasEmailField = activeConfig.fields.some(f => f.name === "email");
+    if (!hasEmailField) {
       return { duplicateCount: 0, payload };
     }
 
@@ -1676,8 +1677,8 @@ export default function Home() {
       return { duplicateCount, payload: uniqueRows };
     }
 
-    const { data: existingStudents, error: emailCheckError } = await supabase
-      .from("students")
+    const { data: existingRows, error: emailCheckError } = await supabase
+      .from(activeTable)
       .select("email")
       .in("email", emails);
 
@@ -1686,7 +1687,7 @@ export default function Home() {
     }
 
     const existingEmails = new Set(
-      (existingStudents ?? []).map((student) => String(student.email ?? "").trim().toLowerCase()),
+      (existingRows ?? []).map((row) => String(row.email ?? "").trim().toLowerCase()),
     );
     const filteredPayload = uniqueRows.filter((row) => {
       const email = String(row.email ?? "").trim().toLowerCase();
@@ -1825,12 +1826,12 @@ export default function Home() {
       }
 
       const resolvedPayload = await resolveImportReferences(payload);
-      const importData = await skipDuplicateStudentEmails(resolvedPayload);
+      const importData = await skipDuplicateEmails(resolvedPayload);
 
       if (!importData.payload.length) {
         setMessage(
           importData.duplicateCount
-            ? `Không có dòng mới để import. Đã bỏ qua ${importData.duplicateCount} email trùng.`
+            ? `Không có dòng mới để import. Đã bỏ qua ${importData.duplicateCount} email đã tồn tại trong hệ thống.`
             : "Không có dòng mới để import.",
         );
         return;
@@ -1846,9 +1847,9 @@ export default function Home() {
       }
 
       setMessage(
-        `Đã import ${importData.payload.length} dòng vào ${activeConfig.label}.` +
+        `✓ Đã import ${importData.payload.length} dòng thành công.` +
           (importData.duplicateCount
-            ? ` Đã bỏ qua ${importData.duplicateCount} email trùng.`
+            ? ` (Đã tự động bỏ qua ${importData.duplicateCount} email bị trùng lặp).`
             : ""),
       );
       await loadAllTables();
