@@ -4490,8 +4490,8 @@ export default function Home() {
         )}
 
         {isDataView && (
-        <section className={isAssistantUser && activeTable === "students" ? "full-width-panel" : "management-grid"}>
-          {!(isAssistantUser && activeTable === "students") && (
+        <section className={(isAssistantUser && activeTable === "students") || activeTable === "certificates" ? "full-width-panel" : "management-grid"}>
+          {!(isAssistantUser && activeTable === "students") && activeTable !== "certificates" && (
           <form className="editor" onSubmit={(event) => void saveRow(event)}>
             <div className="section-heading">
               <div>
@@ -4715,7 +4715,9 @@ export default function Home() {
                                 Chi tiết
                               </button>
                             )}
-                            {!(isAssistantUser && activeTable === "students") ? (
+                            {activeTable === "certificates" ? (
+                              <span style={{ fontSize: "12px", color: "#059669", fontWeight: 600 }}>Tự động</span>
+                            ) : !(isAssistantUser && activeTable === "students") ? (
                               <>
                                 <button onClick={() => startEdit(row)} type="button">
                                   Sửa
