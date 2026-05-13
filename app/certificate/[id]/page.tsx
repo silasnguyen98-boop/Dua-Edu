@@ -56,9 +56,8 @@ export default function CertificateDetailPage({ params }: { params: Promise<{ id
   return (
     <div className="cert-system-body">
       <nav className="pro-nav">
-        <Link href="/certificate" className="pro-nav-logo" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <Link href="/certificate" className="pro-nav-logo" style={{ display: 'flex', alignItems: 'center' }}>
           <img src="/logo.png" alt="Logo" style={{ height: 32, width: 'auto' }} />
-          <span>DUA Edu</span>
         </Link>
         <Link href="/certificate" style={{ color: '#5f6368', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
           <ChevronLeft /> Quay lại tra cứu
@@ -119,8 +118,8 @@ export default function CertificateDetailPage({ params }: { params: Promise<{ id
               <div className="pro-info-value" style={{ fontFamily: 'monospace', letterSpacing: 0.5 }}>{data.certificate_code}</div>
             </div>
 
-            <div style={{ marginTop: 40, padding: 20, background: '#f8f9fa', borderRadius: 8, fontSize: 13, color: '#5f6368', lineHeight: 1.5 }}>
-              Đây là chứng nhận điện tử chính thức được cấp bởi <strong>DUA Edu</strong>. Bạn có thể sử dụng mã số này để xác minh tính pháp lý của chứng nhận tại website của chúng tôi.
+              <div style={{ marginTop: 40, padding: 20, background: '#f8f9fa', borderRadius: 8, fontSize: 13, color: '#5f6368', lineHeight: 1.5 }}>
+              Đây là chứng nhận điện tử do <strong>DUA Edu</strong> cấp. Bạn có thể sử dụng mã số này để tra cứu và xác minh thông tin chứng nhận trên website của chúng tôi.
             </div>
           </div>
         </div>

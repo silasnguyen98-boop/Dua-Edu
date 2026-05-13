@@ -2,14 +2,27 @@ services:
   dua-edu:
     build:
       context: .
-      target: dev
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}
+        SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
     container_name: dua-edu-admin
     env_file:
       - .env.local
     ports:
-      - "3002:3002"
+      - "3007:3007"
     volumes:
       - .:/app
       - /app/node_modules
       - /app/.next
     command: npm run dev:docker
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: dua-edu-nginx
+    depends_on:
+      - dua-edu
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro

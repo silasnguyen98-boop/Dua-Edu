@@ -2,9 +2,11 @@ import sys
 import os
 from PIL import Image, ImageDraw, ImageFont
 
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
 def generate_full_certificate(name, course, date, cert_id, output_path, cert_type="completion"):
     # Đường dẫn phôi sạch
-    template_path = "public/cert-bg-clean.png"
+    template_path = os.path.join(BASE_DIR, "public", "cert-bg-clean.png")
     
     if not os.path.exists(template_path):
         print(f"Error: Template not found at {template_path}")
@@ -18,7 +20,7 @@ def generate_full_certificate(name, course, date, cert_id, output_path, cert_typ
     # Cấu hình Font (Tương thích Linux/Docker)
     def get_font(font_name, size):
         # Ưu tiên font trong project
-        local_path = os.path.join("public", "fonts", font_name)
+        local_path = os.path.join(BASE_DIR, "public", "fonts", font_name)
         if os.path.exists(local_path):
             return ImageFont.truetype(local_path, size)
         # Fallback Linux paths
@@ -48,7 +50,7 @@ def generate_full_certificate(name, course, date, cert_id, output_path, cert_typ
 
     # 1. Header: Logo & Slogan
     try:
-        logo = Image.open("public/logo.png").convert("RGBA")
+        logo = Image.open(os.path.join(BASE_DIR, "public", "logo.png")).convert("RGBA")
         base_w = 140
         w_percent = (base_w / float(logo.size[0]))
         h_size = int((float(logo.size[1]) * float(w_percent)))
@@ -96,7 +98,7 @@ def generate_full_certificate(name, course, date, cert_id, output_path, cert_typ
     
     # Chèn Chữ ký
     try:
-        sig = Image.open("public/signature.png").convert("RGBA")
+        sig = Image.open(os.path.join(BASE_DIR, "public", "signature.png")).convert("RGBA")
         sig_w = 90
         w_percent = (sig_w / float(sig.size[0]))
         sig_h = int((float(sig.size[1]) * float(w_percent)))

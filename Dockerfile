@@ -15,6 +15,14 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
+# Build-time env needed by Next.js while collecting page data
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+ARG SUPABASE_SERVICE_ROLE_KEY
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+ENV SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
+
 # 3. Install Python libraries
 COPY requirements.txt ./
 RUN python3 -m venv /opt/venv
@@ -33,5 +41,5 @@ ENV NEXT_TELEMETRY_DISABLED 1
 RUN npm run build
 
 # 7. Start the app
-EXPOSE 3000
+EXPOSE 3007
 CMD ["npm", "start"]

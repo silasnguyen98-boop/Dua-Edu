@@ -48,7 +48,7 @@ npm run dev
 
 ## Docker
 
-Run the admin dashboard on port `3002` with Docker Compose:
+Run the admin dashboard on port `3007` with Docker Compose:
 
 ```bash
 docker compose up --build
@@ -57,5 +57,5 @@ docker compose up --build
 Open:
 
 ```bash
-http://localhost:3002
+http://localhost:3007
 ```

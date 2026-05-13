@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase/client";
-import { exec } from "child_process";
+import { execFile } from "child_process";
 import path from "path";
 import fs from "fs";
+import os from "os";
 import { promisify } from "util";
 
-const execPromise = promisify(exec);
+const execFilePromise = promisify(execFile);
 
 export async function GET(
   request: NextRequest,
@@ -49,19 +50,25 @@ export async function GET(
 
     // 2. Đường dẫn lưu file tạm
     const tempFileName = `cert-${certCode}.png`;
-    const publicPath = path.join(process.cwd(), "public", "temp_certs");
-    const outputPath = path.join(publicPath, tempFileName);
+    const tempDir = path.join(os.tmpdir(), "dua-edu-certs");
+    const outputPath = path.join(tempDir, tempFileName);
 
     // Tạo thư mục nếu chưa có
-    if (!fs.existsSync(publicPath)) {
-      fs.mkdirSync(publicPath, { recursive: true });
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
     }
 
     // 3. Chạy Script Python để tạo ảnh
     const scriptPath = path.join(process.cwd(), "scripts", "generate_cert.py");
-    const command = `python3 "${scriptPath}" "${studentName}" "${courseName}" "${date}" "${certCode}" "${outputPath}" "${certType}"`;
-
-    await execPromise(command);
+    await execFilePromise("python3", [
+      scriptPath,
+      studentName,
+      courseName,
+      date,
+      certCode,
+      outputPath,
+      certType,
+    ]);
 
     // 4. Trả về ảnh
     if (fs.existsSync(outputPath)) {
