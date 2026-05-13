@@ -115,6 +115,34 @@ export function ClassDashboardView({
     (studentStatusPage - 1) * studentStatusPageSize,
     studentStatusPage * studentStatusPageSize,
   );
+  const attendanceModeItems = [
+    {
+      key: "session" as const,
+      title: "Theo buổi",
+      subtitle: "Chấm từng session",
+      icon: (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="5" width="18" height="16" rx="4" />
+          <path d="M3 10h18" />
+          <path d="M8 3v4" />
+          <path d="M16 3v4" />
+        </svg>
+      ),
+    },
+    {
+      key: "overall" as const,
+      title: "Tổng hợp",
+      subtitle: "Xem toàn lớp",
+      icon: (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 19V5" />
+          <path d="M9 19V10" />
+          <path d="M14 19V13" />
+          <path d="M19 19V7" />
+        </svg>
+      ),
+    },
+  ];
 
   useEffect(() => {
     setStudentStatusPage(1);
@@ -168,33 +196,25 @@ export function ClassDashboardView({
             )}
           </div>
 
-          <div style={{ display: "flex", gap: "4px", background: "var(--surface-soft)", padding: "5px", borderRadius: "12px", border: "1px solid var(--border)", boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)" }}>
-            <button
-              onClick={() => setClassDashboardMode("session")}
-              style={{
-                padding: "10px 24px", borderRadius: "9px", border: "none", fontSize: "14px", fontWeight: 700,
-                background: classDashboardMode === "session" ? "white" : "transparent",
-                color: classDashboardMode === "session" ? "#4f46e5" : "var(--text-secondary)",
-                boxShadow: classDashboardMode === "session" ? "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)" : "none",
-                cursor: "pointer",
-                transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
-              }}
-            >
-              Theo buổi
-            </button>
-            <button
-              onClick={() => setClassDashboardMode("overall")}
-              style={{
-                padding: "10px 24px", borderRadius: "9px", border: "none", fontSize: "14px", fontWeight: 700,
-                background: classDashboardMode === "overall" ? "white" : "transparent",
-                color: classDashboardMode === "overall" ? "#4f46e5" : "var(--text-secondary)",
-                boxShadow: classDashboardMode === "overall" ? "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)" : "none",
-                cursor: "pointer",
-                transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
-              }}
-            >
-              Toàn lớp
-            </button>
+          <div className="attendance-mode-switch" role="tablist" aria-label="Chế độ điểm danh">
+            {attendanceModeItems.map((item) => (
+              <button
+                key={item.key}
+                onClick={() => setClassDashboardMode(item.key)}
+                className={`attendance-mode-button ${classDashboardMode === item.key ? "active" : ""}`}
+                type="button"
+                role="tab"
+                aria-selected={classDashboardMode === item.key}
+              >
+                <span className="attendance-mode-button-inner">
+                  <span className="attendance-mode-icon">{item.icon}</span>
+                  <span className="attendance-mode-copy">
+                    <span className="attendance-mode-title">{item.title}</span>
+                    <span className="attendance-mode-subtitle">{item.subtitle}</span>
+                  </span>
+                </span>
+              </button>
+            ))}
           </div>
         </div>
 

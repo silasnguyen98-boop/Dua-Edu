@@ -36,6 +36,21 @@ export function ScoreView({
   const [showGuide, setShowGuide] = React.useState(false);
   const isAssignment = type === "assignment";
   const label = isAssignment ? "bài tập" : "đồ án";
+  const RefreshIcon = () => (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M21 12a9 9 0 0 1-15.5 6.36" />
+      <path d="M3 12a9 9 0 0 1 15.5-6.36" />
+      <path d="M17 3v3h-3" />
+      <path d="M7 21v-3h3" />
+    </svg>
+  );
+  const InfoIcon = () => (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 10v6" />
+      <path d="M12 7h.01" />
+    </svg>
+  );
 
   return (
     <section className="analytics-grid" aria-label={`Giao diện chấm điểm ${label}`}>
@@ -46,27 +61,6 @@ export function ScoreView({
             <p style={{ margin: "4px 0 0", color: "var(--foreground-muted)", fontSize: "0.9rem" }}>
               Cập nhật kết quả làm {label} của học viên.
             </p>
-          </div>
-          <div style={{ position: "relative" }}>
-            <button 
-              className="secondary-button" 
-              onClick={() => setShowGuide(!showGuide)}
-              style={{ display: "flex", alignItems: "center", gap: "8px" }}
-            >
-              <span>ℹ️ Hướng dẫn</span>
-            </button>
-            {showGuide && (
-              <div className="guide-popover">
-                <p className="guide-kicker">Hướng dẫn</p>
-                <h4>Cách tính điểm</h4>
-                <ul className="guide-list">
-                  <li>Nhập điểm trực tiếp vào từng ô BT (0-10).</li>
-                  <li>Hệ thống <strong>tự động lưu</strong> khi bạn chuyển ô.</li>
-                  <li>Điểm trung bình (Assignment Score) sẽ được <strong>tự động tính toán</strong> lại ngay sau khi lưu.</li>
-                  <li>Nếu để trống, hệ thống sẽ coi như chưa có điểm.</li>
-                </ul>
-              </div>
-            )}
           </div>
         </div>
 
@@ -88,8 +82,36 @@ export function ScoreView({
               </label>
             )}
           </div>
-          <button className="secondary-button" onClick={onRefresh} type="button">Làm mới</button>
+          <div className="attendance-toolbar-actions">
+            <button
+              className="attendance-icon-button guide-trigger"
+              onClick={() => setShowGuide(!showGuide)}
+              type="button"
+              aria-label="Hướng dẫn"
+              title="Hướng dẫn"
+            >
+              <InfoIcon />
+              <span className="sr-only">Hướng dẫn</span>
+            </button>
+            <button className="attendance-icon-button" onClick={onRefresh} type="button" aria-label="Làm mới" title="Làm mới">
+              <RefreshIcon />
+              <span className="sr-only">Làm mới</span>
+            </button>
+          </div>
         </div>
+
+        {showGuide && (
+          <div className="guide-popover guide-popover-inline">
+            <p className="guide-kicker">Hướng dẫn</p>
+            <h4>Cách tính điểm</h4>
+            <ul className="guide-list">
+              <li>Nhập điểm trực tiếp vào từng ô BT (0-10).</li>
+              <li>Hệ thống <strong>tự động lưu</strong> khi bạn chuyển ô.</li>
+              <li>Điểm trung bình (Assignment Score) sẽ được <strong>tự động tính toán</strong> lại ngay sau khi lưu.</li>
+              <li>Nếu để trống, hệ thống sẽ coi như chưa có điểm.</li>
+            </ul>
+          </div>
+        )}
 
         {error && <div className="notice error">{error}</div>}
 

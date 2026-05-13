@@ -1,26 +1,20 @@
 # Dua-Edu
 
-## Admin system
+Next.js admin dashboard for managing the Dua-Edu training database on Supabase.
+It provides a clean interface for operators to browse, search, edit, import, and export core training records.
 
-Dua-Edu includes a Next.js admin dashboard for the Supabase tables in the
-training schema:
+## What It Does
 
-- students
-- teachers
-- courses
-- classes
-- enrollments
-- certificates
+- Manage `students`, `teachers`, `courses`, `classes`, `enrollments`, and `certificates`
+- Search and filter records quickly across the admin tables
+- Create, update, and delete data with a dashboard UI
+- Import from `.xlsx` / `.xls` spreadsheets
+- Export filtered table data back to Excel
+- Generate and verify electronic certificates
 
-The dashboard supports listing, searching, creating, editing, and deleting
-records for each table. It also supports Excel workflows:
+## Data Import Format
 
-- download a sample Excel file for the active table
-- import rows from `.xlsx` or `.xls`
-- export the current filtered rows to `.xlsx`
-
-Import files avoid raw database IDs. Relationship columns use readable lookup
-values instead:
+Imports avoid raw database IDs. Use readable lookup values instead:
 
 - `course_code` for courses
 - `teacher_email` for teachers
@@ -28,27 +22,38 @@ values instead:
 - `class_code` for classes
 - `enrollment_key` as `student_email|class_code` for certificates
 
-## Supabase setup
+## Requirements
 
-This project uses Supabase through `@supabase/supabase-js`.
+- Node.js 20+
+- Supabase project
+- Python 3 for certificate image generation
 
-Create `.env.local` with:
+## Environment
+
+Create a `.env.local` file:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://nnkwzjkbzwehxryulshv.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
-Then run:
+## Local Development
 
 ```bash
 npm install
 npm run dev
 ```
 
+Open the app at:
+
+```bash
+http://localhost:3000
+```
+
 ## Docker
 
-Run the admin dashboard on port `3007` with Docker Compose:
+The Docker setup runs the app on port `3007`.
 
 ```bash
 docker compose up --build
@@ -58,4 +63,19 @@ Open:
 
 ```bash
 http://localhost:3007
+```
+
+## Project Notes
+
+- Admin routing and certificate pages are built with Next.js App Router
+- Certificate images are generated dynamically through a Python script
+- The dashboard is configured to work with Supabase-backed training data
+
+## Useful Commands
+
+```bash
+npm run dev
+npm run build
+npm run start
+docker compose up --build
 ```
