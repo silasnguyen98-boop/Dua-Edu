@@ -94,7 +94,7 @@ export default function LoginPage() {
 
       <section className="login-side">
         <div className="login-side-header">
-          <span>dua.edu.vn</span>
+          <span>duadata.net</span>
           <Link href="/tracuu">Tra cứu học viên</Link>
         </div>
         <div className="login-card">
@@ -115,7 +115,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@dua-edu.com"
+                  placeholder="admin@duadata.net"
                   required
                 />
               </div>
