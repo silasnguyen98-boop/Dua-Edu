@@ -395,6 +395,61 @@ export function ClassDashboardView({
                   </article>
                 )}
 
+                <article className="class-dashboard-panel wide">
+                  <div className="section-heading compact">
+                    <div>
+                      <p className="eyebrow">Theo dõi vắng</p>
+                      <h3>
+                        Vắng trong {classDashboardMetrics.recentAbsenceSessionNumbers?.length || 0} buổi gần nhất
+                      </h3>
+                    </div>
+                  </div>
+                  <div className="class-table" style={{ marginTop: "16px" }}>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Học viên</th>
+                          <th>Email</th>
+                          <th>Số buổi vắng</th>
+                          {classDashboardMetrics.recentAbsenceSessionNumbers?.map((sessionNumber: number) => (
+                            <th key={sessionNumber}>B{sessionNumber}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {classDashboardMetrics.recentAbsentees?.length ? (
+                          classDashboardMetrics.recentAbsentees.map((student: any) => (
+                            <tr key={student.id}>
+                              <td>{student.name}</td>
+                              <td>{student.email}</td>
+                              <td>
+                                <strong style={{ color: "#b91c1c" }}>{student.recentAbsentCount}</strong>
+                              </td>
+                              {student.recentRecords.map((record: any) => (
+                                <td key={record.sessionNumber}>
+                                  {record.status === "absent" ? (
+                                    <span className="student-attendance-note danger">Vắng</span>
+                                  ) : record.status ? (
+                                    <span className="student-attendance-note muted">-</span>
+                                  ) : (
+                                    <span className="student-attendance-note muted">Chưa điểm danh</span>
+                                  )}
+                                </td>
+                              ))}
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={3 + (classDashboardMetrics.recentAbsenceSessionNumbers?.length || 0)}>
+                              Chưa có học viên vắng trong các buổi gần nhất.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </article>
+
                 <AttendanceModal
                   status={sessionDetailStatus}
                   selectedClass={selectedAttendanceClass}

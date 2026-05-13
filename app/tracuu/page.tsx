@@ -367,18 +367,25 @@ export default function TraCuuPage() {
         }
 
         .login-link {
+          position: fixed;
+          left: 24px;
+          bottom: 24px;
+          z-index: 50;
+          background: #ffffff;
           color: #64748b;
           font-size: 14px;
           text-decoration: none;
-          font-weight: 500;
-          padding: 8px 16px;
+          font-weight: 700;
+          padding: 10px 16px;
+          border: 1px solid rgba(15, 23, 42, 0.12);
           border-radius: 8px;
+          box-shadow: 0 14px 35px rgba(15, 23, 42, 0.12);
           transition: all 0.2s;
         }
 
         .login-link:hover {
           color: #0f172a;
-          background: rgba(0, 0, 0, 0.05);
+          background: #f8fafc;
         }
 
         .tracuu-main {

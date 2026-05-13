@@ -43,7 +43,9 @@ export function useDashboardMetrics({
           assignment: { excellent: 0, good: 0, average: 0, risky: 0 },
           project: { excellent: 0, good: 0, average: 0, risky: 0 },
         },
-        chronicAbsenteesInSession: []
+        chronicAbsenteesInSession: [],
+        recentAbsentees: [],
+        recentAbsenceSessionNumbers: [],
       };
     }
 
@@ -87,6 +89,36 @@ export function useDashboardMetrics({
     }).filter(row => (row.present + row.absent + row.late + row.excused) > 0);
 
     const last2Sessions = [...sessionRows].sort((a, b) => b.sessionNumber - a.sessionNumber).slice(0, 2);
+    const recentAbsenceSessions = [...sessionRows]
+      .filter((row) => row.isMarked && row.sessionNumber <= selectedAttendanceSession)
+      .sort((a, b) => b.sessionNumber - a.sessionNumber)
+      .slice(0, 2);
+    const recentAbsenceSessionNumbers = recentAbsenceSessions.map((row) => row.sessionNumber);
+    const recentAbsentees = selectedAttendanceClass.enrollments
+      .map((en: any) => {
+        const recentRecords = recentAbsenceSessionNumbers.map((sessionNumber) => {
+          const record = recordsForClass.find(
+            (r) => String(r.enrollment_id) === en.id && Number(r.session_number) === sessionNumber,
+          );
+
+          return {
+            sessionNumber,
+            status: String(record?.status ?? ""),
+          };
+        });
+        const recentAbsentCount = recentRecords.filter((record) => record.status === "absent").length;
+
+        return {
+          ...en,
+          recentAbsentCount,
+          recentRecords,
+        };
+      })
+      .filter((student: any) => student.recentAbsentCount > 0)
+      .sort((a: any, b: any) =>
+        b.recentAbsentCount - a.recentAbsentCount ||
+        String(a.name || "").localeCompare(String(b.name || "")),
+      );
     const atRiskStudents = selectedAttendanceClass.enrollments.filter((en: any) => {
       if (last2Sessions.length < 2) return false;
       return last2Sessions.every((session) => {
@@ -286,7 +318,9 @@ export function useDashboardMetrics({
           ...en,
           badCount: history.filter(r => r.status === "absent" || r.status === "late").length
         };
-      })
+      }),
+      recentAbsentees,
+      recentAbsenceSessionNumbers,
     };
   }, [attendanceRecords, assignmentRecords, attendanceSessionCount, selectedAttendanceClass, selectedAttendanceSession]);
 }

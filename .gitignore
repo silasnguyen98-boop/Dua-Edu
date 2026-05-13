@@ -1,6 +1,8 @@
 node_modules
 .next
 out
+.tools
+tsconfig.tsbuildinfo
 
 .env*.local
 

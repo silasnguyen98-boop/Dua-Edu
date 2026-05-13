@@ -13,6 +13,9 @@ interface SidebarProps {
   tableConfigs: TableConfig[];
   data: DataState;
   visibleClassItems: any[];
+  currentAccount: any;
+  roleLabels: Record<string, string>;
+  onLogout: () => void | Promise<void>;
 }
 
 export function Sidebar({
@@ -24,6 +27,9 @@ export function Sidebar({
   tableConfigs,
   data,
   visibleClassItems,
+  currentAccount,
+  roleLabels,
+  onLogout,
 }: SidebarProps) {
   return (
     <aside className="sidebar">
@@ -219,6 +225,46 @@ export function Sidebar({
           </>
         )}
       </div>
+      {currentAccount && (
+        <div className="sidebar-account">
+          <div className="admin-account-card" aria-label="Thông tin đăng nhập">
+            <div className="admin-account-avatar">
+              {(currentAccount.name || currentAccount.email || "?").slice(0, 1).toUpperCase()}
+            </div>
+            <div className="admin-account-copy">
+              <strong>{currentAccount.name || "User"}</strong>
+              <span>
+                {roleLabels[currentAccount.role] || currentAccount.role}
+                {currentAccount.email ? ` · ${currentAccount.email}` : ""}
+              </span>
+            </div>
+            <button
+              aria-label="Đăng xuất"
+              className="admin-account-logout"
+              onClick={onLogout}
+              title="Đăng xuất"
+              type="button"
+            >
+              <svg aria-hidden="true" fill="none" height="18" viewBox="0 0 24 24" width="18">
+                <path
+                  d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                />
+                <path
+                  d="m16 17 5-5-5-5M21 12H9"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

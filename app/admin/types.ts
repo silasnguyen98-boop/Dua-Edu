@@ -203,6 +203,7 @@ export interface UseAdminReturn {
   saveRow: (event: React.FormEvent<HTMLFormElement>) => Promise<void>;
   deleteRow: (row: Row) => Promise<void>;
   startEdit: (row: Row) => void;
+  startEditClass: (row: Row) => void;
   resetForm: () => void;
   importExcel: (event: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
   downloadTemplate: () => Promise<void>;

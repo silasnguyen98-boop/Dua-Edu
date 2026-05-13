@@ -252,6 +252,7 @@ export function useAdmin(): UseAdminReturn {
             };
           }),
           id: classId,
+          raw: classRow,
           schedule: String(classRow.schedule ?? "-"),
           startDate: classRow.start_date ? String(classRow.start_date) : "-",
           studyTime: String(classRow.study_time ?? "-"),
@@ -323,11 +324,11 @@ export function useAdmin(): UseAdminReturn {
   });
 
   const selectedClassEnrollments = useMemo(() => {
-    const sourceClass = selectedClass ?? selectedAttendanceClass;
+    const sourceClass = isClassDetailView ? selectedClass : selectedAttendanceClass;
     if (!sourceClass) return [];
 
     let filtered = sourceClass.enrollments;
-    if (sourceClass === selectedClass && classStatusFilter !== "all") {
+    if (isClassDetailView && classStatusFilter !== "all") {
       filtered = classStatusFilter === "__empty"
         ? filtered.filter((enrollment: any) => !enrollment.status)
         : filtered.filter((enrollment: any) => enrollment.status === classStatusFilter);
@@ -354,7 +355,7 @@ export function useAdmin(): UseAdminReturn {
           : String(aVal).localeCompare(String(bVal));
         return classDetailSortDir === "asc" ? comparison : -comparison;
       });
-  }, [classDetailSortDir, classDetailSortField, classStatusFilter, selectedAttendanceClass, selectedClass]);
+  }, [classDetailSortDir, classDetailSortField, classStatusFilter, isClassDetailView, selectedAttendanceClass, selectedClass]);
 
   const pageEyebrow = useMemo(() => {
     if (activeView === "dashboard") return "Phân tích hệ thống";
@@ -679,6 +680,24 @@ export function useAdmin(): UseAdminReturn {
       return fs;
     }, {});
     setEditingRow(row); setForm(nextForm); setRelationQueries({}); setOpenRelationPicker(null); setMessage(""); setError("");
+  }
+
+  function startEditClass(row: Row) {
+    const classConfig = tableConfigs.find((config) => config.name === "classes");
+    if (!classConfig) return;
+
+    setSelectedSessionDetail(null);
+    setActiveView("classes");
+    const nextForm = classConfig.fields.reduce<FormState>((fs, f) => {
+      fs[f.name] = toInputValue(f, row[f.name]);
+      return fs;
+    }, {});
+    setEditingRow(row);
+    setForm(nextForm);
+    setRelationQueries({});
+    setOpenRelationPicker(null);
+    setMessage("");
+    setError("");
   }
 
   function resetForm() {
@@ -1296,6 +1315,7 @@ export function useAdmin(): UseAdminReturn {
     saveRow,
     deleteRow,
     startEdit,
+    startEditClass,
     resetForm,
     importExcel,
     downloadTemplate,

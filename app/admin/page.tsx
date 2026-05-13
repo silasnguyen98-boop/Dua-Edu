@@ -36,6 +36,9 @@ export default function Home() {
         tableConfigs={admin.tableConfigs}
         data={admin.data}
         visibleClassItems={admin.visibleClassItems}
+        currentAccount={admin.currentAccount}
+        roleLabels={admin.roleLabels}
+        onLogout={() => void admin.onLogout()}
       />
 
       <main className="admin-main">
@@ -49,8 +52,6 @@ export default function Home() {
           isAssistantUser={admin.isAssistantUser}
           isClassDetailView={admin.isClassDetailView}
           isAssistantAssignmentsView={admin.isAssistantAssignmentsView}
-          currentAccount={admin.currentAccount}
-          roleLabels={admin.roleLabels}
           onShowCertGuide={() => admin.setShowCertGuide(true)}
           onSyncCertificates={() => void admin.syncCertificates()}
           onRefresh={() => void admin.loadAllTables()}
@@ -58,7 +59,6 @@ export default function Home() {
           onDownloadTemplate={() => void admin.downloadTemplate()}
           onExportData={() => admin.exportData()}
           onImportClick={() => admin.fileInputRef.current?.click()}
-          onLogout={() => void admin.onLogout()}
         />
 
         <input
@@ -91,6 +91,8 @@ export default function Home() {
               visibleClassItems={admin.visibleClassItems}
               assignedClassIds={admin.assignedClassIds}
               currentUserRole={admin.currentUserRole}
+              onAddClass={() => admin.setActiveView("classes")}
+              onEditClass={(row) => admin.startEditClass(row)}
               onOpenDashboard={(id) => { admin.setSelectedAttendanceClassId(id); admin.setActiveView("classDashboard"); }}
               onOpenDetail={(id) => { admin.setSelectedClassId(id); admin.setActiveView("classDetail"); }}
               formatValue={admin.formatValue}

@@ -411,7 +411,17 @@ export default function StudentDashboard() {
           border: 1.5px solid #10b981; 
           box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1); 
         }
-        .logout { margin-top: auto; color: #e53e3e; }
+        .logout {
+          position: fixed;
+          left: 24px;
+          bottom: 24px;
+          z-index: 50;
+          margin-top: 0;
+          background: #ffffff;
+          border: 1px solid #fed7d7;
+          color: #e53e3e;
+          box-shadow: 0 14px 35px rgba(15, 23, 42, 0.12);
+        }
         .logout:hover { background: #fff5f5; }
 
         /* Main Area */

@@ -239,6 +239,12 @@ p { color: var(--muted); line-height: 1.6; }
   display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap;
 }
 
+.sidebar-account {
+  flex: 0 0 auto;
+  padding: 12px 2px 16px;
+  border-top: 1px solid var(--border);
+}
+
 .admin-account-card {
   display: flex;
   align-items: center;
@@ -250,6 +256,13 @@ p { color: var(--muted); line-height: 1.6; }
   border-radius: 999px;
   background: #ffffff;
   box-shadow: var(--shadow-sm);
+}
+
+.sidebar-account .admin-account-card {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  border-radius: var(--radius);
 }
 
 .admin-account-avatar {

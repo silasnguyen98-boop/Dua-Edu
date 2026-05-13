@@ -6,6 +6,8 @@ interface ClassManagementViewProps {
   visibleClassItems: any[];
   assignedClassIds: string[];
   currentUserRole: string | null;
+  onAddClass: () => void;
+  onEditClass: (row: any) => void;
   onOpenDashboard: (id: string) => void;
   onOpenDetail: (id: string) => void;
   formatValue: (val: any) => string;
@@ -15,6 +17,8 @@ export function ClassManagementView({
   visibleClassItems,
   assignedClassIds,
   currentUserRole,
+  onAddClass,
+  onEditClass,
   onOpenDashboard,
   onOpenDetail,
   formatValue,
@@ -33,7 +37,20 @@ export function ClassManagementView({
   return (
     <section className="analytics-grid" aria-label="Quản lý lớp">
       <article className="analytics-card wide" style={{ paddingTop: "24px" }}>
-        <div style={{ marginBottom: "24px", display: "flex", justifyContent: "flex-end" }}>
+        <div style={{ marginBottom: "24px", display: "flex", justifyContent: "flex-end", gap: "12px", flexWrap: "wrap" }}>
+          {currentUserRole !== "assistant" && (
+            <button
+              aria-label="Thêm lớp"
+              className="primary-action"
+              onClick={onAddClass}
+              title="Thêm lớp"
+              type="button"
+              style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}
+            >
+              <span aria-hidden="true" style={{ fontSize: "20px", lineHeight: 1 }}>+</span>
+              <span>Thêm lớp</span>
+            </button>
+          )}
           <input
             type="text"
             placeholder="Tìm theo tên lớp, mã lớp, giảng viên..."
@@ -83,6 +100,15 @@ export function ClassManagementView({
                     </td>
                     <td style={{ whiteSpace: "nowrap" }}>
                       <div style={{ display: "flex", gap: "6px" }}>
+                        {currentUserRole !== "assistant" && (
+                          <button
+                            className="secondary-button compact-button"
+                            onClick={() => onEditClass(item.raw ?? item)}
+                            type="button"
+                          >
+                            Sửa
+                          </button>
+                        )}
                         <button
                           className="secondary-button compact-button"
                           onClick={() => onOpenDetail(item.id)}
