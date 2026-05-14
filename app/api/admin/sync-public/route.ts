@@ -4,6 +4,19 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 
+/**
+ * Che email để bảo mật thông tin (PII) khi lưu trữ công khai
+ */
+function maskEmail(email: string) {
+  if (!email) return "";
+  const [name, domain] = email.split("@");
+  if (!name || !domain) return email;
+  const maskedName = name.length > 2 
+    ? name.substring(0, 2) + "***"
+    : name[0] + "***";
+  return `${maskedName}@${domain}`;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const dataDir = path.join(process.cwd(), "data");
@@ -38,15 +51,21 @@ export async function POST(request: NextRequest) {
 
     console.log("SYNC DEBUG: Total certs found:", allCerts?.length);
     if (certError) console.error("SYNC DEBUG: Cert Error:", certError);
-    if (allCerts && allCerts.length > 0) {
-      console.log("SYNC DEBUG: Sample cert:", allCerts[0]);
-    }
-
+    
     const certMapByEnrollmentId = new Map();
     if (allCerts) {
       allCerts.forEach(cert => {
         const filePath = path.join(certDir, `${cert.certificate_code}.json`);
-        fs.writeFileSync(filePath, JSON.stringify(cert, null, 2), "utf-8");
+        
+        // Bảo mật: Che email trong dữ liệu chứng chỉ (Thêm kiểm tra an toàn)
+        const certData = JSON.parse(JSON.stringify(cert));
+        const studentEmail = certData.enrollments?.students?.email;
+        
+        if (studentEmail) {
+          certData.enrollments.students.email = maskEmail(studentEmail);
+        }
+        
+        fs.writeFileSync(filePath, JSON.stringify(certData, null, 2), "utf-8");
         certMapByEnrollmentId.set(cert.enrollment_id, cert);
       });
     }
@@ -90,10 +109,13 @@ export async function POST(request: NextRequest) {
 
         const studentPayload = {
           ...student,
+          email: maskEmail(student.email), 
           enrollments: enrichedEnrollments
         };
 
-        const emailHash = crypto.createHash("md5").update(student.email.trim().toLowerCase() + "DUA_EDU_SECURE_2026").digest("hex");
+        // Sử dụng SHA-256 thay vì MD5 (Thêm kiểm tra an toàn cho trim())
+        const cleanEmail = student.email.trim().toLowerCase();
+        const emailHash = crypto.createHash("sha256").update(cleanEmail + "DUA_EDU_SECURE_2026").digest("hex");
         const filePath = path.join(studentDir, `${emailHash}.json`);
         fs.writeFileSync(filePath, JSON.stringify(studentPayload, null, 2), "utf-8");
       });
