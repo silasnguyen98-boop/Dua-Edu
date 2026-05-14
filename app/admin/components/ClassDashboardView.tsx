@@ -127,7 +127,7 @@ export function ClassDashboardView({
   const topStudentsRows = [...studentStatusRows].sort((a, b) => {
     const getVal = (row: any, criteria: typeof topCriteria) => {
       switch(criteria) {
-        case "attendance": return Number(row.attendanceRate || 0);
+        case "attendance": return Number(row.attendanceScore || 0);
         case "assignment": return Number(row.assignmentScore || 0);
         case "project": return Number(row.projectScore || 0);
         case "overall": return Number(row.finalScore || 0);
@@ -1158,7 +1158,7 @@ export function ClassDashboardView({
                         style={{ padding: "8px 12px", borderRadius: "10px", border: "1px solid #e2e8f0", fontSize: "13px", fontWeight: 700, color: "#1e293b", background: "white", cursor: "pointer" }}
                       >
                         <option value="overall">Điểm tổng kết</option>
-                        <option value="attendance">Tỉ lệ chuyên cần</option>
+                        <option value="attendance">Điểm chuyên cần</option>
                         <option value="assignment">Điểm bài tập</option>
                         <option value="project">Điểm đồ án</option>
                       </select>
