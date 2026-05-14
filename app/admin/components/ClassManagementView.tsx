@@ -79,7 +79,7 @@ export function ClassManagementView({
                 <th>Lịch học</th>
                 <th>Thời gian học</th>
                 <th>Sĩ số</th>
-                <th>Danh sách</th>
+                <th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -115,6 +115,13 @@ export function ClassManagementView({
                           type="button"
                         >
                           Xem
+                        </button>
+                        <button
+                          className="secondary-button compact-button"
+                          onClick={() => onOpenDashboard(item.id)}
+                          type="button"
+                        >
+                          Dashboard
                         </button>
                       </div>
                     </td>

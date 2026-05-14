@@ -112,6 +112,7 @@ export function useAdmin(): UseAdminReturn {
   const [segmentCriteria, setSegmentCriteria] = useState<"attendance" | "assignment" | "project">("attendance");
   const [selectedStudentForDetail, setSelectedStudentForDetail] = useState<Row | null>(null);
   const [assignedClassIds, setAssignedClassIds] = useState<string[]>([]);
+  const [assistantAssignmentsLoaded, setAssistantAssignmentsLoaded] = useState(false);
   const [classAssistants, setClassAssistants] = useState<ClassAssistant[]>([]);
   const [showAssignModal, setShowAssignModal] = useState<string | null>(null);
   const [showCertGuide, setShowCertGuide] = useState(false);
@@ -636,7 +637,7 @@ export function useAdmin(): UseAdminReturn {
       const allowedCourseIds = new Set(nextData.classes.map((row) => String(row.course_id ?? "")));
       const allowedTeacherIds = new Set(nextData.classes.map((row) => String(row.teacher_id ?? "")));
       nextData.students = nextData.students.filter((row) => allowedStudentIds.has(String(row.id ?? "")));
-      nextData.courses = nextData.courses.filter((row) => allowedCourseIds.has(String(row.course_id ?? "")));
+      nextData.courses = nextData.courses.filter((row) => allowedCourseIds.has(String(row.id ?? "")));
       nextData.teachers = nextData.teachers.filter((row) => allowedTeacherIds.has(String(row.teacher_id ?? "")));
       nextData.certificates = nextData.certificates.filter((row) => assistantEnrollmentIds?.has(String(row.enrollment_id ?? "")) ?? false);
     }
@@ -1172,6 +1173,7 @@ export function useAdmin(): UseAdminReturn {
       }
 
       const role = isStaffRole ? rawRole : "admin";
+      setAssistantAssignmentsLoaded(role !== "assistant");
       setCurrentAccount({
         email,
         name: String(metadata.username || metadata.full_name || metadata.name || email.split("@")[0] || "Người dùng"),
@@ -1186,6 +1188,8 @@ export function useAdmin(): UseAdminReturn {
           if (!isAssistantAllowedView(activeView)) setActiveView("classManagement");
         } catch {
           setAssignedClassIds([]);
+        } finally {
+          setAssistantAssignmentsLoaded(true);
         }
       }
 
@@ -1196,8 +1200,10 @@ export function useAdmin(): UseAdminReturn {
   }, [activeView, router]);
 
   useEffect(() => {
-    if (isAuthenticated === true) void loadAllTables();
-  }, [isAuthenticated, currentUserRole, assignedClassIds]);
+    if (isAuthenticated !== true) return;
+    if (currentUserRole === "assistant" && !assistantAssignmentsLoaded) return;
+    void loadAllTables();
+  }, [assistantAssignmentsLoaded, isAuthenticated, currentUserRole, assignedClassIds]);
 
   useEffect(() => {
     if ((isAdminsView || activeTable === "students") && isAuthenticated) void loadAdmins();
