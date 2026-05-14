@@ -58,7 +58,7 @@ button {
   grid-template-columns: 288px 1fr;
 }
 
-.sidebar {
+.admin-sidebar {
   position: sticky;
   top: 0;
   height: 100dvh;
@@ -127,8 +127,8 @@ p { color: var(--muted); line-height: 1.6; }
 }
 
 /* Nav Tabs */
-.sidebar-nav,
-.sidebar-content {
+.admin-sidebar .sidebar-nav,
+.admin-sidebar .sidebar-content {
   display: grid;
   align-content: start;
   gap: 12px;
@@ -140,7 +140,7 @@ p { color: var(--muted); line-height: 1.6; }
   scrollbar-gutter: stable;
 }
 
-.sidebar-logo {
+.admin-sidebar .sidebar-logo {
   display: flex;
   align-items: center;
   min-width: 0;
@@ -149,7 +149,7 @@ p { color: var(--muted); line-height: 1.6; }
 }
 .nav-group { display: grid; gap: 8px; }
 .nav-group .eyebrow { margin-bottom: 0; }
-.sidebar-group-trigger {
+.admin-sidebar .sidebar-group-trigger {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -168,15 +168,15 @@ p { color: var(--muted); line-height: 1.6; }
   transition: background 0.2s, color 0.2s;
   border-radius: 999px;
 }
-.sidebar-group-trigger:hover {
+.admin-sidebar .sidebar-group-trigger:hover {
   background: #f1f3f4;
 }
-.sidebar-direct-link.active {
+.admin-sidebar .sidebar-direct-link.active {
   background: var(--accent-soft);
   color: var(--accent-dark);
   box-shadow: none;
 }
-.sidebar-group-trigger strong {
+.admin-sidebar .sidebar-group-trigger strong {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -239,7 +239,7 @@ p { color: var(--muted); line-height: 1.6; }
   display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap;
 }
 
-.sidebar-account {
+.admin-sidebar .sidebar-account {
   flex: 0 0 auto;
   padding: 12px 2px 16px;
   border-top: 1px solid var(--border);
@@ -258,7 +258,7 @@ p { color: var(--muted); line-height: 1.6; }
   box-shadow: var(--shadow-sm);
 }
 
-.sidebar-account .admin-account-card {
+.admin-sidebar .sidebar-account .admin-account-card {
   width: 100%;
   min-width: 0;
   max-width: none;
@@ -431,6 +431,103 @@ p { color: var(--muted); line-height: 1.6; }
 .class-growth-chart svg {
   display: block;
   min-width: 100%;
+}
+
+.course-attendance-card {
+  display: grid;
+  gap: 16px;
+  padding: 26px;
+}
+
+.course-attendance-chart {
+  display: grid;
+  gap: 12px;
+  overflow-x: auto;
+}
+
+.course-attendance-header,
+.course-attendance-row {
+  display: grid;
+  grid-template-columns: minmax(210px, 1.1fr) minmax(240px, 2fr) 74px 64px;
+  gap: 14px;
+  align-items: center;
+  min-width: 720px;
+}
+
+.course-attendance-header {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.course-attendance-row {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff, #fbfdfc);
+}
+
+.course-attendance-meta {
+  min-width: 0;
+}
+
+.course-attendance-meta strong {
+  display: block;
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.course-attendance-meta span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.course-attendance-track {
+  display: flex;
+  height: 16px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eef4f2;
+}
+
+.course-attendance-track i {
+  display: block;
+  min-width: 0;
+  height: 100%;
+}
+
+.course-attendance-track .attended {
+  background: #16a34a;
+}
+
+.course-attendance-track .absent {
+  background: #ef4444;
+}
+
+.course-attendance-track .unmarked {
+  background: #cbd5e1;
+}
+
+.course-attendance-rate {
+  font-size: 13px;
+  font-weight: 850;
+  text-align: right;
+}
+
+.course-attendance-rate.attended {
+  color: #047857;
+}
+
+.course-attendance-rate.absent {
+  color: #b91c1c;
 }
 
 .growth-chart-legend {
@@ -1340,11 +1437,11 @@ tbody tr:last-child td { border-bottom: none; }
 
 @media (max-width: 768px) {
   .admin-shell { grid-template-columns: 1fr; }
-  .sidebar {
+  .admin-sidebar {
     position: sticky; top: 0; height: 100dvh; max-height: none; padding: 20px 20px 0;
     border-right: none; border-bottom: 1px solid var(--border); overflow: hidden;
   }
-  .sidebar-nav { overflow-y: auto; padding: 20px 0 28px; }
+  .admin-sidebar .sidebar-nav { overflow-y: auto; padding: 20px 0 28px; }
   .brand-logo { width: 48px; height: 48px; }
   .workspace { padding: 20px; }
   .topbar { flex-direction: column; align-items: stretch; }

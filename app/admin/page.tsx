@@ -19,7 +19,9 @@ import { StudentDetailModal } from "./components/StudentDetailModal";
 import { SessionDetailModal } from "./components/SessionDetailModal";
 import { AssignAssistantModal } from "./components/AssignAssistantModal";
 
-export default function Home() {
+import { Suspense } from "react";
+
+function AdminPageContent() {
   const admin: UseAdminReturn = useAdmin();
 
   if (admin.isAuthenticated === null) return <div className="loading-screen"><div className="loader"></div></div>;
@@ -29,9 +31,9 @@ export default function Home() {
     <div className="admin-container">
       <Sidebar
         activeView={admin.activeView}
-        changeView={admin.setActiveView}
+        changeView={admin.changeView}
         openSidebarGroup={admin.openSidebarGroup}
-        toggleSidebarGroup={admin.setOpenSidebarGroup}
+        toggleSidebarGroup={admin.toggleSidebarGroup}
         isAssistantUser={admin.isAssistantUser}
         tableConfigs={admin.tableConfigs}
         data={admin.data}
@@ -83,6 +85,7 @@ export default function Home() {
             <GeneralDashboard
               stats={admin.stats}
               analytics={admin.analytics}
+              attendanceRecords={admin.attendanceRecords}
             />
           )}
 
@@ -134,6 +137,7 @@ export default function Home() {
               selectedAttendanceClass={admin.selectedAttendanceClass}
               attendanceRecords={admin.attendanceRecords}
               attendanceError={admin.attendanceError}
+              onViewChange={admin.setActiveView}
             />
           )}
 
@@ -159,13 +163,14 @@ export default function Home() {
               attendanceRecordsByEnrollment={admin.attendanceRecordsByEnrollment}
               selectedClassEnrollments={admin.selectedClassEnrollments}
               isSaving={admin.isSaving}
-              onUpdateAttendance={(eid, status) => admin.updateAttendance(eid, admin.selectedAttendanceSession, status)}
+              onUpdateAttendance={(eid, status, note) => admin.updateAttendance(eid, admin.selectedAttendanceSession, status, note)}
               onRefresh={admin.loadAllTables}
               attendanceSessionCount={admin.attendanceSessionCount}
               attendanceError={admin.attendanceError}
               attendanceMode={admin.attendanceMode}
               setAttendanceMode={admin.setAttendanceMode}
               attendanceRecords={admin.attendanceRecords}
+              showAttendanceGuide={admin.showAttendanceGuide}
               setShowAttendanceGuide={admin.setShowAttendanceGuide}
             />
           )}
@@ -185,6 +190,7 @@ export default function Home() {
                   admin.updateProjectScore(eid, sessionOrAssignment, String(score));
                 }
               }}
+              onUpdateProjectLink={admin.updateProjectLink}
               onRefresh={admin.loadAllTables}
               error={admin.error}
               selectedSession={admin.selectedAttendanceSession}
@@ -304,9 +310,14 @@ export default function Home() {
         <CertGuideModal show={admin.showCertGuide} onClose={() => admin.setShowCertGuide(false)} />
       )}
 
-      {admin.showAttendanceGuide && (
-        <AttendanceGuideModal onClose={() => admin.setShowAttendanceGuide(false)} />
-      )}
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="loading-screen"><div className="loader"></div></div>}>
+      <AdminPageContent />
+    </Suspense>
   );
 }

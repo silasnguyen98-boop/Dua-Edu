@@ -4,7 +4,7 @@ import React, { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } f
 import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 import { supabase } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   getUsersSafe,
   createStudentAccount,
@@ -63,9 +63,10 @@ import type {
 } from "@/app/admin/types";
 
 export function useAdmin(): UseAdminReturn {
-  const [activeView, setActiveView] = useState<ViewName>(getInitialView);
+  const searchParams = useSearchParams();
+  const [activeView, setActiveView] = useState<ViewName>((searchParams.get("view") as ViewName) || "classManagement");
   const [openSidebarGroup, setOpenSidebarGroup] = useState<SidebarGroup>(() =>
-    getSidebarGroupForView(getInitialView())
+    getSidebarGroupForView(activeView)
   );
   const [data, setData] = useState<DataState>(emptyData);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
@@ -227,6 +228,8 @@ export function useAdmin(): UseAdminReturn {
         return {
           classCode: String(classRow.class_code ?? "-"),
           className: String(classRow.class_name ?? classId.slice(0, 8)),
+          courseCode: String(course?.course_code ?? "-"),
+          courseId: String(classRow.course_id ?? ""),
           courseName: String(course?.name ?? "-"),
           enrollmentCount: classEnrollments.get(classId) ?? 0,
           enrollments: (classEnrollmentRows.get(classId) ?? []).map((enrollment) => {
@@ -321,6 +324,7 @@ export function useAdmin(): UseAdminReturn {
     assignmentRecords,
     attendanceSessionCount,
     selectedAttendanceSession,
+    classDashboardMode,
   });
 
   const selectedClassEnrollments = useMemo(() => {
@@ -409,15 +413,25 @@ export function useAdmin(): UseAdminReturn {
     window.location.href = "/login";
   };
 
+  const toggleSidebarGroup = (group: SidebarGroup) => {
+    setOpenSidebarGroup(prev => prev === group ? null : group);
+  };
+
   const changeView = (view: ViewName) => {
+    const params = new URLSearchParams(window.location.search);
+    
     if (isAssistantUser && !isAssistantAllowedView(view)) {
       setOpenSidebarGroup("academic");
       setActiveView("classManagement");
+      params.set("view", "classManagement");
+      router.push(`${window.location.pathname}?${params.toString()}`, { scroll: false });
       return;
     }
     
     setOpenSidebarGroup(getSidebarGroupForView(view));
     setActiveView(view);
+    params.set("view", view);
+    router.push(`${window.location.pathname}?${params.toString()}`, { scroll: false });
   };
 
   // Data Loading Logic
@@ -841,7 +855,7 @@ export function useAdmin(): UseAdminReturn {
     await supabase.from("enrollments").update({ attendance_score: score }).eq("id", enrollmentId);
   }
 
-  async function updateAttendance(enrollmentId: string, session: number, status: string) {
+  async function updateAttendance(enrollmentId: string, session: number, status: string, note: string = "") {
     setIsSaving(true);
     if (!status) {
       const { error: deleteError } = await supabase
@@ -861,7 +875,10 @@ export function useAdmin(): UseAdminReturn {
       return;
     }
 
-    const { error: saveError } = await supabase.from("attendance_records").upsert({ enrollment_id: enrollmentId, session_number: session, status }, { onConflict: "enrollment_id,session_number" });
+    const { error: saveError } = await supabase.from("attendance_records").upsert(
+      { enrollment_id: enrollmentId, session_number: session, status, note }, 
+      { onConflict: "enrollment_id,session_number" }
+    );
     if (saveError) setError(saveError.message);
     else {
       await loadAttendanceRecords(new Set(visibleClassItems.flatMap(c => c.enrollments.map((e: any) => e.id))));
@@ -874,6 +891,14 @@ export function useAdmin(): UseAdminReturn {
   async function updateProjectScore(enrollmentId: string, _session: number, score: string) {
     setIsSaving(true);
     const { error: updateError } = await supabase.from("enrollments").update({ project_score: Number(score) || 0 }).eq("id", enrollmentId);
+    if (updateError) setError(updateError.message);
+    else await loadAllTables();
+    setIsSaving(false);
+  }
+
+  async function updateProjectLink(enrollmentId: string, url: string) {
+    setIsSaving(true);
+    const { error: updateError } = await supabase.from("enrollments").update({ project_url: url }).eq("id", enrollmentId);
     if (updateError) setError(updateError.message);
     else await loadAllTables();
     setIsSaving(false);
@@ -1132,13 +1157,21 @@ export function useAdmin(): UseAdminReturn {
 
       const metadata = session.user.user_metadata ?? {};
       const appMetadata = session.user.app_metadata ?? {};
-      const role = String(metadata.role || appMetadata.role || "student").trim();
-      if (role === "student") {
+      const email = session.user.email ?? "";
+      const rawRole = String(metadata.role || appMetadata.role || "").trim().toLowerCase();
+      const isStudentRole = rawRole === "student" || Boolean(metadata.student_id);
+      const isStaffRole = ["admin", "operation", "assistant", "teacher"].includes(rawRole);
+      const studentByEmail = !rawRole && email
+        ? await supabase.from("students").select("id").eq("email", email.toLowerCase()).maybeSingle()
+        : { data: null };
+
+      if (isStudentRole || (!isStaffRole && Boolean(studentByEmail.data?.id))) {
+        setIsAuthenticated(false);
         router.push("/user");
         return;
       }
 
-      const email = session.user.email ?? "";
+      const role = isStaffRole ? rawRole : "admin";
       setCurrentAccount({
         email,
         name: String(metadata.username || metadata.full_name || metadata.name || email.split("@")[0] || "Người dùng"),
@@ -1243,8 +1276,8 @@ export function useAdmin(): UseAdminReturn {
   }
 
   return {
-    activeView, setActiveView: changeView,
-    openSidebarGroup, setOpenSidebarGroup,
+    activeView, setActiveView, changeView,
+    openSidebarGroup, setOpenSidebarGroup, toggleSidebarGroup,
     data, setData,
     attendanceRecords, setAttendanceRecords,
     attendanceError, setAttendanceError,
@@ -1324,6 +1357,7 @@ export function useAdmin(): UseAdminReturn {
     updateCertificateStatus,
     updateAttendance,
     updateProjectScore,
+    updateProjectLink,
     updateAssignmentScore,
     syncCertificates,
     createStudentLoginAccount,

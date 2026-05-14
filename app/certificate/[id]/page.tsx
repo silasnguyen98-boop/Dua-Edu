@@ -19,31 +19,17 @@ export default function CertificateDetailPage({ params }: { params: Promise<{ id
 
   useEffect(() => {
     async function fetchCert() {
-
-      const { data: cert, error } = await supabase
-        .from("certificates")
-        .select(`
-          certificate_code, 
-          issued_at, 
-          certificate_type,
-          enrollments (
-            students (full_name),
-            classes (
-              courses (name)
-            )
-          )
-        `)
-        .eq("certificate_code", id)
-        .maybeSingle();
-
-      if (error) {
-        console.error("Supabase Detailed Error:", error.message, error.details, error.hint);
+      try {
+        const res = await fetch(`/api/certificate/data?id=${id}`);
+        const cert = await res.json();
+        if (res.ok) {
+          setData(cert);
+        }
+      } catch (e) {
+        console.error("Fetch cert error:", e);
+      } finally {
+        setLoading(false);
       }
-
-      if (cert) {
-        setData(cert);
-      }
-      setLoading(false);
     }
     fetchCert();
   }, [id]);

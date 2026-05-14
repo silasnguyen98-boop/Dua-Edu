@@ -9,6 +9,7 @@ interface DashboardMetricsParams {
   assignmentRecords: AssignmentRecord[];
   attendanceSessionCount: number;
   selectedAttendanceSession: number;
+  classDashboardMode: "session" | "overall";
 }
 
 export function useDashboardMetrics({
@@ -17,6 +18,7 @@ export function useDashboardMetrics({
   assignmentRecords,
   attendanceSessionCount,
   selectedAttendanceSession,
+  classDashboardMode,
 }: DashboardMetricsParams) {
   return useMemo(() => {
     if (!selectedAttendanceClass) {
@@ -24,6 +26,7 @@ export function useDashboardMetrics({
         statusCounts: { absent: 0, excused: 0, late: 0, present: 0, unmarked: 0 },
         sessionRows: [],
         selectedSession: { absent: 0, excused: 0, late: 0, present: 0, unmarked: 0, attendanceRate: 0 },
+        prevSession: { absent: 0, excused: 0, late: 0, present: 0, unmarked: 0, attendanceRate: 0 },
         totalStudents: 0,
         atRiskStudents: [],
         assignmentRate: 0,
@@ -129,8 +132,8 @@ export function useDashboardMetrics({
       });
     });
 
-    const totalAssignments = Number(selectedAttendanceClass.totalAssignments || 0);
-    const totalPossibleAssignments = totalStudents * totalAssignments;
+    const totalAssignments = Number(selectedAttendanceClass.totalAssignments || 0) || 0;
+    const totalPossibleAssignments = (totalStudents * totalAssignments) || 0;
     const assignmentRecordsForClass = assignmentRecords.filter(r =>
       enrollmentIds.has(String(r.enrollment_id))
     );
@@ -202,22 +205,50 @@ export function useDashboardMetrics({
     const markedSessionCount = sessionRows.filter(r => r.isMarked).length;
     const studentRows = studentDiligence.map((student: any) => {
       const attendedCount = student.presentCount + student.lateCount;
-      const attendanceRate = markedSessionCount ? Math.round((attendedCount / markedSessionCount) * 100) : 0;
-      let note = "Tốt";
+      const myMarkedCount = student.presentCount + student.absentCount + student.lateCount + student.excusedCount;
+      const attendanceRate = myMarkedCount ? Math.round((attendedCount / myMarkedCount) * 100) : 0;
+      
+      // Lấy danh sách điểm danh riêng của học viên này
+      const studentRecords = attendanceRecords.filter((r: any) => String(r.enrollment_id) === String(student.id));
+      
+      let note = "Tham gia tốt";
       let noteTone = "good";
 
-      if (student.absentCount >= 2) {
-        note = `Vắng ${student.absentCount} buổi`;
-        noteTone = "danger";
-      } else if (student.absentCount === 1) {
-        note = "Vắng 1 buổi";
-        noteTone = "warning";
-      } else if (student.lateCount >= 2) {
-        note = `Muộn ${student.lateCount} buổi`;
-        noteTone = "warning";
-      } else if (markedSessionCount === 0) {
-        note = "Chưa có dữ liệu";
-        noteTone = "muted";
+      if (classDashboardMode === "session") {
+        const sessionRecord = studentRecords.find((r: any) => Number(r.session_number) === selectedAttendanceSession);
+        if (sessionRecord) {
+          if (sessionRecord.status === "absent") {
+            note = "Vắng mặt";
+            noteTone = "danger";
+          } else if (sessionRecord.status === "late") {
+            note = "Đi muộn";
+            noteTone = "warning";
+          } else if (sessionRecord.status === "excused") {
+            note = "Vắng có phép";
+            noteTone = "info";
+          } else if (sessionRecord.status === "present") {
+            note = "Đã tham gia";
+            noteTone = "good";
+          }
+        } else {
+          note = "Chưa điểm danh";
+          noteTone = "muted";
+        }
+      } else {
+        // Overall mode summary
+        if (student.absentCount >= 2) {
+          note = `Vắng ${student.absentCount} buổi`;
+          noteTone = "danger";
+        } else if (student.absentCount === 1) {
+          note = "Vắng 1 buổi";
+          noteTone = "warning";
+        } else if (student.lateCount >= 2) {
+          note = `Muộn ${student.lateCount} buổi`;
+          noteTone = "warning";
+        } else if (markedSessionCount === 0) {
+          note = "Chưa có dữ liệu";
+          noteTone = "muted";
+        }
       }
 
       return {
@@ -229,7 +260,10 @@ export function useDashboardMetrics({
       };
     });
 
+    const droppedCount = selectedAttendanceClass.enrollments.filter((en: any) => en.status === "dropped").length;
+
     return {
+      droppedCount,
       statusCounts: sessionRows.reduce(
         (totals, row) => ({
           absent: totals.absent + row.absent,
@@ -242,6 +276,19 @@ export function useDashboardMetrics({
       ),
       sessionRows,
       selectedSession: countSession(selectedAttendanceSession),
+      prevSession: (() => {
+        // Tìm buổi gần nhất có ít nhất 1 bản ghi điểm danh trước buổi hiện tại
+        const markedSessionsBefore = sessionRows
+          .filter(s => s.sessionNumber < selectedAttendanceSession && s.isMarked)
+          .sort((a, b) => b.sessionNumber - a.sessionNumber);
+        
+        if (markedSessionsBefore.length === 0) {
+          return { absent: 0, excused: 0, late: 0, present: 0, unmarked: 0, attendanceRate: 0, sessionNumber: 0 };
+        }
+        
+        const targetPrevSession = markedSessionsBefore[0].sessionNumber;
+        return { ...countSession(targetPrevSession), sessionNumber: targetPrevSession };
+      })(),
       totalStudents,
       atRiskStudents,
       assignmentRate,
@@ -263,10 +310,18 @@ export function useDashboardMetrics({
       topStudents,
       bottomStudents,
       studentRows,
-      classAverageRate: (() => {
+      classAverages: (() => {
         const markedSessions = sessionRows.filter(r => r.isMarked);
-        return markedSessions.length ? Math.round(markedSessions.reduce((sum, r) => sum + r.attendanceRate, 0) / markedSessions.length) : 0;
+        if (markedSessions.length === 0) return { present: 0, absent: 0, late: 0, excused: 0, rate: 0 };
+        return {
+          present: Math.round(markedSessions.reduce((sum, r) => sum + r.present, 0) / markedSessions.length),
+          absent: Math.round(markedSessions.reduce((sum, r) => sum + r.absent, 0) / markedSessions.length),
+          late: Math.round(markedSessions.reduce((sum, r) => sum + r.late, 0) / markedSessions.length),
+          excused: Math.round(markedSessions.reduce((sum, r) => sum + r.excused, 0) / markedSessions.length),
+          rate: Math.round(markedSessions.reduce((sum, r) => sum + r.attendanceRate, 0) / markedSessions.length)
+        };
       })(),
+      classAverageRate: 0, // Assigned below
       attendanceSegments: (() => {
         const markedCount = sessionRows.filter(r => r.isMarked).length;
         
@@ -279,7 +334,8 @@ export function useDashboardMetrics({
         selectedAttendanceClass.enrollments.forEach((en: any) => {
           const attendRecords = recordsForClass.filter(r => String(r.enrollment_id) === en.id);
           const attended = attendRecords.filter(r => r.status === "present" || r.status === "late").length;
-          const attendRate = markedCount ? Math.round((attended / markedCount) * 100) : 0;
+          const myMarkedCount = attendRecords.length;
+          const attendRate = myMarkedCount ? Math.round((attended / myMarkedCount) * 100) : 0;
           
           const assignRecords = assignmentRecords.filter(r => String(r.enrollment_id) === en.id);
           const submittedAssign = assignRecords.filter(r => r.status === "submitted").length;

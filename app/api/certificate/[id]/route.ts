@@ -15,28 +15,36 @@ export async function GET(
   const { id } = await params;
 
   try {
-    // Logic lấy thông tin từ Database
-
-    // Join: certificates -> enrollments -> students & classes -> courses
-    const { data: cert, error } = await supabase
-      .from("certificates")
-      .select(`
-        id,
-        certificate_code,
-        certificate_type,
-        issued_at,
-        enrollments (
-          students (full_name),
-          classes (
-            class_code,
-            courses (name)
+    // 1. Thử đọc từ Snapshot trước
+    let cert: any = null;
+    const filePath = path.join(process.cwd(), "data", "certificates", `${id}.json`);
+    
+    if (fs.existsSync(filePath)) {
+      cert = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+    } else {
+      // Fallback: Lấy thông tin từ Database nếu chưa có snapshot
+      const { data: dbCert, error } = await supabase
+        .from("certificates")
+        .select(`
+          id,
+          certificate_code,
+          certificate_type,
+          issued_at,
+          enrollments (
+            students (full_name),
+            classes (
+              class_code,
+              courses (name)
+            )
           )
-        )
-      `)
-      .eq("certificate_code", id)
-      .single();
+        `)
+        .eq("certificate_code", id)
+        .single();
+      
+      if (dbCert) cert = dbCert;
+    }
 
-    if (error || !cert) {
+    if (!cert) {
       return NextResponse.json({ error: "Certificate not found" }, { status: 404 });
     }
 

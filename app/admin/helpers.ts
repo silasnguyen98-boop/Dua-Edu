@@ -135,28 +135,26 @@ export const getInitialAttendanceMode = (): "session" | "summary" => {
 };
 
 export const getSidebarGroupForView = (view: ViewName): SidebarGroup => {
-  if (view === "dashboard") return "overview";
+  if (view === "dashboard" || view === "classDashboard") return "overview";
   if (
-    view === "classDashboard" ||
+    view === "courses" ||
     view === "classManagement" ||
     view === "classDetail" ||
-    view === "assistantAssignments" ||
     view === "classes" ||
-    view === "class_sessions"
+    view === "class_sessions" ||
+    view === "enrollments"
   ) {
     return "academic";
   }
   if (
     view === "students" ||
-    view === "enrollments" ||
     view === "attendance" ||
-    view === "assignmentScore" ||
-    view === "projectScore" ||
-    view === "certificates"
+    view === "certificates" ||
+    view === "assistantAssignments"
   ) {
     return "extendedData";
   }
-  if (view === "courses" || view === "teachers") return "coreData";
+  if (view === "assignmentScore" || view === "projectScore") return "grading";
   return "system";
 };
 

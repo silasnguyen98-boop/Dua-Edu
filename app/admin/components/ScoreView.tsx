@@ -10,6 +10,7 @@ interface ScoreViewProps {
   selectedEnrollments: any[];
   isSaving: boolean;
   onUpdateScore: (enrollmentId: string, assignmentNumber: number, score: number) => void;
+  onUpdateProjectLink?: (enrollmentId: string, url: string) => void;
   onRefresh: () => void;
   error: string | null;
   selectedSession: number;
@@ -26,6 +27,7 @@ export function ScoreView({
   selectedEnrollments,
   isSaving,
   onUpdateScore,
+  onUpdateProjectLink,
   onRefresh,
   error,
   selectedSession,
@@ -37,7 +39,7 @@ export function ScoreView({
   const isAssignment = type === "assignment";
   const label = isAssignment ? "bài tập" : "đồ án";
   const RefreshIcon = () => (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
+    <svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 12a9 9 0 0 1-15.5 6.36" />
       <path d="M3 12a9 9 0 0 1 15.5-6.36" />
       <path d="M17 3v3h-3" />
@@ -45,9 +47,9 @@ export function ScoreView({
     </svg>
   );
   const InfoIcon = () => (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 10v6" />
+    <svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 11v5" />
       <path d="M12 7h.01" />
     </svg>
   );
@@ -82,36 +84,76 @@ export function ScoreView({
               </label>
             )}
           </div>
-          <div className="attendance-toolbar-actions">
+          <div className="attendance-toolbar-actions" style={{ display: "flex", gap: "10px" }}>
             <button
-              className="attendance-icon-button guide-trigger"
+              className={`attendance-icon-button guide-trigger ${showGuide ? "active" : ""}`}
               onClick={() => setShowGuide(!showGuide)}
               type="button"
               aria-label="Hướng dẫn"
               title="Hướng dẫn"
+              style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "center",
+                backgroundColor: showGuide ? "var(--primary-soft)" : "transparent",
+                color: showGuide ? "var(--primary)" : "inherit"
+              }}
             >
               <InfoIcon />
               <span className="sr-only">Hướng dẫn</span>
             </button>
-            <button className="attendance-icon-button" onClick={onRefresh} type="button" aria-label="Làm mới" title="Làm mới">
-              <RefreshIcon />
-              <span className="sr-only">Làm mới</span>
-            </button>
           </div>
         </div>
 
-        {showGuide && (
-          <div className="guide-popover guide-popover-inline">
-            <p className="guide-kicker">Hướng dẫn</p>
-            <h4>Cách tính điểm</h4>
-            <ul className="guide-list">
-              <li>Nhập điểm trực tiếp vào từng ô BT (0-10).</li>
-              <li>Hệ thống <strong>tự động lưu</strong> khi bạn chuyển ô.</li>
-              <li>Điểm trung bình (Assignment Score) sẽ được <strong>tự động tính toán</strong> lại ngay sau khi lưu.</li>
-              <li>Nếu để trống, hệ thống sẽ coi như chưa có điểm.</li>
-            </ul>
-          </div>
-        )}
+        <div style={{ position: "relative" }}>
+          {showGuide && (
+            <div 
+              className="guide-popover guide-popover-inline" 
+              onClick={(e) => e.stopPropagation()}
+              style={{ 
+              position: "absolute",
+              top: "0",
+              right: "0",
+              zIndex: 100,
+              width: "320px",
+              backgroundColor: "white", 
+              padding: "20px", 
+              borderRadius: "12px", 
+              border: "1px solid var(--border)",
+              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+              animation: "fadeIn 0.2s ease-out"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                <div style={{ padding: "6px", backgroundColor: "var(--primary-soft)", color: "var(--primary)", borderRadius: "6px" }}>
+                  <InfoIcon />
+                </div>
+                <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 700 }}>Hướng dẫn chấm điểm</h4>
+              </div>
+              <ul className="guide-list" style={{ margin: 0, paddingLeft: "20px", fontSize: "13px", color: "var(--foreground-muted)", lineHeight: "1.6" }}>
+                <li style={{ marginBottom: "6px" }}>Nhập điểm trực tiếp vào từng ô (thang điểm 10).</li>
+                <li style={{ marginBottom: "6px" }}>Hệ thống <strong>tự động lưu</strong> và <strong>tính toán ĐTB</strong> ngay khi bạn nhấn ra ngoài.</li>
+                <li>Điểm {label} chiếm {isAssignment ? "30%" : "40%"} trong điểm tổng kết của học viên.</li>
+              </ul>
+              <button 
+                onClick={() => setShowGuide(false)}
+                style={{ 
+                  marginTop: "16px", 
+                  width: "100%", 
+                  padding: "8px", 
+                  borderRadius: "8px", 
+                  border: "none", 
+                  background: "var(--primary)", 
+                  color: "white", 
+                  fontWeight: 600, 
+                  cursor: "pointer",
+                  fontSize: "12px"
+                }}
+              >
+                Đã hiểu
+              </button>
+            </div>
+          )}
+        </div>
 
         {error && <div className="notice error">{error}</div>}
 
@@ -130,7 +172,10 @@ export function ScoreView({
                     <th style={{ width: "80px", textAlign: "center", backgroundColor: "var(--background-soft)", color: "var(--primary)", fontWeight: 700 }}>ĐTB</th>
                   </>
                 ) : (
-                  <th style={{ width: "120px", textAlign: "center" }}>Điểm đồ án</th>
+                  <>
+                    <th style={{ width: "120px", textAlign: "center" }}>Điểm đồ án</th>
+                    <th>Link Đồ án</th>
+                  </>
                 )}
               </tr>
             </thead>
@@ -175,33 +220,82 @@ export function ScoreView({
                           </td>
                         </>
                       ) : (
-                        <td style={{ textAlign: "center" }}>
-                          <input 
-                            type="number" 
-                            min="0" 
-                            max="10" 
-                            step="0.1"
-                            defaultValue={enrollment.projectScore ?? ""}
-                            onBlur={(e) => {
-                              const val = parseFloat(e.target.value);
-                              if (!isNaN(val)) onUpdateScore(enrollment.id, 1, val);
-                            }}
-                            disabled={isSaving}
-                            style={{ 
-                              padding: "8px 12px", 
-                              borderRadius: "8px", 
-                              border: "1px solid var(--border)", 
-                              width: "100px",
-                              textAlign: "center"
-                            }}
-                          />
-                        </td>
+                        <>
+                          <td style={{ textAlign: "center" }}>
+                            <input 
+                              type="number" 
+                              min="0" 
+                              max="10" 
+                              step="0.1"
+                              defaultValue={enrollment.projectScore ?? ""}
+                              onBlur={(e) => {
+                                const val = parseFloat(e.target.value);
+                                if (!isNaN(val)) onUpdateScore(enrollment.id, 1, val);
+                              }}
+                              disabled={isSaving}
+                              style={{ 
+                                padding: "8px 12px", 
+                                borderRadius: "8px", 
+                                border: "1px solid var(--border)", 
+                                width: "80px",
+                                textAlign: "center"
+                              }}
+                            />
+                          </td>
+                          <td>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                              <input 
+                                type="text" 
+                                placeholder="https://..." 
+                                defaultValue={enrollment.projectUrl || ""}
+                                onBlur={(e) => {
+                                  if (e.target.value !== (enrollment.projectUrl || "")) {
+                                    onUpdateProjectLink?.(enrollment.id, e.target.value);
+                                  }
+                                }}
+                                disabled={isSaving}
+                                style={{ 
+                                  padding: "8px 12px", 
+                                  borderRadius: "8px", 
+                                  border: "1px solid var(--border)", 
+                                  flex: 1,
+                                  fontSize: "13px"
+                                }}
+                              />
+                              {enrollment.projectUrl && (
+                                <a 
+                                  href={enrollment.projectUrl} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  style={{ 
+                                    display: "flex", 
+                                    alignItems: "center", 
+                                    justifyContent: "center",
+                                    width: "36px",
+                                    height: "36px",
+                                    background: "#e0f2fe",
+                                    color: "#0369a1",
+                                    borderRadius: "8px",
+                                    transition: "all 0.2s"
+                                  }}
+                                  title="Xem đồ án"
+                                >
+                                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                  </svg>
+                                </a>
+                              )}
+                            </div>
+                          </td>
+                        </>
                       )}
                     </tr>
                   );
                 })
               ) : (
-                <tr><td colSpan={isAssignment ? 3 + sessionCount : 4}>Chọn lớp để thực hiện chấm điểm.</td></tr>
+                <tr><td colSpan={isAssignment ? 3 + sessionCount : 5}>Chọn lớp để thực hiện chấm điểm.</td></tr>
               )}
             </tbody>
           </table>

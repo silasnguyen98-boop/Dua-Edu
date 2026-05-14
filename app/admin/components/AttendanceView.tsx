@@ -11,13 +11,14 @@ interface AttendanceViewProps {
   attendanceRecordsByEnrollment: Map<string, any>;
   selectedClassEnrollments: any[];
   isSaving: boolean;
-  onUpdateAttendance: (enrollmentId: string, status: string) => void;
+  onUpdateAttendance: (enrollmentId: string, status: string, note?: string) => void;
   onRefresh: () => void;
   attendanceSessionCount: number;
   attendanceError: string | null;
   attendanceMode: "session" | "summary";
   setAttendanceMode: (mode: "session" | "summary") => void;
   attendanceRecords: any[];
+  showAttendanceGuide: boolean;
   setShowAttendanceGuide: (val: boolean) => void;
 }
 
@@ -37,6 +38,7 @@ export function AttendanceView({
   attendanceMode,
   setAttendanceMode,
   attendanceRecords,
+  showAttendanceGuide,
   setShowAttendanceGuide,
 }: AttendanceViewProps) {
   // Helper to get status label and color
@@ -124,16 +126,98 @@ export function AttendanceView({
                 Tổng hợp
               </button>
             </div>
-            <button className="secondary-button" onClick={() => setShowAttendanceGuide(true)} type="button" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <button 
+              className={`attendance-icon-button guide-trigger ${showAttendanceGuide ? "active" : ""}`} 
+              onClick={() => setShowAttendanceGuide(!showAttendanceGuide)} 
+              type="button" 
+              aria-label="Hướng dẫn"
+              title="Hướng dẫn"
+              style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "center",
+                backgroundColor: showAttendanceGuide ? "var(--primary-soft)" : "transparent",
+                color: showAttendanceGuide ? "var(--primary)" : "inherit"
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
-                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                <path d="M12 16v-4"></path>
+                <path d="M12 8h.01"></path>
               </svg>
-              Hướng dẫn
             </button>
-            <button className="secondary-button" onClick={onRefresh} type="button">Làm mới</button>
           </div>
+        </div>
+
+        <div style={{ position: "relative" }}>
+          {showAttendanceGuide && (
+            <div 
+              className="guide-popover" 
+              onClick={(e) => e.stopPropagation()}
+              style={{ 
+              position: "absolute",
+              top: "0",
+              right: "0",
+              zIndex: 100,
+              width: "360px",
+              backgroundColor: "white", 
+              padding: "20px", 
+              borderRadius: "12px", 
+              border: "1px solid var(--border)",
+              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+              animation: "fadeIn 0.2s ease-out"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                <div style={{ padding: "6px", backgroundColor: "var(--primary-soft)", color: "var(--primary)", borderRadius: "6px" }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </div>
+                <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 700 }}>Quy đổi điểm chuyên cần</h4>
+              </div>
+              
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
+                {[
+                  { code: "V", label: "Có mặt", score: "1.0", bg: "#f0fdf4", color: "#166534" },
+                  { code: "M", label: "Đi muộn", score: "0.75", bg: "#fffbeb", color: "#92400e" },
+                  { code: "P", label: "Có phép", score: "0.8", bg: "#f0f9ff", color: "#075985" },
+                  { code: "X", label: "Vắng mặt", score: "0", bg: "#fef2f2", color: "#991b1b" }
+                ].map(rule => (
+                  <div key={rule.code} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", backgroundColor: rule.bg, borderRadius: "8px", fontSize: "13px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <strong style={{ color: rule.color, width: "15px" }}>{rule.code}</strong>
+                      <span style={{ fontWeight: 500 }}>{rule.label}</span>
+                    </div>
+                    <b style={{ color: rule.color }}>+{rule.score}</b>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ fontSize: "13px", color: "var(--foreground-muted)", marginBottom: "16px", padding: "10px", backgroundColor: "var(--background-soft)", borderRadius: "8px" }}>
+                <div style={{ fontWeight: 600, marginBottom: "4px", color: "var(--foreground)" }}>Công thức tính:</div>
+                <code style={{ fontSize: "11px" }}>(Tổng điểm các buổi / Tổng số buổi) x 10</code>
+              </div>
+
+              <p style={{ fontSize: "13px", margin: "0 0 16px", color: "var(--foreground-muted)" }}>
+                Điểm chuyên cần chiếm <strong>30%</strong> trong điểm tổng kết của học viên.
+              </p>
+
+              <button 
+                onClick={() => setShowAttendanceGuide(false)}
+                style={{ 
+                  width: "100%", 
+                  padding: "10px", 
+                  borderRadius: "8px", 
+                  border: "none", 
+                  background: "var(--primary)", 
+                  color: "white", 
+                  fontWeight: 600, 
+                  cursor: "pointer",
+                  fontSize: "13px"
+                }}
+              >
+                Đã hiểu
+              </button>
+            </div>
+          )}
         </div>
 
         {attendanceError && <div className="notice error">{attendanceError}</div>}
@@ -164,7 +248,7 @@ export function AttendanceView({
                           <select 
                             className={`status-select ${record?.status || "unmarked"}`} 
                             value={record?.status || ""} 
-                            onChange={(e) => onUpdateAttendance(enrollment.id, e.target.value)}
+                            onChange={(e) => onUpdateAttendance(enrollment.id, e.target.value, record?.note || "")}
                             disabled={isSaving}
                             style={{ width: "100%" }}
                           >
@@ -177,10 +261,15 @@ export function AttendanceView({
                         </td>
                         <td>
                           <input 
+                            key={`${selectedAttendanceSession}-${enrollment.id}`}
                             type="text" 
                             placeholder="Ghi chú..." 
                             defaultValue={record?.note || ""} 
-                            onBlur={(e) => { if (e.target.value !== (record?.note || "")) onUpdateAttendance(enrollment.id, record?.status || ""); }}
+                            onBlur={(e) => { 
+                              if (e.target.value !== (record?.note || "")) {
+                                onUpdateAttendance(enrollment.id, record?.status || "present", e.target.value); 
+                              }
+                            }}
                             style={{ padding: "6px 12px", borderRadius: "8px", border: "1px solid var(--border)", width: "100%" }}
                           />
                         </td>

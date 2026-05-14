@@ -48,7 +48,7 @@ export type ViewName =
   | "admins"
   | TableName;
 
-export type SidebarGroup = "overview" | "academic" | "coreData" | "extendedData" | "system" | null;
+export type SidebarGroup = "overview" | "academic" | "coreData" | "extendedData" | "grading" | "system" | null;
 
 export type TableConfig = {
   name: TableName;
@@ -88,8 +88,10 @@ export type ChartItem = {
 export interface UseAdminReturn {
   activeView: ViewName;
   setActiveView: (view: ViewName) => void;
+  changeView: (view: ViewName) => void;
   openSidebarGroup: SidebarGroup;
   setOpenSidebarGroup: React.Dispatch<React.SetStateAction<SidebarGroup>>;
+  toggleSidebarGroup: (group: SidebarGroup) => void;
   data: DataState;
   setData: React.Dispatch<React.SetStateAction<DataState>>;
   attendanceRecords: AttendanceRecord[];
@@ -210,8 +212,9 @@ export interface UseAdminReturn {
   exportData: () => void;
   updateEnrollmentStatus: (enrollmentId: string, status: string) => Promise<void>;
   updateCertificateStatus: (enrollmentId: string, status: string) => Promise<void>;
-  updateAttendance: (enrollmentId: string, session: number, status: string) => Promise<void>;
+  updateAttendance: (enrollmentId: string, session: number, status: string, note?: string) => Promise<void>;
   updateProjectScore: (enrollmentId: string, session: number, score: string) => Promise<void>;
+  updateProjectLink: (enrollmentId: string, url: string) => Promise<void>;
   updateAssignmentScore: (enrollmentId: string, session: number, score: string) => Promise<void>;
   syncCertificates: (targetId?: string, targetType?: "class" | "student") => Promise<void>;
   createStudentLoginAccount: (form: any) => Promise<void>;

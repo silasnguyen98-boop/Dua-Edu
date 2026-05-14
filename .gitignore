@@ -13,3 +13,6 @@ pnpm-debug.log*
 
 .DS_Store
 .vercel
+
+# Generated Data Snapshots
+data/

@@ -20,10 +20,6 @@ async function isStudentSession(session: Session | null) {
     return false;
   }
 
-  if (!role) {
-    return true;
-  }
-
   if (!session.user.email) {
     return false;
   }
@@ -44,18 +40,22 @@ export default function HomePage() {
     let active = true;
 
     const redirectBySession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-      if (!active) return;
+        if (!active) return;
 
-      if (!session) {
-        router.replace("/login");
-        return;
+        if (!session) {
+          router.replace("/login");
+          return;
+        }
+
+        router.replace((await isStudentSession(session)) ? "/user" : "/admin");
+      } catch {
+        if (active) router.replace("/login");
       }
-
-      router.replace((await isStudentSession(session)) ? "/user" : "/admin");
     };
 
     void redirectBySession();

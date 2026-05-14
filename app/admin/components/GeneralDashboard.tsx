@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { PieChart } from "../charts";
 
 interface GeneralDashboardProps {
   stats: any[];
   analytics: any;
+  attendanceRecords: any[];
 }
 
 type GrowthMetric = "enrollmentCount" | "participationCertificates" | "completionCertificates" | "projectSubmissions";
@@ -17,9 +18,10 @@ const growthMetricOptions: { label: string; value: GrowthMetric }[] = [
   { label: "Số lượng nộp đồ án", value: "projectSubmissions" },
 ];
 
-export function GeneralDashboard({ stats, analytics }: GeneralDashboardProps) {
+export function GeneralDashboard({ stats, analytics, attendanceRecords }: GeneralDashboardProps) {
   const [growthMetric, setGrowthMetric] = useState<GrowthMetric>("enrollmentCount");
   const [topClassMetric, setTopClassMetric] = useState<GrowthMetric>("enrollmentCount");
+  const [attendanceSession, setAttendanceSession] = useState(1);
   const totalEnrollments = stats.find((item) => item.label === "Ghi danh")?.value ?? 0;
   const totalCertificates = stats.find((item) => item.label === "Chứng chỉ")?.value ?? 0;
   const returningStudentCount = analytics.returningStudents ?? 0;
@@ -79,6 +81,78 @@ export function GeneralDashboard({ stats, analytics }: GeneralDashboardProps) {
   const maxGrowthPointValue = Math.max(...growthPoints.map((point: any) => point.value), 0);
   const minGrowthPointValue = Math.min(...growthPoints.map((point: any) => point.value), 0);
   const latestGrowthPointId = growthPoints[growthPoints.length - 1]?.id;
+  const attendanceSessionOptions = useMemo(() => {
+    const configuredMax = Math.max(
+      ...(analytics.classItems ?? []).map((classItem: any) => Number(classItem.totalSessions ?? 0)),
+      0,
+    );
+    const recordedMax = Math.max(
+      ...attendanceRecords.map((record: any) => Number(record.session_number ?? 0)),
+      0,
+    );
+    const maxSession = Math.max(configuredMax, recordedMax);
+    return Array.from({ length: maxSession }, (_, index) => index + 1);
+  }, [analytics.classItems, attendanceRecords]);
+  const selectedAttendanceSession = attendanceSessionOptions.includes(attendanceSession)
+    ? attendanceSession
+    : attendanceSessionOptions[0] ?? 1;
+  const courseAttendanceRows = useMemo(() => {
+    const recordByEnrollment = new Map<string, any>();
+    attendanceRecords.forEach((record: any) => {
+      if (Number(record.session_number ?? 0) === selectedAttendanceSession) {
+        recordByEnrollment.set(String(record.enrollment_id ?? ""), record);
+      }
+    });
+
+    const courseMap = new Map<string, {
+      absent: number;
+      attended: number;
+      classCount: number;
+      courseCode: string;
+      courseName: string;
+      totalStudents: number;
+    }>();
+
+    (analytics.classItems ?? []).forEach((classItem: any) => {
+      const totalSessions = Number(classItem.totalSessions ?? 0);
+      const enrollments = classItem.enrollments ?? [];
+      if (!enrollments.length || (totalSessions > 0 && selectedAttendanceSession > totalSessions)) return;
+
+      const classRecords = enrollments
+        .map((enrollment: any) => recordByEnrollment.get(String(enrollment.id ?? "")))
+        .filter(Boolean);
+      if (!classRecords.length) return;
+
+      const key = classItem.courseId || classItem.courseName;
+      const current = courseMap.get(key) ?? {
+        absent: 0,
+        attended: 0,
+        classCount: 0,
+        courseCode: classItem.courseCode ?? "-",
+        courseName: classItem.courseName ?? "-",
+        totalStudents: 0,
+      };
+
+      current.classCount += 1;
+      current.totalStudents += enrollments.length;
+      classRecords.forEach((record: any) => {
+        if (record?.status === "present" || record?.status === "late") current.attended += 1;
+        if (record?.status === "absent") current.absent += 1;
+      });
+      courseMap.set(key, current);
+    });
+
+    return Array.from(courseMap.entries())
+      .map(([id, row]) => ({
+        ...row,
+        absentRate: row.totalStudents ? Math.round((row.absent / row.totalStudents) * 1000) / 10 : 0,
+        attendanceRate: row.totalStudents ? Math.round((row.attended / row.totalStudents) * 1000) / 10 : 0,
+        id,
+        unmarkedRate: row.totalStudents ? Math.max(Math.round(((row.totalStudents - row.attended - row.absent) / row.totalStudents) * 1000) / 10, 0) : 0,
+      }))
+      .filter((row) => row.totalStudents > 0)
+      .sort((a, b) => b.attendanceRate - a.attendanceRate || a.courseName.localeCompare(b.courseName));
+  }, [analytics.classItems, attendanceRecords, selectedAttendanceSession]);
 
   return (
     <div className="general-dashboard">
@@ -187,6 +261,60 @@ export function GeneralDashboard({ stats, analytics }: GeneralDashboardProps) {
           </div>
         ) : (
           <p className="empty-chart">Chưa có lớp nào có ngày khai giảng.</p>
+        )}
+      </section>
+
+      <section className="analytics-card course-attendance-card" aria-label="So sánh chuyên cần theo khóa">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Chuyên cần theo khóa</p>
+            <h3>So sánh tỉ lệ tham gia và vắng theo buổi</h3>
+          </div>
+          <label className="dashboard-select-label">
+            <span>Buổi học</span>
+            <select value={selectedAttendanceSession} onChange={(event) => setAttendanceSession(Number(event.target.value))}>
+              {attendanceSessionOptions.length ? (
+                attendanceSessionOptions.map((sessionNumber) => (
+                  <option key={sessionNumber} value={sessionNumber}>Buổi {sessionNumber}</option>
+                ))
+              ) : (
+                <option value={1}>Chưa có dữ liệu</option>
+              )}
+            </select>
+          </label>
+        </div>
+
+        {courseAttendanceRows.length ? (
+          <div className="course-attendance-chart">
+            <div className="course-attendance-header" aria-hidden="true">
+              <span>Khóa học</span>
+              <span>Tỉ lệ trên sĩ số</span>
+              <span>Tham gia</span>
+              <span>Vắng</span>
+            </div>
+            {courseAttendanceRows.map((row) => (
+              <div className="course-attendance-row" key={row.id}>
+                <div className="course-attendance-meta">
+                  <strong>{row.courseCode !== "-" ? `${row.courseCode} - ${row.courseName}` : row.courseName}</strong>
+                  <span>{row.classCount} lớp · {row.totalStudents} học viên</span>
+                </div>
+                <div className="course-attendance-track" aria-label={`${row.courseName}: tham gia ${row.attendanceRate}%, vắng ${row.absentRate}%`}>
+                  <i className="attended" style={{ width: `${row.attendanceRate}%` }} />
+                  <i className="absent" style={{ width: `${row.absentRate}%` }} />
+                  <i className="unmarked" style={{ width: `${row.unmarkedRate}%` }} />
+                </div>
+                <strong className="course-attendance-rate attended">{row.attendanceRate}%</strong>
+                <strong className="course-attendance-rate absent">{row.absentRate}%</strong>
+              </div>
+            ))}
+            <div className="attendance-legend">
+              <span><i className="present" /> Tham gia</span>
+              <span><i className="absent" /> Vắng</span>
+              <span><i className="unmarked" /> Chưa điểm danh / có phép</span>
+            </div>
+          </div>
+        ) : (
+          <p className="empty-chart">Chưa có dữ liệu điểm danh để so sánh theo khóa.</p>
         )}
       </section>
 

@@ -20,10 +20,6 @@ async function isStudentSession(session: Session | null) {
     return false;
   }
 
-  if (!role) {
-    return true;
-  }
-
   if (!session.user.email) {
     return false;
   }
@@ -45,15 +41,20 @@ export default function LoginPage() {
   const router = useRouter();
 
   useEffect(() => {
+    let active = true;
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        if (await isStudentSession(session)) {
-          router.replace("/user");
-        } else {
-          router.replace("/admin");
-        }
+      if (!active || !session) return;
+      if (await isStudentSession(session)) {
+        router.replace("/user");
+      } else {
+        router.replace("/admin");
       }
     });
+
+    return () => {
+      active = false;
+    };
   }, [router]);
 
   async function handleLogin(e: FormEvent) {
