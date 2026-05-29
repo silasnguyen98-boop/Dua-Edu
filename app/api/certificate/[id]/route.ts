@@ -8,13 +8,57 @@ import { promisify } from "util";
 
 const execFilePromise = promisify(execFile);
 
+const CERT_CACHE_MAX = 200;
+const certBufferCache = new Map<string, Buffer>();
+
+function getCachedBuffer(key: string): Buffer | undefined {
+  const buf = certBufferCache.get(key);
+  if (buf) {
+    certBufferCache.delete(key);
+    certBufferCache.set(key, buf);
+  }
+  return buf;
+}
+
+function setCachedBuffer(key: string, buf: Buffer) {
+  if (certBufferCache.has(key)) certBufferCache.delete(key);
+  certBufferCache.set(key, buf);
+  if (certBufferCache.size > CERT_CACHE_MAX) {
+    const oldest = certBufferCache.keys().next().value;
+    if (oldest) certBufferCache.delete(oldest);
+  }
+}
+
+function pngResponse(buf: Buffer) {
+  return new NextResponse(new Uint8Array(buf), {
+    headers: {
+      "Content-Type": "image/png",
+      "Cache-Control": "public, max-age=86400, immutable",
+    },
+  });
+}
+
+function normalizeCertificateCode(value: string) {
+  try {
+    return decodeURIComponent(value).trim().toUpperCase();
+  } catch {
+    return value.trim().toUpperCase();
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
+  const { id: rawId } = await params;
+  const id = normalizeCertificateCode(rawId);
 
   try {
+    const cachedBuffer = getCachedBuffer(id);
+    if (cachedBuffer) {
+      return pngResponse(cachedBuffer);
+    }
+
     // 1. Thử đọc từ Snapshot trước
     let cert: any = null;
     const filePath = path.join(process.cwd(), "data", "certificates", `${id}.json`);
@@ -81,20 +125,16 @@ export async function GET(
     // 4. Trả về ảnh
     if (fs.existsSync(outputPath)) {
       const imageBuffer = fs.readFileSync(outputPath);
-      
+
       // XÓA FILE NGAY SAU KHI ĐỌC (Để không lưu file rác)
       try {
         fs.unlinkSync(outputPath);
       } catch (e) {
         console.error("Cleanup error:", e);
       }
-      
-      return new NextResponse(imageBuffer, {
-        headers: {
-          "Content-Type": "image/png",
-          "Cache-Control": "no-store, must-revalidate", // Không cache để luôn lấy bản mới
-        },
-      });
+
+      setCachedBuffer(id, imageBuffer);
+      return pngResponse(imageBuffer);
     }
 
     return NextResponse.json({ error: "Generation failed" }, { status: 500 });

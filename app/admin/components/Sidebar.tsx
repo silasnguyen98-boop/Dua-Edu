@@ -155,6 +155,13 @@ export function Sidebar({
               >
                 <span>Điểm danh</span>
               </button>
+              <button
+                className={activeView === "quiz" ? "active" : ""}
+                onClick={() => changeView("quiz")}
+                type="button"
+              >
+                <span>Quiz</span>
+              </button>
               {!isAssistantUser && (
                 <button
                   className={activeView === "certificates" ? "active" : ""}

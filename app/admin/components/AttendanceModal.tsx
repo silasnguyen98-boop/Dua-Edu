@@ -52,6 +52,7 @@ export function AttendanceModal({ status, selectedClass, attendanceRecords, sess
           <table style={{ background: "transparent", width: "100%" }}>
             <thead>
               <tr>
+                <th style={{ background: "transparent", fontSize: "14px", padding: "12px 16px", width: 50, textAlign: "center" }}>STT</th>
                 <th style={{ background: "transparent", fontSize: "14px", padding: "12px 16px" }}>Học viên</th>
                 <th style={{ background: "transparent", fontSize: "14px", padding: "12px 16px" }}>Email liên hệ</th>
               </tr>
@@ -61,8 +62,9 @@ export function AttendanceModal({ status, selectedClass, attendanceRecords, sess
                 const record = attendanceRecords.find(r => String(r.enrollment_id) === en.id && Number(r.session_number) === sessionNumber);
                 const s = record?.status || "unmarked";
                 return s === status;
-              }).map((en: any) => (
+              }).map((en: any, idx: number) => (
                 <tr key={en.id}>
+                  <td style={{ textAlign: "center", color: "#94a3b8", padding: "16px" }}>{idx + 1}</td>
                   <td style={{ fontWeight: 700, fontSize: "16px", padding: "16px" }}>{en.name}</td>
                   <td style={{ color: "var(--text-secondary)", fontSize: "15px", padding: "16px" }}>{en.email}</td>
                 </tr>

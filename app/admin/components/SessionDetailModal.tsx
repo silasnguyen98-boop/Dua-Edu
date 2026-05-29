@@ -47,36 +47,6 @@ export function SessionDetailModal({
           </div>
 
           <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
-            {session.meeting_url && (
-              <div>
-                <label style={{ fontSize: "12px", color: "var(--color-text-secondary)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px" }}>Link học online</label>
-                <p style={{ marginTop: 4 }}><a href={String(session.meeting_url)} target="_blank" rel="noreferrer" style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 500 }}>{String(session.meeting_url)}</a></p>
-              </div>
-            )}
-            {session.recording_url && (
-              <div>
-                <label style={{ fontSize: "12px", color: "var(--color-text-secondary)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px" }}>Link video xem lại</label>
-                <p style={{ marginTop: 4 }}><a href={String(session.recording_url)} target="_blank" rel="noreferrer" style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 500 }}>{String(session.recording_url)}</a></p>
-              </div>
-            )}
-            {session.slide_url && (
-              <div>
-                <label style={{ fontSize: "12px", color: "var(--color-text-secondary)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px" }}>Link slide</label>
-                <p style={{ marginTop: 4 }}><a href={String(session.slide_url)} target="_blank" rel="noreferrer" style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 500 }}>{String(session.slide_url)}</a></p>
-              </div>
-            )}
-            {session.reference_url && (
-              <div>
-                <label style={{ fontSize: "12px", color: "var(--color-text-secondary)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px" }}>Tài liệu tham khảo</label>
-                <p style={{ marginTop: 4 }}><a href={String(session.reference_url)} target="_blank" rel="noreferrer" style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 500 }}>{String(session.reference_url)}</a></p>
-              </div>
-            )}
-            {session.assignment_url && (
-              <div>
-                <label style={{ fontSize: "12px", color: "var(--color-text-secondary)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px" }}>Link bài tập</label>
-                <p style={{ marginTop: 4 }}><a href={String(session.assignment_url)} target="_blank" rel="noreferrer" style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 500 }}>{String(session.assignment_url)}</a></p>
-              </div>
-            )}
             {session.note && (
               <div>
                 <label style={{ fontSize: "12px", color: "var(--color-text-secondary)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px" }}>Ghi chú</label>

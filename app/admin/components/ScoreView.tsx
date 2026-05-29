@@ -9,7 +9,7 @@ interface ScoreViewProps {
   onClassChange: (id: string | null) => void;
   selectedEnrollments: any[];
   isSaving: boolean;
-  onUpdateScore: (enrollmentId: string, assignmentNumber: number, score: number) => void;
+  onUpdateScore: (enrollmentId: string, assignmentNumber: number, score: string) => void;
   onUpdateProjectLink?: (enrollmentId: string, url: string) => void;
   onRefresh: () => void;
   error: string | null;
@@ -167,7 +167,7 @@ export function ScoreView({
                 {isAssignment ? (
                   <>
                     {Array.from({ length: sessionCount }, (_, i) => i + 1).map(n => (
-                      <th key={n} style={{ width: "80px", textAlign: "center" }}>BT {n}</th>
+                      <th key={n} style={{ width: "80px", textAlign: "center" }}>B{n}</th>
                     ))}
                     <th style={{ width: "80px", textAlign: "center", backgroundColor: "var(--background-soft)", color: "var(--primary)", fontWeight: 700 }}>ĐTB</th>
                   </>
@@ -200,8 +200,15 @@ export function ScoreView({
                                 step="0.1"
                                 defaultValue={scoresMap[n]?.score ?? ""}
                                 onBlur={(e) => {
-                                  const val = parseFloat(e.target.value);
-                                  if (!isNaN(val)) onUpdateScore(enrollment.id, n, val);
+                                  const rawValue = e.target.value.trim();
+                                  const previousValue = scoresMap[n]?.score == null ? "" : String(scoresMap[n].score);
+                                  if (rawValue === previousValue) return;
+                                  if (rawValue === "") {
+                                    onUpdateScore(enrollment.id, n, "");
+                                    return;
+                                  }
+                                  const val = parseFloat(rawValue);
+                                  if (!isNaN(val)) onUpdateScore(enrollment.id, n, String(val));
                                 }}
                                 disabled={isSaving}
                                 style={{ 
@@ -230,7 +237,7 @@ export function ScoreView({
                               defaultValue={enrollment.projectScore ?? ""}
                               onBlur={(e) => {
                                 const val = parseFloat(e.target.value);
-                                if (!isNaN(val)) onUpdateScore(enrollment.id, 1, val);
+                                if (!isNaN(val)) onUpdateScore(enrollment.id, 1, String(val));
                               }}
                               disabled={isSaving}
                               style={{ 

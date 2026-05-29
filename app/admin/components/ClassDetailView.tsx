@@ -127,6 +127,7 @@ export function ClassDetailView({
           <table>
             <thead>
               <tr>
+                <th style={{ width: 50, textAlign: "center" }}>STT</th>
                 <th onClick={() => handleSort("name")} style={{ cursor: "pointer" }}>Học viên</th>
                 <th onClick={() => handleSort("email")} style={{ cursor: "pointer" }}>Email</th>
                 <th onClick={() => handleSort("attendanceScore")} style={{ cursor: "pointer", borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>Chuyên cần</th>
@@ -140,8 +141,9 @@ export function ClassDetailView({
             </thead>
             <tbody>
               {sortedEnrollments.length ? (
-                sortedEnrollments.map((enrollment) => (
+                sortedEnrollments.map((enrollment, idx) => (
                   <tr key={enrollment.id}>
+                    <td style={{ textAlign: "center", color: "#94a3b8" }}>{idx + 1}</td>
                     <td>{enrollment.name}</td>
                     <td>{enrollment.email}</td>
                     <td style={{ borderLeft: "1px solid var(--border)", paddingLeft: "16px" }}>{formatValue(enrollment.attendanceScore)}</td>
@@ -179,7 +181,7 @@ export function ClassDetailView({
                   </tr>
                 ))
               ) : (
-                <tr><td colSpan={9}>Không có ghi danh phù hợp.</td></tr>
+                <tr><td colSpan={10}>Không có ghi danh phù hợp.</td></tr>
               )}
             </tbody>
           </table>

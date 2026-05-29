@@ -1,8 +1,8 @@
 "use client";
 
 import React, { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
+import { buildStyledWorkbook, downloadWorkbook, type StyledColumn } from "@/app/admin/excel-utils";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -133,7 +133,13 @@ export function useAdmin(): UseAdminReturn {
 
   const loadIdRef = useRef(0);
 
-  const isAssistantUser = currentUserRole === "assistant";
+  // "isAssistantUser" được giữ tên cũ nhưng mang nghĩa "scoped staff":
+  // gồm cả assistant lẫn teacher — hai vai trò có scope dữ liệu giống nhau
+  // (chỉ thấy lớp họ phụ trách / dạy). Dùng isStrictAssistant cho các luồng
+  // chỉ dành riêng cho assistant (vd: view phân công assistant).
+  const isStrictAssistant = currentUserRole === "assistant";
+  const isTeacherUser = currentUserRole === "teacher";
+  const isAssistantUser = isStrictAssistant || isTeacherUser;
   const isAdminView = currentUserRole === "admin" || currentUserRole === "operation";
 
   const isDataView = isTableName(activeView);
@@ -148,7 +154,7 @@ export function useAdmin(): UseAdminReturn {
   const activeConfig = tableConfigs.find(c => c.name === activeTable) || tableConfigs[0];
 
   useEffect(() => {
-    if (currentUserRole === "assistant" && activeView === "dashboard") {
+    if ((currentUserRole === "assistant" || currentUserRole === "teacher") && activeView === "dashboard") {
       setOpenSidebarGroup("academic");
       setActiveView("classManagement");
     }
@@ -265,7 +271,17 @@ export function useAdmin(): UseAdminReturn {
           totalAssignments: classRow.total_assignments ? String(classRow.total_assignments) : "-",
         };
       })
-      .sort((a, b) => b.enrollmentCount - a.enrollmentCount);
+      .sort((a, b) => {
+        // Sort by start_date desc (lớp mới nhất lên đầu).
+        // Lớp chưa có start_date đẩy xuống cuối; tie-break theo class_code.
+        const aTime = a.startDate && a.startDate !== "-" ? Date.parse(a.startDate) : NaN;
+        const bTime = b.startDate && b.startDate !== "-" ? Date.parse(b.startDate) : NaN;
+        const aValid = Number.isFinite(aTime);
+        const bValid = Number.isFinite(bTime);
+        if (aValid && bValid && aTime !== bTime) return bTime - aTime;
+        if (aValid !== bValid) return aValid ? -1 : 1;
+        return a.classCode.localeCompare(b.classCode);
+      });
 
     const returningStudentItems = Array.from(studentClasses.entries())
       .filter(([, classes]) => classes.size >= 2)
@@ -294,7 +310,7 @@ export function useAdmin(): UseAdminReturn {
   }, [data]);
 
   const visibleClassItems = useMemo(() => {
-    if (currentUserRole === "assistant") {
+    if (currentUserRole === "assistant" || currentUserRole === "teacher") {
       return assignedClassIds.length
         ? analytics.classItems.filter((item) => assignedClassIds.includes(item.id))
         : [];
@@ -372,6 +388,7 @@ export function useAdmin(): UseAdminReturn {
     if (activeView === "assignmentScore") return "Công cụ trợ giảng";
     if (activeView === "projectScore") return "Công cụ trợ giảng";
     if (activeView === "admins") return "Quản trị hệ thống";
+    if (activeView === "quiz") return "Học tập tương tác";
     return "Quản lý dữ liệu";
   }, [activeView]);
 
@@ -385,6 +402,7 @@ export function useAdmin(): UseAdminReturn {
     if (activeView === "assignmentScore") return "Chấm điểm bài tập";
     if (activeView === "projectScore") return "Chấm điểm Project";
     if (activeView === "admins") return "Người dùng hệ thống";
+    if (activeView === "quiz") return "Quản lý Quiz";
     return activeConfig.label;
   }, [activeView, activeConfig, selectedClass]);
 
@@ -398,6 +416,7 @@ export function useAdmin(): UseAdminReturn {
     if (activeView === "assignmentScore") return "Cập nhật kết quả làm bài tập về nhà của học viên theo từng số bài.";
     if (activeView === "projectScore") return "Đánh giá kết quả đồ án cuối khoá của học viên sau khi hoàn thành.";
     if (activeView === "admins") return "Quản lý tài khoản đăng nhập của nhân viên và cấp quyền truy cập.";
+    if (activeView === "quiz") return "Tạo quiz cho từng buổi học, chia sẻ link công khai và xem lịch sử lượt làm.";
     return activeConfig.description;
   }, [activeView, activeConfig]);
 
@@ -602,7 +621,7 @@ export function useAdmin(): UseAdminReturn {
     const results = await Promise.all(
       tableConfigs.map(async (config) => {
         const selectQuery = config.name === "class_sessions"
-          ? "id, class_id, session_number, session_title, session_date, start_time, end_time, meeting_url, recording_url, slide_url, reference_url, assignment_url, note, created_at"
+          ? "id, class_id, session_number, session_title, session_date, start_time, end_time, note, created_at"
           : "*";
 
         const { data: rows, error: tableError } = await supabase
@@ -638,14 +657,16 @@ export function useAdmin(): UseAdminReturn {
       const allowedTeacherIds = new Set(nextData.classes.map((row) => String(row.teacher_id ?? "")));
       nextData.students = nextData.students.filter((row) => allowedStudentIds.has(String(row.id ?? "")));
       nextData.courses = nextData.courses.filter((row) => allowedCourseIds.has(String(row.id ?? "")));
-      nextData.teachers = nextData.teachers.filter((row) => allowedTeacherIds.has(String(row.teacher_id ?? "")));
+      nextData.teachers = nextData.teachers.filter((row) => allowedTeacherIds.has(String(row.id ?? "")));
       nextData.certificates = nextData.certificates.filter((row) => assistantEnrollmentIds?.has(String(row.enrollment_id ?? "")) ?? false);
     }
 
     setData(nextData);
     if (loadErrors.length) setError(`Không tải được một số bảng: ${loadErrors.join("; ")}`);
-    await loadAttendanceRecords(assistantEnrollmentIds);
-    await loadAssignmentRecords(assistantEnrollmentIds);
+    await Promise.all([
+      loadAttendanceRecords(assistantEnrollmentIds),
+      loadAssignmentRecords(assistantEnrollmentIds),
+    ]);
     setIsLoading(false);
   }
 
@@ -661,6 +682,10 @@ export function useAdmin(): UseAdminReturn {
       setError("Bạn không có quyền thao tác trên dữ liệu học viên.");
       return;
     }
+    if (isAssistantUser && activeTable === "classes" && !editingRow?.id) {
+      setError("Bạn không có quyền tạo lớp học mới.");
+      return;
+    }
     const missingField = activeConfig.fields.find(f => f.required && !form[f.name]?.trim());
     if (missingField) {
       setError(`Vui lòng ${missingField.optionsKey ? "chọn" : "nhập"} ${missingField.label}.`);
@@ -668,6 +693,10 @@ export function useAdmin(): UseAdminReturn {
     }
     setIsSaving(true);
     const payload = buildPayload();
+    if (isAssistantUser && activeTable === "classes" && editingRow?.id) {
+      delete (payload as any).class_name;
+      delete (payload as any).class_code;
+    }
     const request = editingRow?.id
       ? supabase.from(activeTable).update(payload).eq("id", editingRow.id)
       : supabase.from(activeTable).insert(payload);
@@ -680,6 +709,10 @@ export function useAdmin(): UseAdminReturn {
   }
 
   async function deleteRow(row: Row) {
+    if (isAssistantUser && activeTable === "classes") {
+      setError("Bạn không có quyền xoá lớp học.");
+      return;
+    }
     if (!window.confirm(`Xác nhận xoá bản ghi này?`)) return;
     setIsSaving(true);
     const { error: deleteError } = await supabase.from(activeTable).delete().eq("id", row.id);
@@ -734,6 +767,21 @@ export function useAdmin(): UseAdminReturn {
     if (activeTable === "classes" || activeTable === "class_sessions") {
       delete (payload as any).status;
     }
+    if (editingRow?.id && activeTable === "classes") {
+      for (const field of activeConfig.fields) {
+        const nextValue = payload[field.name];
+        const currentValue = editingRow[field.name] ?? null;
+        const isSameNumber =
+          field.type === "number" &&
+          (nextValue == null || nextValue === "" ? null : Number(nextValue)) ===
+            (currentValue == null || currentValue === "" ? null : Number(currentValue));
+        const isSameValue = field.type === "number"
+          ? isSameNumber
+          : String(nextValue ?? "") === String(currentValue ?? "");
+
+        if (isSameValue) delete payload[field.name];
+      }
+    }
     return payload;
   }
 
@@ -769,31 +817,154 @@ export function useAdmin(): UseAdminReturn {
     } catch (err: any) { setError(err.message); } finally { setIsSaving(false); }
   }
 
-  async function downloadTemplate() {
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet(activeConfig.label);
-    const fieldNames = activeConfig.fields.map(getImportColumnName);
-    worksheet.getRow(4).values = ["", ...fieldNames];
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url; link.download = `${activeConfig.name}-template.xlsx`; link.click();
-    URL.revokeObjectURL(url);
+  function templateColumnWidth(field: FieldConfig, header: string) {
+    if (field.type === "textarea" || field.name === "note") return 36;
+    if (field.name.endsWith("_url") || field.name === "linkedin_url" || field.name === "avatar_url") return 38;
+    if (field.type === "date" || field.type === "datetime-local") return 18;
+    if (field.type === "number") return 14;
+    return Math.max(header.length + 4, 18);
   }
 
-  function exportData() {
-    const exportColumns = [...activeConfig.fields.map(getImportColumnName), "created_at"];
-    const rows = (search.trim() ? paginatedRows : data[activeTable]).map(row => exportColumns.reduce<Record<string, any>>((er, c) => {
-      const f = activeConfig.fields.find(fi => getImportColumnName(fi) === c);
-      const v = f ? getExportValue(f, row) : row[c];
-      er[c] = v ?? "";
-      return er;
-    }, {}));
-    const worksheet = XLSX.utils.json_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, activeConfig.name);
-    XLSX.writeFile(workbook, `${activeConfig.name}-export.xlsx`);
+  async function downloadTemplate() {
+    const fields = activeConfig.fields;
+    const columns: StyledColumn[] = fields.map((field) => {
+      const header = getImportColumnName(field);
+      return {
+        header,
+        key: header,
+        required: field.required,
+        width: templateColumnWidth(field, header),
+      };
+    });
+
+    const guideColumns: StyledColumn[] = [
+      { header: "Cột import", key: "name", width: 28 },
+      { header: "Tên trường", key: "label", width: 32 },
+      { header: "Kiểu dữ liệu", key: "type", width: 16 },
+      { header: "Bắt buộc", key: "required", width: 12, align: "center" },
+      { header: "Ví dụ", key: "example", width: 32 },
+    ];
+    const guideRows = fields.map((field) => ({
+      name: getImportColumnName(field),
+      label: field.label,
+      type: field.type,
+      required: field.required ? "Có" : "",
+      example: field.exampleValue ?? "",
+    }));
+
+    const subtitle =
+      "Giữ nguyên dòng tiêu đề ở hàng 4. Nhập dữ liệu từ hàng 5 trở xuống. " +
+      'Cột có nền đỏ là trường bắt buộc. Chi tiết các cột xem tại sheet "Hướng dẫn".';
+
+    const workbook = await buildStyledWorkbook({
+      sheetName: activeConfig.label,
+      title: `MẪU IMPORT - ${activeConfig.label.toUpperCase()}`,
+      subtitle,
+      columns,
+      rows: [],
+      emptyData: true,
+      extraSheets: [{ name: "Hướng dẫn", columns: guideColumns, rows: guideRows }],
+    });
+    await downloadWorkbook(workbook, `${activeConfig.name}-template.xlsx`);
+  }
+
+  async function exportData() {
+    const exportedAt = new Intl.DateTimeFormat("vi-VN", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date());
+
+    if (isClassDetailView && selectedClass) {
+      const certificateLabelMap: Record<string, string> = {
+        completion: "Hoàn thành",
+        participation: "Tham gia",
+        none: "",
+      };
+      const enrollmentStatusLabel = (value: string) =>
+        enrollmentStatusOptions.find((opt) => opt.value === value)?.label ?? value ?? "";
+      const certificateRecordStatusLabel = (value: string) =>
+        certificateStatusOptions.find((opt) => opt.value === value)?.label ?? value ?? "";
+
+      const columns: StyledColumn[] = [
+        { header: "Học viên", key: "name", width: 28 },
+        { header: "Email", key: "email", width: 30 },
+        { header: "Chuyên cần", key: "attendance", width: 14, align: "center" },
+        { header: "Bài tập", key: "assignment", width: 14, align: "center" },
+        { header: "Đồ án", key: "project", width: 14, align: "center" },
+        { header: "Tổng kết", key: "final", width: 14, align: "center" },
+        { header: "Chứng chỉ", key: "certificate", width: 18, align: "center" },
+        { header: "Trạng thái chứng chỉ", key: "certificate_status", width: 22, align: "center" },
+        { header: "Trạng thái", key: "status", width: 16, align: "center" },
+      ];
+      const rows = selectedClassEnrollments.map((enrollment: any) => ({
+        name: enrollment.name ?? "",
+        email: enrollment.email ?? "",
+        attendance: enrollment.attendanceScore ?? "",
+        assignment: enrollment.assignmentScore ?? "",
+        project: enrollment.projectScore ?? "",
+        final: enrollment.finalScore ?? "",
+        certificate: certificateLabelMap[enrollment.certificate] ?? "",
+        certificate_status: enrollment.certificateId
+          ? certificateRecordStatusLabel(enrollment.certificateRecordStatus || "pending")
+          : "",
+        status: enrollmentStatusLabel(enrollment.status),
+      }));
+
+      const sheetName = (selectedClass.classCode || selectedClass.className || "class")
+        .toString()
+        .slice(0, 31);
+      const subtitle = [
+        `Khoá: ${selectedClass.courseName || "-"}`,
+        `GV: ${selectedClass.teacherName || "-"}`,
+        `Bắt đầu: ${selectedClass.startDate || "-"}`,
+        `Lịch: ${selectedClass.schedule || "-"}`,
+        `Sĩ số: ${selectedClass.enrollmentCount ?? 0}`,
+        `Xuất lúc ${exportedAt}`,
+      ].join(" · ");
+
+      const workbook = await buildStyledWorkbook({
+        sheetName,
+        title: `${selectedClass.className || "LỚP"} (${selectedClass.classCode || "-"})`,
+        subtitle,
+        columns,
+        rows,
+      });
+      const fileSlug = selectedClass.classCode || selectedClass.id;
+      await downloadWorkbook(workbook, `class-${fileSlug}-export.xlsx`);
+      return;
+    }
+
+    const fields = activeConfig.fields;
+    const sourceRows = (filteredRows as Row[]).filter((row) => !(row as any).__placeholder);
+
+    const columns: StyledColumn[] = [
+      ...fields.map((field) => {
+        const header = getImportColumnName(field);
+        return {
+          header,
+          key: header,
+          width: templateColumnWidth(field, header),
+        };
+      }),
+      { header: "created_at", key: "created_at", width: 22 },
+    ];
+
+    const rows = sourceRows.map((row) =>
+      columns.reduce<Record<string, any>>((acc, col) => {
+        const field = fields.find((f) => getImportColumnName(f) === col.key);
+        acc[col.key] = field ? getExportValue(field, row) : row[col.key];
+        return acc;
+      }, {}),
+    );
+
+    const workbook = await buildStyledWorkbook({
+      sheetName: activeConfig.label,
+      title: `${activeConfig.label.toUpperCase()} - Xuất lúc ${exportedAt}`,
+      subtitle: `Tổng số: ${rows.length} bản ghi`,
+      columns,
+      rows,
+    });
+    await downloadWorkbook(workbook, `${activeConfig.name}-export.xlsx`);
   }
 
   function getExportValue(field: FieldConfig, row: Row) {
@@ -842,11 +1013,12 @@ export function useAdmin(): UseAdminReturn {
     const totalSessions = Number(cls.total_sessions || 0);
     if (totalSessions === 0) return;
 
-    const { data: records } = await supabase.from("attendance_records").select("status").eq("enrollment_id", enrollmentId);
+    const { data: records } = await supabase.from("attendance_records").select("status, session_number").eq("enrollment_id", enrollmentId);
     if (!records) return;
 
     let totalPoints = 0;
     records.forEach(r => {
+      if (Number(r.session_number) === 0) return;
       if (r.status === "present") totalPoints += 1;
       else if (r.status === "late") totalPoints += 0.75;
       else if (r.status === "excused") totalPoints += 0.5;
@@ -907,14 +1079,22 @@ export function useAdmin(): UseAdminReturn {
 
   async function updateAssignmentScore(enrollmentId: string, assignmentNumber: number, score: string) {
     setIsSaving(true);
-    // Ghi chú: Điểm trung bình trong bảng enrollments được tự động tính toán 
-    // bởi Database Trigger khi bảng assignment_records có thay đổi.
-    const { error: saveError } = await supabase
-      .from("assignment_records")
-      .upsert(
-        { enrollment_id: enrollmentId, assignment_number: assignmentNumber, score: Number(score) || 0 },
-        { onConflict: "enrollment_id,assignment_number" }
-      );
+    // Điểm trung bình trong enrollments được trigger DB tính từ các assignment_records có điểm.
+    const normalizedScore = score.trim();
+    const request = normalizedScore === ""
+      ? supabase
+          .from("assignment_records")
+          .delete()
+          .eq("enrollment_id", enrollmentId)
+          .eq("assignment_number", assignmentNumber)
+      : supabase
+          .from("assignment_records")
+          .upsert(
+            { enrollment_id: enrollmentId, assignment_number: assignmentNumber, score: Number(normalizedScore) },
+            { onConflict: "enrollment_id,assignment_number" }
+          );
+
+    const { error: saveError } = await request;
 
     if (saveError) {
       setError(saveError.message);
@@ -1027,6 +1207,14 @@ export function useAdmin(): UseAdminReturn {
         row.course_id = data.courses.find(c => String(c.course_code).toLowerCase() === String(row.course_id).toLowerCase())?.id || row.course_id;
         row.teacher_id = data.teachers.find(t => String(t.email).toLowerCase() === String(row.teacher_id).toLowerCase())?.id || row.teacher_id;
       }
+      if (activeTable === "class_sessions") {
+        const rawCode = String(row.class_id ?? "").trim();
+        const match = data.classes.find(c => String(c.class_code).toLowerCase() === rawCode.toLowerCase());
+        if (!match) {
+          throw new Error(`Không tìm thấy lớp với mã "${rawCode}". Vui lòng kiểm tra cột "class_code" trong file Excel.`);
+        }
+        row.class_id = match.id;
+      }
       return row;
     });
   }
@@ -1038,12 +1226,38 @@ export function useAdmin(): UseAdminReturn {
   const filteredRows = useMemo(() => {
     let rows = data[activeTable];
     if (activeTable === "class_sessions" && classSessionsFilterId) {
-      rows = rows.filter(r => String(r.class_id) === classSessionsFilterId).sort((a, b) => Number(a.session_number) - Number(b.session_number));
+      const existing = rows
+        .filter(r => String(r.class_id) === classSessionsFilterId)
+        .sort((a, b) => Number(a.session_number) - Number(b.session_number));
+
+      const cls = data.classes.find(c => String(c.id) === classSessionsFilterId);
+      const totalSessions = Number(cls?.total_sessions ?? 0);
+      const maxExisting = existing.reduce((max, r) => Math.max(max, Number(r.session_number) || 0), 0);
+      const slotCount = Math.max(totalSessions, maxExisting);
+
+      if (slotCount > 0) {
+        const byNumber = new Map(existing.map(r => [Number(r.session_number), r]));
+        const synthesized: Row[] = [];
+        for (let i = 0; i <= slotCount; i++) {
+          const found = byNumber.get(i);
+          synthesized.push(
+            found ?? ({
+              class_id: classSessionsFilterId,
+              session_number: i,
+              __placeholder: true,
+            } as unknown as Row),
+          );
+        }
+        rows = synthesized;
+      } else {
+        rows = existing;
+      }
     }
     const q = search.trim().toLowerCase();
     if (!q) return rows;
 
     return rows.filter(r => {
+      if ((r as any).__placeholder) return false;
       return activeConfig.searchFields.some(f => {
         let val = "";
         if (activeTable === "certificates" && (f === "student_name" || f === "student_email")) {
@@ -1173,7 +1387,9 @@ export function useAdmin(): UseAdminReturn {
       }
 
       const role = isStaffRole ? rawRole : "admin";
-      setAssistantAssignmentsLoaded(role !== "assistant");
+      // assistantAssignmentsLoaded gate cũng dùng cho teacher — vì teacher cũng
+      // cần load assignedClassIds trước khi loadAllTables() filter dữ liệu.
+      setAssistantAssignmentsLoaded(role !== "assistant" && role !== "teacher");
       setCurrentAccount({
         email,
         name: String(metadata.username || metadata.full_name || metadata.name || email.split("@")[0] || "Người dùng"),
@@ -1191,6 +1407,28 @@ export function useAdmin(): UseAdminReturn {
         } finally {
           setAssistantAssignmentsLoaded(true);
         }
+      } else if (role === "teacher") {
+        try {
+          const { data: teacherRow } = await supabase
+            .from("teachers")
+            .select("id")
+            .ilike("email", email)
+            .maybeSingle();
+          if (teacherRow?.id) {
+            const { data: classRows } = await supabase
+              .from("classes")
+              .select("id")
+              .eq("teacher_id", teacherRow.id);
+            setAssignedClassIds((classRows ?? []).map((row) => String(row.id)));
+          } else {
+            setAssignedClassIds([]);
+          }
+          if (!isAssistantAllowedView(activeView)) setActiveView("classManagement");
+        } catch {
+          setAssignedClassIds([]);
+        } finally {
+          setAssistantAssignmentsLoaded(true);
+        }
       }
 
       setIsAuthenticated(true);
@@ -1201,7 +1439,7 @@ export function useAdmin(): UseAdminReturn {
 
   useEffect(() => {
     if (isAuthenticated !== true) return;
-    if (currentUserRole === "assistant" && !assistantAssignmentsLoaded) return;
+    if ((currentUserRole === "assistant" || currentUserRole === "teacher") && !assistantAssignmentsLoaded) return;
     void loadAllTables();
   }, [assistantAssignmentsLoaded, isAuthenticated, currentUserRole, assignedClassIds]);
 

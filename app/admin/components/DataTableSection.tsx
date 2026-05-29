@@ -24,6 +24,7 @@ interface DataTableSectionProps {
   currentPage: number;
   setCurrentPage: (val: number | ((prev: number) => number)) => void;
   totalPages: number;
+  paginatedRows: any[];
   isSaving: boolean;
   startEdit: (row: any) => void;
   deleteRow: (row: any) => Promise<void>;
@@ -60,6 +61,7 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
   currentPage,
   setCurrentPage,
   totalPages,
+  paginatedRows,
   isSaving,
   startEdit,
   deleteRow,
@@ -96,22 +98,16 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
     });
   };
 
-  const paginatedData = React.useMemo(() => {
-    let filtered = data[activeTable] || [];
-    if (search.trim()) {
-      const q = search.toLowerCase().trim();
-      filtered = filtered.filter((row: any) =>
-        Object.values(row).some(
-          (val) => val && String(val).toLowerCase().includes(q)
-        )
-      );
-    }
-    if (activeTable === "class_sessions" && classSessionsFilterId) {
-      filtered = filtered.filter((row: any) => String(row.class_id) === classSessionsFilterId);
-    }
-    const start = (currentPage - 1) * pageSize;
-    return filtered.slice(start, start + pageSize);
-  }, [data, activeTable, search, classSessionsFilterId, currentPage, pageSize]);
+  const paginatedData = paginatedRows;
+
+  const isFieldLocked = (field: any) =>
+    isAssistantUser && activeTable === "classes" && (field.name === "class_name" || field.name === "class_code");
+
+  const showForm =
+    !(isAssistantUser && activeTable === "students") &&
+    !(isAssistantUser && activeTable === "classes" && !editingRow) &&
+    activeTable !== "certificates" &&
+    !(activeTable === "class_sessions" && !editingRow);
 
   const renderCellValue = (row: any, column: any) => {
     const value = getFieldValue(row, column);
@@ -155,8 +151,8 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
 
   return (
     <>
-      <section className={(isAssistantUser && activeTable === "students") || activeTable === "certificates" ? "full-width-panel" : "management-grid"}>
-        {!(isAssistantUser && activeTable === "students") && activeTable !== "certificates" && (
+      <section className={showForm ? "management-grid" : "full-width-panel"}>
+        {showForm && (
           <form className="editor" onSubmit={saveRow}>
             <div className="section-heading">
               <div>
@@ -171,26 +167,34 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
             </div>
 
             <div className="form-grid">
-              {activeConfig.fields.map((field: any) => (
-                field.type === "select" && field.optionsKey ? (
-                  <RelationPicker
-                    activeTable={activeTable}
-                    data={data}
-                    field={field}
-                    form={form}
-                    getRelationLabel={getRelationLabel}
-                    key={field.name}
-                    openRelationPicker={openRelationPicker}
-                    relationQueries={relationQueries}
-                    setOpenRelationPicker={setOpenRelationPicker}
-                    setRelationQueries={setRelationQueries}
-                    updateFormValue={updateFormValue}
-                  />
-                ) : (
+              {activeConfig.fields.map((field: any) => {
+                const locked = isFieldLocked(field);
+                if (field.type === "select" && field.optionsKey) {
+                  return (
+                    <RelationPicker
+                      activeTable={activeTable}
+                      data={data}
+                      field={field}
+                      form={form}
+                      getRelationLabel={getRelationLabel}
+                      key={field.name}
+                      openRelationPicker={openRelationPicker}
+                      relationQueries={relationQueries}
+                      setOpenRelationPicker={setOpenRelationPicker}
+                      setRelationQueries={setRelationQueries}
+                      updateFormValue={updateFormValue}
+                    />
+                  );
+                }
+                return (
                   <label className={field.type === "textarea" ? "wide-field" : ""} key={field.name}>
-                    <span>{field.label}</span>
+                    <span>
+                      {field.label}
+                      {locked && <em style={{ marginLeft: "6px", color: "#94a3b8", fontStyle: "normal", fontSize: "11px" }}>(không được sửa)</em>}
+                    </span>
                     {field.type === "textarea" ? (
                       <textarea
+                        disabled={locked}
                         onChange={(event) => updateFormValue(field.name, event.target.value)}
                         required={field.required}
                         rows={4}
@@ -198,6 +202,7 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
                       />
                     ) : field.type === "select" ? (
                       <select
+                        disabled={locked}
                         onChange={(event) => updateFormValue(field.name, event.target.value)}
                         required={field.required}
                         value={form[field.name] ?? ""}
@@ -217,16 +222,17 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
                       </select>
                     ) : (
                       <input
+                        disabled={locked}
                         onChange={(event) => updateFormValue(field.name, event.target.value)}
                         required={field.required}
-                        step={field.type === "number" ? "0.01" : undefined}
+                        step={field.type === "number" ? (field.step ?? "1") : undefined}
                         type={field.type}
                         value={form[field.name] ?? ""}
                       />
                     )}
                   </label>
-                )
-              ))}
+                );
+              })}
             </div>
 
             <button className="primary-button" disabled={isSaving} type="submit">
@@ -275,6 +281,7 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
             <table>
               <thead>
                 <tr>
+                  <th style={{ width: 50, textAlign: "center" }}>STT</th>
                   {columns.map((column: any) => (
                     <th key={column.key}>{column.label}</th>
                   ))}
@@ -283,43 +290,60 @@ export const DataTableSection: React.FC<DataTableSectionProps & {
               </thead>
               <tbody>
                 {paginatedData.length ? (
-                  paginatedData.map((row: any) => (
-                    <tr className={editingRow?.id === row.id ? "editing" : ""} key={row.id}>
-                      {columns.map((column: any) => (
-                        <td className={column.key === "score" || column.key === "project_score" || column.key === "attendance_score" || column.key === "assignment_score" ? getScoreClass(row[column.key]) : ""} key={column.key}>
-                          {renderCellValue(row, column)}
+                  paginatedData.map((row: any, idx: number) => {
+                    const isPlaceholder = Boolean(row.__placeholder);
+                    const rowKey = row.id ?? `placeholder-${row.class_id}-${row.session_number}`;
+                    const stt = (currentPage - 1) * pageSize + idx + 1;
+                    return (
+                      <tr
+                        className={editingRow?.id === row.id ? "editing" : ""}
+                        key={rowKey}
+                        style={isPlaceholder ? { color: "#94a3b8", fontStyle: "italic" } : undefined}
+                      >
+                        <td style={{ textAlign: "center", color: "#94a3b8" }}>{stt}</td>
+                        {columns.map((column: any) => (
+                          <td
+                            className={column.key === "score" || column.key === "project_score" || column.key === "attendance_score" || column.key === "assignment_score" ? getScoreClass(row[column.key]) : ""}
+                            key={column.key}
+                          >
+                            {isPlaceholder && column.key !== "session_number"
+                              ? "Chưa nhập"
+                              : renderCellValue(row, column)}
+                          </td>
+                        ))}
+                        <td>
+                          <div className="row-actions">
+                            {activeTable === "students" && (
+                              <button
+                                className="secondary-button compact-button"
+                                onClick={() => setSelectedStudentForDetail(row)}
+                                type="button"
+                              >
+                                Chi tiết
+                              </button>
+                            )}
+                            {activeTable === "certificates" ? (
+                              <span style={{ fontSize: "12px", color: "#059669", fontWeight: 600 }}>Tự động</span>
+                            ) : !(isAssistantUser && activeTable === "students") ? (
+                              <>
+                                <button onClick={() => startEdit(row)} type="button">
+                                  {isPlaceholder ? "Nhập" : "Sửa"}
+                                </button>
+                                {!isPlaceholder && !(isAssistantUser && activeTable === "classes") && (
+                                  <button onClick={() => void deleteRow(row)} type="button">
+                                    Xoá
+                                  </button>
+                                )}
+                              </>
+                            ) : null}
+                          </div>
                         </td>
-                      ))}
-                      <td>
-                        <div className="row-actions">
-                          {activeTable === "students" && (
-                            <button
-                              className="secondary-button compact-button"
-                              onClick={() => setSelectedStudentForDetail(row)}
-                              type="button"
-                            >
-                              Chi tiết
-                            </button>
-                          )}
-                          {activeTable === "certificates" ? (
-                            <span style={{ fontSize: "12px", color: "#059669", fontWeight: 600 }}>Tự động</span>
-                          ) : !(isAssistantUser && activeTable === "students") ? (
-                            <>
-                              <button onClick={() => startEdit(row)} type="button">
-                                Sửa
-                              </button>
-                              <button onClick={() => void deleteRow(row)} type="button">
-                                Xoá
-                              </button>
-                            </>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
-                    <td colSpan={columns.length + 1}>
+                    <td colSpan={columns.length + 2}>
                       {data[activeTable].length
                         ? `Không tìm thấy ${activeConfig.label.toLowerCase()} phù hợp.`
                         : "Chưa có dữ liệu."}

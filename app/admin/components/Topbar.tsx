@@ -82,9 +82,11 @@ export function Topbar({
         )}
         {isDataView && !(isAssistantUser && activeTable === "students") && (
           <>
-            <button className="secondary-button" onClick={onDownloadTemplate} type="button">
-              Tải file mẫu
-            </button>
+            {activeTable !== "class_sessions" && (
+              <button className="secondary-button" onClick={onDownloadTemplate} type="button">
+                Tải file mẫu
+              </button>
+            )}
             <button className="secondary-button" onClick={onExportData} type="button">
               Export data
             </button>

@@ -20,7 +20,7 @@ export default function CertificateDetailPage({ params }: { params: Promise<{ id
   useEffect(() => {
     async function fetchCert() {
       try {
-        const res = await fetch(`/api/certificate/data?id=${id}`);
+        const res = await fetch(`/api/certificate/lookup?id=${encodeURIComponent(id)}`);
         const cert = await res.json();
         if (res.ok) {
           setData(cert);

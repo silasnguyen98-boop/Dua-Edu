@@ -18,6 +18,7 @@ import { AttendanceGuideModal } from "./components/AttendanceGuideModal";
 import { StudentDetailModal } from "./components/StudentDetailModal";
 import { SessionDetailModal } from "./components/SessionDetailModal";
 import { AssignAssistantModal } from "./components/AssignAssistantModal";
+import { QuizView } from "./components/QuizView";
 
 import { Suspense } from "react";
 
@@ -200,6 +201,10 @@ function AdminPageContent() {
             />
           )}
 
+          {admin.activeView === "quiz" && (
+            <QuizView visibleClassItems={admin.visibleClassItems} />
+          )}
+
           {admin.activeView === "admins" && (
             <AdminsView
               adminForm={admin.adminForm}
@@ -220,7 +225,7 @@ function AdminPageContent() {
             />
           )}
 
-          {!["dashboard", "classManagement", "classDetail", "classDashboard", "assistantAssignments", "attendance", "assignmentScore", "projectScore", "admins"].includes(admin.activeView) && (
+          {!["dashboard", "classManagement", "classDetail", "classDashboard", "assistantAssignments", "attendance", "assignmentScore", "projectScore", "admins", "quiz"].includes(admin.activeView) && (
             <DataTableSection
               activeTable={admin.activeTable}
               isAssistantUser={admin.isAssistantUser}
@@ -241,6 +246,7 @@ function AdminPageContent() {
               currentPage={admin.currentPage}
               setCurrentPage={admin.setCurrentPage}
               totalPages={admin.totalPages}
+              paginatedRows={admin.paginatedRows}
               isSaving={admin.isSaving}
               startEdit={admin.startEdit}
               deleteRow={admin.deleteRow}

@@ -9,17 +9,17 @@ interface Session {
   session_date: string;
   start_time: string;
   end_time: string;
-  meeting_url?: string;
-  recording_url?: string;
-  slide_url?: string;
-  reference_url?: string;
-  assignment_url?: string;
 }
 
 interface ClassData {
   id: string;
   class_code: string;
   class_name: string;
+  meeting_url?: string;
+  recording_url?: string;
+  slide_url?: string;
+  reference_url?: string;
+  assignment_url?: string;
   courses?: { name: string };
   class_sessions?: Session[];
 }
@@ -326,10 +326,28 @@ export default function TraCuuPage() {
                       </div>
                     </div>
 
+                    {/* Class-level Resources */}
+                    {(enrollment.classes.meeting_url ||
+                      enrollment.classes.slide_url ||
+                      enrollment.classes.reference_url ||
+                      enrollment.classes.assignment_url ||
+                      enrollment.classes.recording_url) && (
+                      <div style={{ padding: "0 32px 24px 32px" }}>
+                        <h5 style={{ fontSize: "16px", fontWeight: 800, marginBottom: "16px", color: "#475569" }}>TÀI NGUYÊN LỚP HỌC</h5>
+                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                          {enrollment.classes.meeting_url && <ResourceBtn url={enrollment.classes.meeting_url} type="meeting" label="Học online" />}
+                          {enrollment.classes.slide_url && <ResourceBtn url={enrollment.classes.slide_url} type="slide" label="Slide bài giảng" />}
+                          {enrollment.classes.reference_url && <ResourceBtn url={enrollment.classes.reference_url} type="doc" label="Tài liệu tham khảo" />}
+                          {enrollment.classes.assignment_url && <ResourceBtn url={enrollment.classes.assignment_url} type="hw" label="Bài tập" />}
+                          {enrollment.classes.recording_url && <ResourceBtn url={enrollment.classes.recording_url} type="video" label="Video xem lại" />}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Sessions Table */}
                     {enrollment.classes.class_sessions && enrollment.classes.class_sessions.length > 0 && (
                       <div style={{ padding: "0 32px 32px 32px" }}>
-                        <h5 style={{ fontSize: "16px", fontWeight: 800, marginBottom: "20px", color: "#475569" }}>LỊCH HỌC & TÀI NGUYÊN</h5>
+                        <h5 style={{ fontSize: "16px", fontWeight: 800, marginBottom: "20px", color: "#475569" }}>LỊCH HỌC</h5>
                         <div style={{ overflowX: "auto", borderRadius: "20px", border: "1px solid #f1f5f9" }}>
                           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
                             <thead>
@@ -337,7 +355,6 @@ export default function TraCuuPage() {
                                 <th style={{ padding: "16px", color: "#94a3b8", fontWeight: 700, width: "60px" }}>BUỔI</th>
                                 <th style={{ padding: "16px", color: "#94a3b8", fontWeight: 700 }}>NỘI DUNG BÀI HỌC</th>
                                 <th style={{ padding: "16px", color: "#94a3b8", fontWeight: 700 }}>THỜI GIAN</th>
-                                <th style={{ padding: "16px", color: "#94a3b8", fontWeight: 700, textAlign: "right" }}>TÀI NGUYÊN</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -350,15 +367,6 @@ export default function TraCuuPage() {
                                   <td style={{ padding: "16px", color: "#64748b", fontSize: "13px" }}>
                                     {session.session_date ? new Date(session.session_date).toLocaleDateString("vi-VN") : "N/A"}<br/>
                                     <span style={{ fontSize: "11px", opacity: 0.7 }}>{session.start_time?.slice(0,5)} - {session.end_time?.slice(0,5)}</span>
-                                  </td>
-                                  <td style={{ padding: "16px", textAlign: "right" }}>
-                                    <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end", flexWrap: "wrap" }}>
-                                      {session.meeting_url && <ResourceBtn url={session.meeting_url} type="meeting" label="Học" />}
-                                      {session.slide_url && <ResourceBtn url={session.slide_url} type="slide" label="Slide" />}
-                                      {session.reference_url && <ResourceBtn url={session.reference_url} type="doc" label="Tài liệu" />}
-                                      {session.assignment_url && <ResourceBtn url={session.assignment_url} type="hw" label="Bài tập" />}
-                                      {session.recording_url && <ResourceBtn url={session.recording_url} type="video" label="Video" />}
-                                    </div>
                                   </td>
                                 </tr>
                               ))}

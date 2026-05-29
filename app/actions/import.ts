@@ -116,9 +116,17 @@ export async function bulkImportAction(
 
     const role = user.user_metadata?.role?.trim();
     const allowedRoles = ["admin", "operation", "assistant", "teacher"];
-    
+
     if (!role || !allowedRoles.includes(role)) {
       throw new Error(`Bạn không có quyền thực hiện hành động này. Vai trò: ${role || "không có"}. Vui lòng đăng xuất và đăng nhập lại.`);
+    }
+
+    if ((role === "assistant" || role === "teacher") && tableName === "classes") {
+      throw new Error(
+        role === "teacher"
+          ? "Giảng viên không được phép tạo lớp học. Vui lòng liên hệ admin/vận hành."
+          : "Trợ giảng không được phép tạo lớp học. Vui lòng liên hệ admin/vận hành.",
+      );
     }
 
     // 2. Perform import using admin client (service role)
@@ -216,19 +224,41 @@ export async function bulkImportAction(
       }
     }
 
-    // Default insert for tables without email or simple cases
-    const { data, error: importError } = await adminClient
-      .from(tableName)
-      .insert(cleanPayload)
-      .select(tableName === "class_sessions" ? "id" : "*");
+    // Default insert for tables without email or simple cases.
+    // class_sessions uses upsert on (class_id, session_number) so re-importing
+    // updates existing sessions instead of failing on the unique constraint.
+    const query = tableName === "class_sessions"
+      ? adminClient
+          .from(tableName)
+          .upsert(cleanPayload, { onConflict: "class_id,session_number" })
+          .select("id")
+      : adminClient
+          .from(tableName)
+          .insert(cleanPayload)
+          .select("*");
+
+    const { data, error: importError } = await query;
       
     if (importError) {
-      if (importError.message.includes("duplicate key") || importError.message.includes("unique constraint")) {
-        const emails = cleanPayload.map((item) => normalizeEmail(item.email)).filter(Boolean);
-        const existingAfterFailure = await findExistingEmails(adminClient, tableName, emails);
+      const isDuplicate = importError.message.includes("duplicate key") || importError.message.includes("unique constraint");
+      if (isDuplicate) {
+        const hasEmailRows = cleanPayload.some((item) => normalizeEmail(item.email));
+        if (hasEmailRows) {
+          const emails = cleanPayload.map((item) => normalizeEmail(item.email)).filter(Boolean);
+          const existingAfterFailure = await findExistingEmails(adminClient, tableName, emails);
+          throw new Error(
+            `Không import được vì email bị trùng: ${formatDuplicateEmails([...duplicatedEmails, ...existingAfterFailure, ...extractEmailsFromError(importError)])}. ` +
+            `Hãy xoá các dòng này khỏi file hoặc cập nhật bản ghi đã có. Chi tiết kỹ thuật: ${importError.message}`,
+          );
+        }
+        if (tableName === "class_sessions") {
+          throw new Error(
+            `Không import được vì có buổi học bị trùng (cùng lớp và cùng số buổi đã tồn tại). ` +
+            `Hãy kiểm tra cột "Buổi số" trong file Excel — mỗi lớp chỉ được có một buổi cho mỗi số. Chi tiết kỹ thuật: ${importError.message}`,
+          );
+        }
         throw new Error(
-          `Không import được vì email bị trùng: ${formatDuplicateEmails([...duplicatedEmails, ...existingAfterFailure, ...extractEmailsFromError(importError)])}. ` +
-          `Hãy xoá các dòng này khỏi file hoặc cập nhật bản ghi đã có. Chi tiết kỹ thuật: ${importError.message}`,
+          `Không import được vì dữ liệu bị trùng với bản ghi đã có. Chi tiết kỹ thuật: ${importError.message}`,
         );
       }
       throw new Error(importError.message);

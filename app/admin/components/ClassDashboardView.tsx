@@ -49,6 +49,15 @@ export function ClassDashboardView({
   const [perfMetric, setPerfMetric] = useState<"present" | "absent" | "late" | "excused">("present");
   const [topCriteria, setTopCriteria] = useState<"attendance" | "assignment" | "project" | "overall">("overall");
   const [topOrder, setTopOrder] = useState<"desc" | "asc">("desc");
+
+  // Nếu buổi đang chọn không có data (không nằm trong sessionRows), tự chuyển
+  // sang buổi đầu tiên có data để hiển thị metric đúng (vd: lớp chỉ có buổi 0).
+  useEffect(() => {
+    const rows = classDashboardMetrics.sessionRows ?? [];
+    if (!rows.length) return;
+    const exists = rows.some((row: any) => Number(row.sessionNumber) === Number(selectedAttendanceSession));
+    if (!exists) setSelectedAttendanceSession(Number(rows[0].sessionNumber));
+  }, [classDashboardMetrics.sessionRows, selectedAttendanceSession, setSelectedAttendanceSession]);
   const segmentLabels = {
     excellent: "Xuất sắc",
     good: "Tốt",
@@ -535,18 +544,14 @@ export function ClassDashboardView({
                       <h3 style={{ fontSize: "16px", fontWeight: 800 }}>
                         {(() => {
                           const current = selectedAttendanceSession;
-                          const total = classDashboardMetrics.sessionRows.length;
-                          let start = current - 1;
-                          if (current === 1) start = 1;
-                          if (current === total && total > 2) start = total - 2;
-                          
-                          const s1 = start;
-                          const s2 = start + 1;
-                          const s3 = start + 2;
-
-                          if (current === s2) return `So sánh buổi trước (B.${s1}) và buổi sau (B.${s3})`;
-                          if (current === s1) return `So sánh 3 buổi học đầu tiên (B.1 - B.3)`;
-                          return `So sánh 3 buổi học gần nhất (B.${s1} - B.${s3})`;
+                          const markedAsc = (classDashboardMetrics.sessionRows ?? [])
+                            .filter((s: any) => s.isMarked && s.sessionNumber <= current)
+                            .map((s: any) => s.sessionNumber)
+                            .sort((a: number, b: number) => a - b);
+                          const range = markedAsc.slice(-3);
+                          if (range.length === 0) return "Chưa có buổi nào đã điểm danh";
+                          if (range.length === 1) return `Buổi ${range[0]} (mới điểm danh)`;
+                          return `So sánh ${range.length} buổi gần nhất đã điểm danh (B.${range[0]} - B.${range[range.length - 1]})`;
                         })()}
                       </h3>
                     </div>
@@ -575,10 +580,13 @@ export function ClassDashboardView({
                     
                     {(() => {
                       const current = selectedAttendanceSession;
-                      const range = [current - 1, current, current + 1].filter(n => 
-                        n >= 1 && n <= attendanceSessionCount
-                      );
-                      
+                      // Lấy 3 buổi đã điểm danh gần nhất (≤ current), bắt đầu từ buổi 0.
+                      const markedAsc = (classDashboardMetrics.sessionRows ?? [])
+                        .filter((s: any) => s.isMarked && s.sessionNumber <= current)
+                        .map((s: any) => s.sessionNumber)
+                        .sort((a: number, b: number) => a - b);
+                      const range: number[] = markedAsc.slice(-3);
+
                       const metrics = [
                         { key: "present", color: "#10b981" },
                         { key: "absent", color: "#ef4444" },
@@ -733,7 +741,7 @@ export function ClassDashboardView({
                     <div>
                       <p className="eyebrow" style={{ fontSize: "10px", color: "#10b981", fontWeight: 700 }}>So sánh</p>
                       <h3 style={{ fontSize: "15px", fontWeight: 800 }}>
-                        {classDashboardMetrics.prevSession.sessionNumber > 0 
+                        {classDashboardMetrics.prevSession.sessionNumber >= 0 
                           ? `So sánh với buổi trước (Buổi ${classDashboardMetrics.prevSession.sessionNumber})` 
                           : `Số liệu Buổi ${selectedAttendanceSession}`
                         }
@@ -744,11 +752,11 @@ export function ClassDashboardView({
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#64748b", textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.02em", borderBottom: "1px solid #f1f5f9", paddingBottom: "6px" }}>
                       <span>Tiêu chí</span>
                       <div style={{ display: "flex", gap: "20px" }}>
-                        {classDashboardMetrics.prevSession.sessionNumber > 0 && (
+                        {classDashboardMetrics.prevSession.sessionNumber >= 0 && (
                           <span style={{ width: "40px", textAlign: "right" }}>B.{classDashboardMetrics.prevSession.sessionNumber}</span>
                         )}
                         <span style={{ width: "45px", textAlign: "right", color: "#10b981" }}>B.{selectedAttendanceSession}</span>
-                        {classDashboardMetrics.prevSession.sessionNumber > 0 && (
+                        {classDashboardMetrics.prevSession.sessionNumber >= 0 && (
                           <span style={{ width: "35px", textAlign: "right" }}>+/-</span>
                         )}
                       </div>
@@ -763,7 +771,7 @@ export function ClassDashboardView({
                       const current = classDashboardMetrics.selectedSession[item.key] || 0;
                       const prev = classDashboardMetrics.prevSession[item.key] || 0;
                       const diff = current - prev;
-                      const hasPrev = classDashboardMetrics.prevSession.sessionNumber > 0;
+                      const hasPrev = classDashboardMetrics.prevSession.sessionNumber >= 0;
 
                       return (
                         <div key={item.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "2px 0" }}>
@@ -846,6 +854,7 @@ export function ClassDashboardView({
                     <table>
                       <thead>
                         <tr>
+                          <th style={{ width: 50, textAlign: "center" }}>STT</th>
                           <th>Học viên</th>
                           <th>Email</th>
                           <th>Số buổi vắng</th>
@@ -856,8 +865,9 @@ export function ClassDashboardView({
                       </thead>
                       <tbody>
                         {classDashboardMetrics.recentAbsentees?.length ? (
-                          classDashboardMetrics.recentAbsentees.map((student: any) => (
+                          classDashboardMetrics.recentAbsentees.map((student: any, idx: number) => (
                             <tr key={student.id}>
+                              <td style={{ textAlign: "center", color: "#94a3b8" }}>{idx + 1}</td>
                               <td>{student.name}</td>
                               <td>{student.email}</td>
                               <td>
@@ -878,7 +888,7 @@ export function ClassDashboardView({
                           ))
                         ) : (
                           <tr>
-                            <td colSpan={3 + (classDashboardMetrics.recentAbsenceSessionNumbers?.length || 0)}>
+                            <td colSpan={4 + (classDashboardMetrics.recentAbsenceSessionNumbers?.length || 0)}>
                               Chưa có học viên vắng trong các buổi gần nhất.
                             </td>
                           </tr>
@@ -1041,6 +1051,7 @@ export function ClassDashboardView({
                         <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 8px" }}>
                           <thead>
                             <tr style={{ textAlign: "left" }}>
+                              <th style={{ padding: "12px", fontSize: "12px", color: "#64748b", fontWeight: 600, textAlign: "center", width: 50, borderBottom: "1px solid #e2e8f0" }}>STT</th>
                               <th style={{ padding: "12px", fontSize: "12px", color: "#64748b", fontWeight: 600, borderBottom: "1px solid #e2e8f0" }}>Học viên</th>
                               <th style={{ padding: "12px", fontSize: "12px", color: "#64748b", fontWeight: 600, borderBottom: "1px solid #e2e8f0" }}>Email</th>
                               <th style={{ padding: "12px", fontSize: "12px", color: "#64748b", fontWeight: 600, textAlign: "center", borderBottom: "1px solid #e2e8f0" }}>Chuyên cần</th>
@@ -1049,9 +1060,10 @@ export function ClassDashboardView({
                             </tr>
                           </thead>
                           <tbody>
-                            {certificateDetailRows.map((row: any) => (
+                            {certificateDetailRows.map((row: any, idx: number) => (
                               <tr key={row.id} style={{ background: "#f8fafc" }}>
-                                <td style={{ padding: "16px 12px", fontWeight: 700, fontSize: "14px", color: "#1e293b", borderRadius: "8px 0 0 8px" }}>{row.name}</td>
+                                <td style={{ padding: "16px 12px", textAlign: "center", color: "#94a3b8", borderRadius: "8px 0 0 8px" }}>{idx + 1}</td>
+                                <td style={{ padding: "16px 12px", fontWeight: 700, fontSize: "14px", color: "#1e293b" }}>{row.name}</td>
                                 <td style={{ padding: "16px 12px", fontSize: "13px", color: "#64748b" }}>{row.email}</td>
                                 <td style={{ padding: "16px 12px", textAlign: "center" }}>
                                   <span style={{ background: "#e2e8f0", padding: "4px 10px", borderRadius: "6px", fontSize: "12px", fontWeight: 700, color: "#475569" }}>
@@ -1271,31 +1283,55 @@ export function ClassDashboardView({
                     <div className="section-heading compact">
                       <div>
                         <p className="eyebrow" style={{ color: "#dc2626" }}>Cảnh báo</p>
-                        <h3>Học viên có nguy cơ không đạt ({classDashboardMetrics.atRiskStudents.length})</h3>
+                        <h3>Học viên có nguy cơ bỏ học ({classDashboardMetrics.atRiskStudents.length})</h3>
                       </div>
+                    </div>
+                    <div style={{ marginTop: "12px", padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "10px", fontSize: "12px", color: "#7f1d1d", lineHeight: 1.6 }}>
+                      <b style={{ color: "#991b1b", marginRight: 6 }}>ⓘ Tiêu chí:</b>
+                      học viên thoả <b>một</b> trong 3 điều kiện sau sẽ vào danh sách —
+                      (1) vắng <b>≥ 2 buổi liên tiếp</b>;
+                      (2) vắng <b>≥ 50% số buổi đã điểm danh</b>;
+                      (3) vắng <b>buổi đã điểm danh gần nhất</b>.
+                      Sắp xếp ưu tiên: vắng buổi gần nhất → chuỗi liên tiếp dài → tỷ lệ vắng cao → điểm chuyên cần thấp.
                     </div>
                     <div className="class-table" style={{ marginTop: "16px" }}>
                       <table>
                         <thead>
                           <tr>
+                            <th style={{ width: 50, textAlign: "center" }}>STT</th>
                             <th>Học viên</th>
                             <th>Email</th>
-                            <th>SĐT</th>
-                            <th>Tỉ lệ CC</th>
-                            <th>Vắng/Muộn</th>
-                            <th>Điểm BT</th>
+                            <th style={{ width: 120 }}>SĐT</th>
+                            <th style={{ width: 90, textAlign: "center" }}>Điểm CC</th>
+                            <th style={{ width: 100, textAlign: "center" }}>Tổng vắng</th>
+                            <th style={{ width: 110, textAlign: "center" }}>Vắng liên tiếp</th>
+                            <th style={{ width: 110, textAlign: "center" }}>Buổi gần nhất</th>
                             <th>Ghi chú</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {classDashboardMetrics.atRiskStudents.map((s: any) => (
+                          {classDashboardMetrics.atRiskStudents.map((s: any, idx: number) => (
                             <tr key={s.id}>
+                              <td style={{ textAlign: "center", color: "#94a3b8" }}>{idx + 1}</td>
                               <td>{s.name}</td>
                               <td>{s.email}</td>
-                              <td>{s.phone}</td>
-                              <td><strong style={{ color: s.attendanceRate < 50 ? "#dc2626" : "inherit" }}>{s.attendanceRate}%</strong></td>
-                              <td>{s.absentCount}v / {s.lateCount}m</td>
-                              <td>{s.assignmentScore}</td>
+                              <td>{s.phone || "-"}</td>
+                              <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                                <span style={{ fontWeight: 700, color: s.attendanceScore < 5 ? "#dc2626" : "inherit" }}>{Number(s.attendanceScore).toFixed(1)}</span><span style={{ color: "#94a3b8" }}>/10</span>
+                              </td>
+                              <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                                <span style={{ fontWeight: 700, color: s.halfOrMoreAbsent ? "#dc2626" : "inherit" }}>{s.absentCount}</span><span style={{ color: "#94a3b8" }}>/{s.totalMarkedSessions || 0}</span>
+                              </td>
+                              <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                                <span style={{ fontWeight: 700, color: s.consecutiveAbsenceMax >= 2 ? "#dc2626" : "inherit" }}>{s.consecutiveAbsenceMax}</span><span style={{ color: "#94a3b8" }}> buổi</span>
+                              </td>
+                              <td style={{ textAlign: "center", whiteSpace: "nowrap" }}>
+                                {s.absentInLatest ? (
+                                  <span style={{ color: "#dc2626", fontWeight: 700 }}>● Vắng</span>
+                                ) : (
+                                  <span style={{ color: "#94a3b8" }}>—</span>
+                                )}
+                              </td>
                               <td><span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{s.reason}</span></td>
                             </tr>
                           ))}

@@ -53,10 +53,13 @@ export function AttendanceView({
   };
 
   // Calculate score: (V:1, P:0.75, M:0.5, X:0.25, Unmarked:0)
+  // Buổi 0 (session_number = 0) là buổi mở đầu, không tính vào điểm chuyên cần.
   const calculateAttendanceScore = (enrollmentId: string) => {
-    const studentRecords = attendanceRecords.filter(r => String(r.enrollment_id) === String(enrollmentId));
+    const studentRecords = attendanceRecords.filter(r =>
+      String(r.enrollment_id) === String(enrollmentId) && Number(r.session_number) !== 0,
+    );
     if (attendanceSessionCount === 0) return 0;
-    
+
     let totalPoints = 0;
     studentRecords.forEach(r => {
       if (r.status === "present") totalPoints += 1;
@@ -64,7 +67,7 @@ export function AttendanceView({
       else if (r.status === "excused") totalPoints += 0.5;
       else if (r.status === "absent") totalPoints += 0;
     });
-    
+
     return Number(((totalPoints / attendanceSessionCount) * 10).toFixed(2));
   };
 
@@ -85,7 +88,9 @@ export function AttendanceView({
               <label style={{ width: "140px" }}>
                 <span>Buổi học</span>
                 <select onChange={(e) => setSelectedAttendanceSession(Number(e.target.value))} value={selectedAttendanceSession}>
-                  {Array.from({ length: attendanceSessionCount }, (_, i) => i + 1).map(n => <option key={n} value={n}>Buổi {n}</option>)}
+                  {Array.from({ length: attendanceSessionCount + 1 }, (_, i) => i).map(n => (
+                    <option key={n} value={n}>{n === 0 ? "Buổi 0 (không tính điểm)" : `Buổi ${n}`}</option>
+                  ))}
                 </select>
               </label>
             )}
@@ -285,43 +290,58 @@ export function AttendanceView({
             <table className="summary-table">
               <thead>
                 <tr>
-                  <th style={{ position: "sticky", left: 0, zIndex: 2, background: "white" }}>Học viên</th>
-                  {Array.from({ length: attendanceSessionCount }, (_, i) => i + 1).map(n => (
-                    <th key={n} style={{ textAlign: "center", minWidth: "40px", padding: "8px 4px" }}>B{n}</th>
+                  <th style={{ position: "sticky", left: 0, zIndex: 2, background: "white", width: 50, textAlign: "center" }}>STT</th>
+                  <th style={{ position: "sticky", left: 50, zIndex: 2, background: "white" }}>Học viên</th>
+                  {Array.from({ length: attendanceSessionCount + 1 }, (_, i) => i).map(n => (
+                    <th
+                      key={n}
+                      title={n === 0 ? "Buổi 0 — không tính vào điểm chuyên cần" : undefined}
+                      style={{
+                        textAlign: "center",
+                        minWidth: "40px",
+                        padding: "8px 4px",
+                        color: n === 0 ? "var(--text-secondary)" : undefined,
+                        fontStyle: n === 0 ? "italic" : undefined,
+                      }}
+                    >
+                      B{n}
+                    </th>
                   ))}
                   <th style={{ textAlign: "center", fontWeight: 700, background: "var(--background-secondary)" }}>Điểm CC</th>
                 </tr>
               </thead>
               <tbody>
                 {selectedClassEnrollments.length ? (
-                  selectedClassEnrollments.map((enrollment) => {
+                  selectedClassEnrollments.map((enrollment, idx) => {
                     const studentRecords = attendanceRecords.filter(r => String(r.enrollment_id) === String(enrollment.id));
                     const score = calculateAttendanceScore(enrollment.id);
-                    
+
                     return (
                       <tr key={enrollment.id}>
-                        <td style={{ position: "sticky", left: 0, zIndex: 1, background: "white", boxShadow: "2px 0 5px rgba(0,0,0,0.05)" }}>
+                        <td style={{ position: "sticky", left: 0, zIndex: 1, background: "white", textAlign: "center", color: "#94a3b8" }}>{idx + 1}</td>
+                        <td style={{ position: "sticky", left: 50, zIndex: 1, background: "white", boxShadow: "2px 0 5px rgba(0,0,0,0.05)" }}>
                           <div style={{ fontWeight: 600, fontSize: "13px", whiteSpace: "nowrap" }}>{enrollment.name}</div>
                           <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>{enrollment.email}</div>
                         </td>
-                        {Array.from({ length: attendanceSessionCount }, (_, i) => i + 1).map(n => {
+                        {Array.from({ length: attendanceSessionCount + 1 }, (_, i) => i).map(n => {
                           const record = studentRecords.find(r => Number(r.session_number) === n);
                           const display = getStatusDisplay(record?.status || "");
                           return (
                             <td key={n} style={{ textAlign: "center", padding: "8px 4px" }}>
-                              <span 
-                                title={display.title}
-                                style={{ 
-                                  display: "inline-flex", 
-                                  alignItems: "center", 
-                                  justifyContent: "center", 
-                                  width: "24px", 
-                                  height: "24px", 
-                                  borderRadius: "4px", 
-                                  fontSize: "11px", 
+                              <span
+                                title={n === 0 ? `${display.title} · Buổi 0 không tính điểm` : display.title}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  width: "24px",
+                                  height: "24px",
+                                  borderRadius: "4px",
+                                  fontSize: "11px",
                                   fontWeight: 700,
                                   color: "white",
-                                  backgroundColor: display.color
+                                  backgroundColor: display.color,
+                                  opacity: n === 0 ? 0.55 : 1,
                                 }}
                               >
                                 {display.label}
@@ -338,7 +358,7 @@ export function AttendanceView({
                     );
                   })
                 ) : (
-                  <tr><td colSpan={attendanceSessionCount + 2}>Chọn lớp để xem bảng tổng hợp.</td></tr>
+                  <tr><td colSpan={attendanceSessionCount + 4}>Chọn lớp để xem bảng tổng hợp.</td></tr>
                 )}
               </tbody>
             </table>

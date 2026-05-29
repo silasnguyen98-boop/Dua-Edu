@@ -78,7 +78,7 @@ const verifyAdmin = async (token: string) =>
   await verifyUserRole(token, ["admin", "operation"]);
 
 const verifyStudentAccountManager = async (token: string) =>
-  verifyUserRole(token, ["admin", "operation", "assistant"]);
+  verifyUserRole(token, ["admin", "operation", "assistant", "teacher"]);
 
 const ensurePublicUserProfile = async (adminClient: ReturnType<typeof getSupabaseAdmin>, authUser: any) => {
   const email = authUser.email ?? "";

@@ -70,6 +70,7 @@ export function AssistantAssignmentsView({
           <table>
             <thead>
               <tr>
+                <th style={{ width: 50, textAlign: "center" }}>STT</th>
                 <th>Lớp</th>
                 <th>Mã lớp</th>
                 <th>Khoá học</th>
@@ -81,11 +82,12 @@ export function AssistantAssignmentsView({
             </thead>
             <tbody>
               {filteredItems.length ? (
-                filteredItems.map((item) => {
+                filteredItems.map((item, idx) => {
                   const assignments = assistantAssignmentsByClass[item.id] ?? [];
 
                   return (
                     <tr key={item.id}>
+                      <td style={{ textAlign: "center", color: "#94a3b8" }}>{idx + 1}</td>
                       <td>{item.className}</td>
                       <td>{item.classCode}</td>
                       <td>{item.courseName}</td>
@@ -124,7 +126,7 @@ export function AssistantAssignmentsView({
                 })
               ) : (
                 <tr>
-                  <td colSpan={7}>Không có lớp phù hợp để phân công trợ giảng.</td>
+                  <td colSpan={8}>Không có lớp phù hợp để phân công trợ giảng.</td>
                 </tr>
               )}
             </tbody>

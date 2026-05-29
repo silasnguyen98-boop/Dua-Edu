@@ -78,8 +78,8 @@ export function useDashboardMetrics({
       };
     };
 
-    const sessionRows = Array.from({ length: attendanceSessionCount }, (_, index) => {
-      const sessionNumber = index + 1;
+    const sessionRows = Array.from({ length: attendanceSessionCount + 1 }, (_, index) => {
+      const sessionNumber = index; // 0 = buổi mở đầu (không tính điểm CC), 1..N = các buổi tính điểm
       const counts = countSession(sessionNumber);
       const attended = counts.present + counts.late;
 
@@ -122,15 +122,95 @@ export function useDashboardMetrics({
         b.recentAbsentCount - a.recentAbsentCount ||
         String(a.name || "").localeCompare(String(b.name || "")),
       );
-    const atRiskStudents = selectedAttendanceClass.enrollments.filter((en: any) => {
-      if (last2Sessions.length < 2) return false;
-      return last2Sessions.every((session) => {
-        const record = recordsForClass.find(
-          (r) => String(r.enrollment_id) === en.id && Number(r.session_number) === session.sessionNumber,
+    // "Nguy cơ bỏ học" — học viên thỏa MỘT trong 3 tiêu chí:
+    //   (1) vắng >= 2 buổi liên tiếp
+    //   (2) vắng >= 2 buổi (tổng)
+    //   (3) vắng ở buổi đã điểm danh gần nhất
+    const markedSessionNumbersAsc = [...sessionRows]
+      .filter((s) => s.isMarked && s.sessionNumber <= selectedAttendanceSession)
+      .map((s) => s.sessionNumber)
+      .sort((a, b) => a - b);
+    const latestMarkedSession = markedSessionNumbersAsc.length
+      ? markedSessionNumbersAsc[markedSessionNumbersAsc.length - 1]
+      : null;
+
+    const atRiskStudents = selectedAttendanceClass.enrollments
+      .map((en: any) => {
+        const studentRecords = recordsForClass.filter((r) => String(r.enrollment_id) === en.id);
+        const lateCount = studentRecords.filter((r) => r.status === "late").length;
+        const absentCount = studentRecords.filter((r) => r.status === "absent").length;
+        const attendanceScore = Number(en.attendanceScore ?? 0);
+
+        // Danh sách số buổi vắng (theo thứ tự buổi tăng dần).
+        const absentSessions = markedSessionNumbersAsc.filter((sn) =>
+          studentRecords.some((r) => Number(r.session_number) === sn && r.status === "absent"),
         );
-        return record?.status === "absent";
+
+        // Chuỗi vắng liên tiếp dài nhất + danh sách chuỗi.
+        let consecutiveMax = 0;
+        let currentStreak: number[] = [];
+        let longestStreak: number[] = [];
+        for (const sn of markedSessionNumbersAsc) {
+          const isAbsent = studentRecords.some(
+            (r) => Number(r.session_number) === sn && r.status === "absent",
+          );
+          if (isAbsent) {
+            currentStreak.push(sn);
+            if (currentStreak.length > consecutiveMax) {
+              consecutiveMax = currentStreak.length;
+              longestStreak = [...currentStreak];
+            }
+          } else {
+            currentStreak = [];
+          }
+        }
+
+        const absentInLatest = latestMarkedSession != null && absentSessions.includes(latestMarkedSession);
+
+        const totalMarked = markedSessionNumbersAsc.length;
+        const absentRatio = totalMarked > 0 ? absentCount / totalMarked : 0;
+        const halfOrMoreAbsent = totalMarked > 0 && absentRatio >= 0.5;
+
+        const reasons: string[] = [];
+        if (consecutiveMax >= 2) {
+          reasons.push(`Vắng ${consecutiveMax} buổi liên tiếp (buổi ${longestStreak.join(", ")})`);
+        }
+        if (halfOrMoreAbsent) {
+          reasons.push(
+            `Vắng ${absentCount}/${totalMarked} buổi đã điểm danh (${Math.round(absentRatio * 100)}%, buổi ${absentSessions.join(", ")})`,
+          );
+        }
+        if (absentInLatest) {
+          reasons.push(`Vắng buổi ${latestMarkedSession} (gần nhất)`);
+        }
+
+        return {
+          ...en,
+          attendanceScore,
+          absentCount,
+          lateCount,
+          consecutiveAbsenceMax: consecutiveMax,
+          absentInLatest,
+          latestMarkedSession,
+          absentSessions,
+          totalMarkedSessions: totalMarked,
+          absentRatio,
+          halfOrMoreAbsent,
+          reason: reasons.join(" · "),
+        };
+      })
+      .filter((s: any) => s.consecutiveAbsenceMax >= 2 || s.halfOrMoreAbsent || s.absentInLatest)
+      .sort((a: any, b: any) => {
+        // Ưu tiên: vắng buổi gần nhất → chuỗi vắng dài → tỷ lệ vắng cao → điểm CC thấp.
+        if (Number(b.absentInLatest) !== Number(a.absentInLatest)) {
+          return Number(b.absentInLatest) - Number(a.absentInLatest);
+        }
+        if (b.consecutiveAbsenceMax !== a.consecutiveAbsenceMax) {
+          return b.consecutiveAbsenceMax - a.consecutiveAbsenceMax;
+        }
+        if (b.absentRatio !== a.absentRatio) return b.absentRatio - a.absentRatio;
+        return a.attendanceScore - b.attendanceScore;
       });
-    });
 
     const totalAssignments = Number(selectedAttendanceClass.totalAssignments || 0) || 0;
     const totalPossibleAssignments = (totalStudents * totalAssignments) || 0;
@@ -277,15 +357,17 @@ export function useDashboardMetrics({
       sessionRows,
       selectedSession: countSession(selectedAttendanceSession),
       prevSession: (() => {
-        // Tìm buổi gần nhất có ít nhất 1 bản ghi điểm danh trước buổi hiện tại
+        // Tìm buổi gần nhất có ít nhất 1 bản ghi điểm danh trước buổi hiện tại.
+        // Dùng sentinel sessionNumber = -1 cho "không có buổi trước" — vì buổi 0
+        // (khai giảng) cũng là một buổi hợp lệ để so sánh.
         const markedSessionsBefore = sessionRows
           .filter(s => s.sessionNumber < selectedAttendanceSession && s.isMarked)
           .sort((a, b) => b.sessionNumber - a.sessionNumber);
-        
+
         if (markedSessionsBefore.length === 0) {
-          return { absent: 0, excused: 0, late: 0, present: 0, unmarked: 0, attendanceRate: 0, sessionNumber: 0 };
+          return { absent: 0, excused: 0, late: 0, present: 0, unmarked: 0, attendanceRate: 0, sessionNumber: -1 };
         }
-        
+
         const targetPrevSession = markedSessionsBefore[0].sessionNumber;
         return { ...countSession(targetPrevSession), sessionNumber: targetPrevSession };
       })(),

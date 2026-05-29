@@ -19,6 +19,7 @@ export type FieldConfig = {
   name: string;
   label: string;
   type: FieldType;
+  step?: string;
   exampleValue?: string;
   importKey?: string;
   required?: boolean;
@@ -46,6 +47,7 @@ export type ViewName =
   | "assignmentScore"
   | "projectScore"
   | "admins"
+  | "quiz"
   | TableName;
 
 export type SidebarGroup = "overview" | "academic" | "coreData" | "extendedData" | "grading" | "system" | null;

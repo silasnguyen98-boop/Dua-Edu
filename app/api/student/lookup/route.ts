@@ -1,52 +1,81 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
-import crypto from "crypto";
+import { supabase } from "@/lib/supabase/client";
 
-/**
- * Che email để bảo mật thông tin cá nhân (PII)
- * Ví dụ: silasnguyen@gmail.com -> si***@gmail.com
- */
 function maskEmail(email: string) {
   if (!email) return "";
   const [name, domain] = email.split("@");
   if (!name || !domain) return email;
-  
-  // Hiển thị 2 ký tự đầu, còn lại thay bằng dấu *
-  const maskedName = name.length > 2 
+  const maskedName = name.length > 2
     ? name.substring(0, 2) + "***"
     : name[0] + "***";
-  
   return `${maskedName}@${domain}`;
 }
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const email = searchParams.get("email");
+    const emailParam = searchParams.get("email");
 
-    if (!email) {
+    if (!emailParam) {
       return NextResponse.json({ error: "Thiếu email tra cứu" }, { status: 400 });
     }
 
-    // Sử dụng SHA-256 để khớp với cơ chế đồng bộ mới (Thêm kiểm tra an toàn)
-    const cleanEmail = (email || "").trim().toLowerCase();
-    const emailHash = crypto.createHash("sha256").update(cleanEmail + "DUA_EDU_SECURE_2026").digest("hex");
-    const filePath = path.join(process.cwd(), "data", "students", `${emailHash}.json`);
+    const cleanEmail = emailParam.trim().toLowerCase();
 
-    if (!fs.existsSync(filePath)) {
-      return NextResponse.json({ error: "Không tìm thấy học viên với email này. Dữ liệu có thể chưa được đồng bộ." }, { status: 404 });
+    const { data: student, error } = await supabase
+      .from("students")
+      .select(`
+        id,
+        full_name,
+        email,
+        enrollments (
+          id,
+          status,
+          attendance_score,
+          assignment_score,
+          project_score,
+          final_score,
+          certificates ( certificate_code ),
+          classes (
+            id,
+            class_code,
+            class_name,
+            meeting_url,
+            recording_url,
+            slide_url,
+            reference_url,
+            assignment_url,
+            courses ( name ),
+            class_sessions (
+              id,
+              session_number,
+              session_title,
+              session_date,
+              start_time,
+              end_time
+            )
+          )
+        )
+      `)
+      .ilike("email", cleanEmail)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Student Lookup Error:", error);
+      return NextResponse.json({ error: "Lỗi hệ thống khi tra cứu dữ liệu." }, { status: 500 });
     }
 
-    const fileContent = fs.readFileSync(filePath, "utf-8");
-    const studentData = JSON.parse(fileContent);
-
-    // Bảo mật: Che email trước khi trả về phía client
-    if (studentData.email) {
-      studentData.email = maskEmail(studentData.email);
+    if (!student) {
+      return NextResponse.json(
+        { error: "Không tìm thấy học viên với email này. Vui lòng kiểm tra lại hoặc liên hệ quản trị viên." },
+        { status: 404 }
+      );
     }
 
-    return NextResponse.json(studentData);
+    return NextResponse.json({
+      ...student,
+      email: maskEmail(student.email),
+    });
   } catch (err: any) {
     console.error("Student Lookup Error:", err);
     return NextResponse.json({ error: "Lỗi hệ thống khi tra cứu dữ liệu." }, { status: 500 });

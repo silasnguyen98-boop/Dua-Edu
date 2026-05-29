@@ -122,7 +122,7 @@ export const getInitialSession = () => {
   const val = Number(
     new URLSearchParams(window.location.search).get("session") ?? window.localStorage.getItem(storageKeys.session),
   );
-  return Number.isFinite(val) && val > 0 ? val : 1;
+  return Number.isFinite(val) && val >= 0 ? val : 1;
 };
 
 export const getInitialAttendanceMode = (): "session" | "summary" => {
@@ -150,7 +150,8 @@ export const getSidebarGroupForView = (view: ViewName): SidebarGroup => {
     view === "students" ||
     view === "attendance" ||
     view === "certificates" ||
-    view === "assistantAssignments"
+    view === "assistantAssignments" ||
+    view === "quiz"
   ) {
     return "extendedData";
   }
@@ -166,4 +167,6 @@ export const isAssistantAllowedView = (view: ViewName) =>
   view === "assignmentScore" ||
   view === "projectScore" ||
   view === "students" ||
-  view === "class_sessions";
+  view === "class_sessions" ||
+  view === "classes" ||
+  view === "quiz";

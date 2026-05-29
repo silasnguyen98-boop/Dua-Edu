@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { ClassInfoModal } from "./ClassInfoModal";
 
 interface ClassManagementViewProps {
   visibleClassItems: any[];
@@ -24,6 +25,7 @@ export function ClassManagementView({
   formatValue,
 }: ClassManagementViewProps) {
   const [search, setSearch] = useState("");
+  const [infoClassItem, setInfoClassItem] = useState<any | null>(null);
 
   const filteredItems = search
     ? visibleClassItems.filter((item) =>
@@ -38,7 +40,7 @@ export function ClassManagementView({
     <section className="analytics-grid" aria-label="Quản lý lớp">
       <article className="analytics-card wide" style={{ paddingTop: "24px" }}>
         <div style={{ marginBottom: "24px", display: "flex", justifyContent: "flex-end", gap: "12px", flexWrap: "wrap" }}>
-          {currentUserRole !== "assistant" && (
+          {currentUserRole !== "assistant" && currentUserRole !== "teacher" && (
             <button
               aria-label="Thêm lớp"
               className="primary-action"
@@ -69,52 +71,47 @@ export function ClassManagementView({
           <table>
             <thead>
               <tr>
-                <th>Lớp</th>
+                <th style={{ width: 50, textAlign: "center" }}>STT</th>
+                <th>Tên lớp</th>
                 <th>Mã lớp</th>
-                <th>Khoá học</th>
-                <th>Giảng viên</th>
                 <th>Ngày bắt đầu</th>
                 <th>Số buổi</th>
-                <th>Số bài tập</th>
                 <th>Lịch học</th>
-                <th>Thời gian học</th>
-                <th>Sĩ số</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {filteredItems.length ? (
-                filteredItems.map((item) => (
+                filteredItems.map((item, idx) => (
                   <tr key={item.id}>
+                    <td style={{ textAlign: "center", color: "#94a3b8" }}>{idx + 1}</td>
                     <td>{item.className}</td>
                     <td>{item.classCode}</td>
-                    <td>{item.courseName}</td>
-                    <td>{item.teacherName}</td>
                     <td>{formatValue(item.startDate)}</td>
                     <td>{item.totalSessions}</td>
-                    <td>{item.totalAssignments}</td>
                     <td>{item.schedule}</td>
-                    <td>{item.studyTime}</td>
-                    <td>
-                      <strong>{item.enrollmentCount}</strong>
-                    </td>
                     <td style={{ whiteSpace: "nowrap" }}>
                       <div style={{ display: "flex", gap: "6px" }}>
-                        {currentUserRole !== "assistant" && (
-                          <button
-                            className="secondary-button compact-button"
-                            onClick={() => onEditClass(item.raw ?? item)}
-                            type="button"
-                          >
-                            Sửa
-                          </button>
-                        )}
+                        <button
+                          className="secondary-button compact-button"
+                          onClick={() => setInfoClassItem(item)}
+                          type="button"
+                        >
+                          Xem
+                        </button>
+                        <button
+                          className="secondary-button compact-button"
+                          onClick={() => onEditClass(item.raw ?? item)}
+                          type="button"
+                        >
+                          Sửa
+                        </button>
                         <button
                           className="secondary-button compact-button"
                           onClick={() => onOpenDetail(item.id)}
                           type="button"
                         >
-                          Xem
+                          Học viên
                         </button>
                         <button
                           className="secondary-button compact-button"
@@ -129,9 +126,11 @@ export function ClassManagementView({
                 ))
               ) : (
                 <tr>
-                  <td colSpan={11}>
-                    {currentUserRole === "assistant" && assignedClassIds.length === 0
-                      ? "Bạn chưa được phân công lớp nào. Liên hệ Admin để được cấp quyền."
+                  <td colSpan={7}>
+                    {(currentUserRole === "assistant" || currentUserRole === "teacher") && assignedClassIds.length === 0
+                      ? currentUserRole === "teacher"
+                          ? "Bạn chưa được gán phụ trách lớp nào. Liên hệ Admin để được cấp quyền."
+                          : "Bạn chưa được phân công lớp nào. Liên hệ Admin để được cấp quyền."
                       : "Chưa có dữ liệu lớp hoặc ghi danh."}
                   </td>
                 </tr>
@@ -140,6 +139,18 @@ export function ClassManagementView({
           </table>
         </div>
       </article>
+
+      {infoClassItem && (
+        <ClassInfoModal
+          classItem={infoClassItem}
+          onClose={() => setInfoClassItem(null)}
+          onEdit={(row) => {
+            setInfoClassItem(null);
+            onEditClass(row);
+          }}
+          formatValue={formatValue}
+        />
+      )}
     </section>
   );
 }

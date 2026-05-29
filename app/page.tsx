@@ -66,47 +66,59 @@ export default function HomePage() {
   }, [router]);
 
   return (
-    <main className="redirect-page">
-      <div className="redirect-card">
-        <img alt="Dua Edu" src="https://i.ibb.co/3yKrstMS/Thie-t-ke-chu-a-co-te-n-20.png" />
-        <p>Đang chuyển hướng...</p>
+    <main
+      style={{
+        minHeight: "100vh",
+        display: "grid",
+        placeItems: "center",
+        padding: 24,
+        background: "#f7faf8",
+        color: "#10231d",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          padding: "16px 20px",
+          border: "1px solid #dbe7e1",
+          borderRadius: 16,
+          background: "white",
+          boxShadow: "0 18px 50px rgba(15, 35, 29, 0.1)",
+        }}
+      >
+        <img
+          alt="Dua Edu"
+          src="https://i.ibb.co/3yKrstMS/Thie-t-ke-chu-a-co-te-n-20.png"
+          width={42}
+          height={42}
+          style={{
+            width: 42,
+            height: 42,
+            borderRadius: 12,
+            objectFit: "cover",
+            flexShrink: 0,
+          }}
+        />
+        <span
+          aria-hidden
+          style={{
+            width: 18,
+            height: 18,
+            borderRadius: "50%",
+            border: "2px solid #dbe7e1",
+            borderTopColor: "#10231d",
+            animation: "dua-spin 0.8s linear infinite",
+            flexShrink: 0,
+          }}
+        />
+        <p style={{ margin: 0, color: "#49635b", fontWeight: 700 }}>
+          Đang chuyển hướng...
+        </p>
       </div>
 
-      <style jsx>{`
-        .redirect-page {
-          min-height: 100vh;
-          display: grid;
-          place-items: center;
-          padding: 24px;
-          background: #f7faf8;
-          color: #10231d;
-          font-family: var(--font-geist-sans);
-        }
-
-        .redirect-card {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          padding: 16px 18px;
-          border: 1px solid #dbe7e1;
-          border-radius: 16px;
-          background: white;
-          box-shadow: 0 18px 50px rgba(15, 35, 29, 0.1);
-        }
-
-        .redirect-card img {
-          width: 42px;
-          height: 42px;
-          border-radius: 12px;
-          object-fit: cover;
-        }
-
-        .redirect-card p {
-          margin: 0;
-          color: #49635b;
-          font-weight: 700;
-        }
-      `}</style>
+      <style>{`@keyframes dua-spin { to { transform: rotate(360deg); } }`}</style>
     </main>
   );
 }
